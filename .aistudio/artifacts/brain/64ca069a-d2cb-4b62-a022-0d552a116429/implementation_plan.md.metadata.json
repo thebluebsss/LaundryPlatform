@@ -1,0 +1,6 @@
+{
+  "summary":  "Thiết kế lại ERD và Đặc tả Cơ sở dữ liệu (Database Schema) hoàn chỉnh cho hệ thống Giặt Sấy Vô Trùng, giải quyết bài toán đơn hàng có nhiều loại vải quần áo (Multi-fabric Order Details), lưu trữ đầy đủ thời gian đơn hàng, mô tả đơn hàng, khối lượng tạm tính/thực tế và kèm code vẽ sơ đồ ERD (dbdiagram.io, Mermaid, PlantUML).",
+  "updatedAt":  "2026-10-21T07:13:20.747555353Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

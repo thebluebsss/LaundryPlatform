@@ -1,0 +1,20 @@
+{
+  "id": "vn.sachse.driver",
+  "short_name": "Sạch Sẽ Tài Xế",
+  "name": "Sạch Sẽ Tài Xế - Đối Tác Giao Nhận",
+  "description": "Ứng dụng dành riêng cho Tài Xế / Shipper đối tác Sạch Sẽ: Bật radar nhận chuyến 2 chiều (Pickup/Return), chụp ảnh POD và quản lý Ví Thu Nhập.",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/?standalone=driver#/mobile-driver/radar",
+  "scope": "/",
+  "background_color": "#ecfdf5",
+  "theme_color": "#059669",
+  "display": "standalone",
+  "orientation": "portrait"
+}

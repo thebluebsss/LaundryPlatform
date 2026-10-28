@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+:root {
+  --font-sans: "Inter", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+@theme {
+  --font-sans: "Inter", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Global improvements */
+body {
+  font-family: var(--font-sans);
+  background-color: #fafbfc;
+  color: #1e293b; /* Gentle slate gray instead of sharp black */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Softer typography variables to eliminate harsh high-contrast strain */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em !important;
+}
+
+/* Clean, soft weight mapping: prevent eye-straining 'ultra thick' bold weights */
+.font-black, 
+.font-extrabold, 
+h1, h2, h3, h4 {
+  font-weight: 700 !important; /* Cap heavy weights to an elegant 700 bold instead of crushing 900 black */
+}
+
+/* Also ensure helper classes don't force excessive solid black weights */
+.font-semibold {
+  font-weight: 600 !important;
+}
+
+.text-slate-900 {
+  color: #0f172a !important; /* Elegant slight off-black slate */
+}
+
+/* Ensure Material-UI components, inputs, and button controls strictly use the beautiful Inter font stack with gentle weights */
+input, 
+button, 
+select, 
+textarea, 
+.MuiTypography-root, 
+.MuiButton-root, 
+.MuiInputBase-root, 
+.MuiFormLabel-root {
+  font-family: inherit !important;
+}
+
+/* Custom scrollbars for a highly polished UI */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Elegant card micro-shadows */
+.premium-shadow {
+  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.02);
+}
+.premium-shadow-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.premium-shadow-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 1px 5px 0 rgba(15, 23, 42, 0.03);
+}
+

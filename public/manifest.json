@@ -1,0 +1,25 @@
+{
+  "short_name": "Sạch Sẽ",
+  "name": "Giặt Là Sạch Sẽ - Tiệm Giặt Đồ Cao Cấp",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=192&auto=format&fit=crop&q=80",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=512&auto=format&fit=crop&q=80",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "description": "Ứng dụng đặt dịch vụ giặt đồ, giặt sấy, giặt hấp cao cấp & theo dõi đơn hàng"
+}

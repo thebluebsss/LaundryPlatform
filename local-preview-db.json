@@ -1,0 +1,48 @@
+{
+  "users": [
+    {
+      "_id": "id-ij9a5rwqx",
+      "username": "testuser",
+      "email": "test@example.com",
+      "password": "$2b$10$L1TsesL91DT0WudROueUgegQSZtzOWtJ47ApaZw03QMnczA/KjLGW",
+      "fullName": "Nguyễn Văn Test",
+      "phone": "0987654321",
+      "address": "123 Đường Láng, Đống Đa, Hà Nội",
+      "role": "user",
+      "isActive": true,
+      "createdAt": "2026-06-16T03:58:48.053Z",
+      "updatedAt": "2026-06-16T03:58:48.053Z",
+      "lastLogin": "2026-06-16T03:58:48.173Z"
+    }
+  ],
+  "bookings": [],
+  "orders": [],
+  "products": [
+    {
+      "_id": "prod-1",
+      "name": "Nước giặt mộc mạc hữu cơ",
+      "description": "Thành phần thiên nhiên lành tính cho da em bé nhạy cảm",
+      "price": 135000,
+      "originalPrice": 155000,
+      "category": "detergent",
+      "stock": 50,
+      "unit": "Chai",
+      "isActive": true,
+      "createdAt": "2026-06-16T03:58:30.797Z"
+    },
+    {
+      "_id": "prod-2",
+      "name": "Nước xả vải mây trắng thơm lâu",
+      "description": "Hương hoa mộc mạc thơm dịu dàng dài lâu suốt ngày dài rực rỡ",
+      "price": 95000,
+      "originalPrice": 110000,
+      "category": "softener",
+      "stock": 35,
+      "unit": "Chai",
+      "isActive": true,
+      "createdAt": "2026-06-16T03:58:30.797Z"
+    }
+  ],
+  "equipment": [],
+  "payments": []
+}

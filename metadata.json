@@ -1,0 +1,6 @@
+{
+  "name": "Dịch vụ Giặt Là",
+  "description": "Dịch vụ giặt là hiện đại, nhanh chóng và tin cậy. Đặt lịch thu gom và giao nhận tận nhà tại Hà Nội và TP.HCM.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
