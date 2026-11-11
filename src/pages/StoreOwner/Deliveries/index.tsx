@@ -43,32 +43,21 @@ export const StoreOwnerDeliveries: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold">
-            <Truck className="w-4 h-4" />
-            <span>Điều Phối Giao Nhận & Đội Ngũ Tài Xế</span>
-          </div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
-            Quản Lý Chuyến Lấy Đồ Bẩn & Giao Đồ Sạch
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+            Điều phối giao nhận & tài xế
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Phát sóng tìm Shipper thu gom đồ bẩn hoặc giao trả đồ sạch sau khi hoàn thành quy trình giặt.
+          <p className="text-xs text-slate-500 mt-1">
+            Gọi tài xế đến lấy đồ hoặc giao trả đồ sạch cho khách trong bán kính gần tiệm.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <ButtonOutLine
-            onClick={() => navigate("/store-owner/dashboard")}
-            iconStart={<ArrowLeft className="w-4 h-4" />}
-            label="Tổng Quan Tiệm"
-            className="!w-auto !h-10 !px-4 whitespace-nowrap"
-            textClassName="!text-xs"
-          />
           <ButtonCustom
             onClick={() => setIsDispatchModalOpen(true)}
             iconStart={<Plus className="w-4 h-4" />}
-            label="Tạo Chuyến Điều Phối"
+            label="Tạo chuyến điều phối"
             className="!w-auto !h-10 !px-4 whitespace-nowrap"
             textClassName="!text-xs"
           />

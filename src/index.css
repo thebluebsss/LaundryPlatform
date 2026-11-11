@@ -1,16 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --font-sans: "Inter", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Inter", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "Be Vietnam Pro", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Be Vietnam Pro", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Be Vietnam Pro", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 @theme {
-  --font-sans: "Inter", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Inter", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "Be Vietnam Pro", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Be Vietnam Pro", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Be Vietnam Pro", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* Global improvements & strict horizontal scroll lock for mobile viewports */
@@ -26,36 +26,40 @@ body,
 
 body {
   font-family: var(--font-sans);
-  background-color: #fafbfc;
-  color: #1e293b; /* Gentle slate gray instead of sharp black */
+  background-color: #f8fafc;
+  color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   touch-action: pan-y;
 }
 
-/* Softer typography variables to eliminate harsh high-contrast strain */
+/* Unified typography hierarchy across headings, body, and numeric metrics */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
-  letter-spacing: -0.02em !important;
+  letter-spacing: -0.015em;
 }
 
-/* Clean, soft weight mapping: prevent eye-straining 'ultra thick' bold weights */
-.font-black, 
-.font-extrabold, 
-h1, h2, h3, h4 {
-  font-weight: 700 !important; /* Cap heavy weights to an elegant 700 bold instead of crushing 900 black */
+.font-mono,
+.tabular-nums {
+  font-family: var(--font-sans) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-/* Also ensure helper classes don't force excessive solid black weights */
+.font-black,
+.font-extrabold {
+  font-weight: 700 !important;
+}
+
 .font-semibold {
   font-weight: 600 !important;
 }
 
 .text-slate-900 {
-  color: #0f172a !important; /* Elegant slight off-black slate */
+  color: #0f172a !important;
 }
 
-/* Ensure Material-UI components, inputs, and button controls strictly use the beautiful Inter font stack with gentle weights */
+/* Ensure Material-UI components, inputs, and button controls strictly use the unified font stack */
 input, 
 button, 
 select, 
@@ -64,7 +68,7 @@ textarea,
 .MuiButton-root, 
 .MuiInputBase-root, 
 .MuiFormLabel-root {
-  font-family: inherit !important;
+  font-family: var(--font-sans) !important;
 }
 
 /* Custom scrollbars for a highly polished UI */

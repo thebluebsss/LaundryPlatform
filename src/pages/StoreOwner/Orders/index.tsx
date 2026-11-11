@@ -124,17 +124,13 @@ export const StoreOwnerOrders: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-blue-600 font-bold">
-            <Scale className="w-4 h-4" />
-            <span>Quản Lý Đơn Giặt · Bóc Tách Dòng Đồ & Cân Thực Tế</span>
-          </div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
-            Danh Sách Đơn Giặt Tại Cửa Hàng
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+            Quản lý đơn giặt tại tiệm
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Hỗ trợ đơn hàng nhiều chất liệu vải, đối chiếu cân nặng tạm tính & thực tế, tích hợp AI kiểm tra vải.
+          <p className="text-xs text-slate-500 mt-1">
+            Theo dõi tiến độ giặt sấy, cân khối lượng thực tế và tạo đơn trực tiếp tại quầy.
           </p>
         </div>
 
@@ -142,21 +138,14 @@ export const StoreOwnerOrders: React.FC = () => {
           <ButtonOutLine
             onClick={() => setShowCustomerBook(!showCustomerBook)}
             iconStart={<Users className="w-4 h-4" />}
-            label={`Khách Của Tiệm (${storeCustomers.length})`}
-            className="!w-auto !h-10 !px-4 whitespace-nowrap"
-            textClassName="!text-xs"
-          />
-          <ButtonOutLine
-            onClick={() => navigate("/store-owner/dashboard")}
-            iconStart={<ArrowLeft className="w-4 h-4" />}
-            label="Tổng Quan Tiệm"
+            label={`Khách của tiệm (${storeCustomers.length})`}
             className="!w-auto !h-10 !px-4 whitespace-nowrap"
             textClassName="!text-xs"
           />
           <ButtonCustom
             onClick={() => setIsPosModalOpen(true)}
             iconStart={<Plus className="w-4 h-4" />}
-            label="Tạo Đơn Tại Quầy (POS)"
+            label="Tạo đơn tại quầy"
             className="!w-auto !h-10 !px-4 whitespace-nowrap"
             textClassName="!text-xs"
           />

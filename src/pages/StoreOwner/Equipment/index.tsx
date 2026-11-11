@@ -57,46 +57,35 @@ export const StoreOwnerEquipment: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-emerald-600 font-bold">
-            <WashingMachine className="w-4 h-4" />
-            <span>Quản Lý Trang Thiết Bị Cửa Hàng</span>
-          </div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
-            Hệ Thống Lồng Giặt, Máy Sấy & Bàn Ủi
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+            Quản lý máy giặt & thiết bị
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-1">
             Đang hoạt động:{" "}
-            <strong className="font-mono text-emerald-600 tabular-nums">
+            <strong className="font-semibold text-emerald-600 tabular-nums">
               {workingCount}
             </strong>{" "}
             máy · Đang bảo trì:{" "}
-            <strong className="font-mono text-amber-600 tabular-nums">
+            <strong className="font-semibold text-amber-600 tabular-nums">
               {maintenanceCount}
             </strong>{" "}
             · Báo hỏng:{" "}
-            <strong className="font-mono text-rose-600 tabular-nums">
+            <strong className="font-semibold text-rose-600 tabular-nums">
               {brokenCount}
             </strong>
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <ButtonOutLine
-            onClick={() => navigate("/store-owner/dashboard")}
-            iconStart={<ArrowLeft className="w-4 h-4" />}
-            label="Tổng Quan Tiệm"
-            className="!w-auto !h-10 !px-4 whitespace-nowrap"
-            textClassName="!text-xs"
-          />
           <ButtonCustom
             onClick={() => {
               setEditingItem(null);
               setIsModalOpen(true);
             }}
             iconStart={<Plus className="w-4 h-4" />}
-            label="Thêm Thiết Bị Mới"
+            label="Thêm thiết bị mới"
             className="!w-auto !h-10 !px-4 whitespace-nowrap"
             textClassName="!text-xs"
           />

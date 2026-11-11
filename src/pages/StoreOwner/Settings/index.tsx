@@ -32,33 +32,17 @@ export const StoreOwnerSettings: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-amber-600 font-bold">
-            <Settings className="w-4 h-4" />
-            <span>
-              Cấu Hình Cửa Hàng · Dịch Vụ & Vật Tư (Khu Vực Hà Nội)
-            </span>
-          </div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
             {isNewStore
-              ? "Khởi Tạo Cửa Hàng Giặt Sấy Đầu Tiên Tại Hà Nội"
-              : "Thiết Lập Vận Hành Chi Nhánh (Hà Nội)"}
+              ? "Khởi tạo cửa hàng giặt sấy mới"
+              : "Cấu hình cửa hàng & bảng giá dịch vụ"}
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Quản lý thông tin định danh cửa hàng, chọn Quận/Huyện tại Hà Nội,
-            chấm tọa độ trực tiếp trên Google Maps, đơn giá giặt sấy và tồn kho
-            hóa phẩm.
+          <p className="text-xs text-slate-500 mt-1">
+            Thiết lập thông tin liên hệ, vị trí bản đồ tại Hà Nội, bảng giá giặt sấy và tồn kho nước giặt xả.
           </p>
         </div>
-
-        <ButtonOutLine
-          onClick={() => navigate("/store-owner/dashboard")}
-          iconStart={<ArrowLeft className="w-4 h-4" />}
-          label="Tổng Quan Tiệm"
-          className="!w-auto !h-10 !px-4 whitespace-nowrap shrink-0"
-          textClassName="!text-xs"
-        />
       </div>
 
       {isNewStore && (
