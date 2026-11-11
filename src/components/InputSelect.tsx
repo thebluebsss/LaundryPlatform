@@ -61,26 +61,26 @@ export const InputSelect: FC<InputSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between text-xs md:text-sm py-3 px-4 bg-slate-50 border rounded-xl focus:outline-none transition-all font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 selection:bg-blue-100 ${
+        className={`w-full flex items-center justify-between gap-2 text-xs md:text-sm py-3 px-4 bg-slate-50 border rounded-xl focus:outline-none transition-all font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 selection:bg-blue-100 ${
           inputError ? 'border-rose-400 focus:ring-rose-500/20 focus:border-rose-500' : 'border-slate-200'
         } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-100' : 'cursor-pointer'}`}
       >
-        <div className="flex items-center gap-1.5 truncate">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 text-left">
           {selectedOption ? (
             <>
               {selectedOption.extraBefore}
-              <span className="truncate text-slate-850">{selectedOption.label}</span>
-              {selectedOption.extra && <span className="text-slate-400 text-[11px] ml-1">{selectedOption.extra}</span>}
+              <span className="text-slate-850 break-words whitespace-normal leading-snug">{selectedOption.label}</span>
+              {selectedOption.extra && <span className="text-slate-400 text-[11px] ml-1 shrink-0">{selectedOption.extra}</span>}
             </>
           ) : (
-            <span className="text-slate-400">{placeholder}</span>
+            <span className="text-slate-400 break-words whitespace-normal leading-snug">{placeholder}</span>
           )}
         </div>
-        <ChevronDown className={`w-4 h-4 text-slate-450 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-slate-450 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute top-[calc(100%+6px)] left-0 w-full bg-white border border-slate-150 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute top-[calc(100%+6px)] left-0 w-full bg-white border border-slate-150 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
           {options.length === 0 ? (
             <div className="px-4 py-2.5 text-xs text-slate-400 italic">Không có lựa chọn nào</div>
           ) : (
@@ -94,16 +94,16 @@ export const InputSelect: FC<InputSelectProps> = ({
                     onChange?.({ target: { value: opt.value } });
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left px-4 py-2.5 text-xs md:text-sm flex items-center justify-between transition-colors ${
+                  className={`w-full text-left px-4 py-2.5 text-xs md:text-sm flex items-center justify-between gap-2 transition-colors ${
                     isSelected 
                       ? 'bg-blue-50 text-blue-600 font-extrabold' 
                       : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 truncate">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
                     {opt.extraBefore}
-                    <span className="truncate">{opt.label}</span>
-                    {opt.extra && <span className="text-[11px] opacity-75">{opt.extra}</span>}
+                    <span className="break-words whitespace-normal leading-snug">{opt.label}</span>
+                    {opt.extra && <span className="text-[11px] opacity-75 shrink-0">{opt.extra}</span>}
                   </div>
                   {isSelected && <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />}
                 </button>

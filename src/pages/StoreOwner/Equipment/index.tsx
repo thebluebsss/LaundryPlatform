@@ -61,7 +61,7 @@ export const StoreOwnerEquipment: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs text-emerald-600 font-bold">
             <WashingMachine className="w-4 h-4" />
-            <span>Quản Lý Trang Thiết Bị Cửa Hàng (Bảng equipment)</span>
+            <span>Quản Lý Trang Thiết Bị Cửa Hàng</span>
           </div>
           <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
             Hệ Thống Lồng Giặt, Máy Sấy & Bàn Ủi

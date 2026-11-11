@@ -89,7 +89,7 @@ export const StoreOwnerDashboard: React.FC = () => {
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <Store className="w-4 h-4 text-blue-600" />
-              <span>Không gian làm việc Chủ Cửa Hàng (Store Manager Portal)</span>
+              <span>Không gian quản lý cửa hàng</span>
               <span aria-hidden="true">·</span>
               <span className="font-mono font-bold text-slate-700">
                 {currentStore?.code}
@@ -348,13 +348,13 @@ export const StoreOwnerDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Store Customer Reviews & Manager Reply Section (Bảng `reviews`) */}
+      {/* Store Customer Reviews & Manager Reply Section */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold text-amber-600">
               <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-              <span>Bảng `reviews` · Đánh Giá Của Khách Hàng Tại Chi Nhánh</span>
+              <span>Đánh Giá Từ Khách Hàng Tại Chi Nhánh</span>
             </div>
             <h3 className="text-base md:text-lg font-black text-slate-900 mt-0.5">
               Phản Hồi Đánh Giá Chất Lượng Cửa Hàng & Shipper ({storeReviews.length})
@@ -447,7 +447,7 @@ export const StoreOwnerDashboard: React.FC = () => {
                   <div className="pt-2 border-t border-slate-200/70 space-y-2">
                     <label className="text-[11px] font-bold text-blue-700 flex items-center gap-1">
                       <MessageSquareReply className="w-3.5 h-3.5" />
-                      <span>Phản hồi của Chủ tiệm giặt (`storeReply`):</span>
+                      <span>Phản hồi của cửa hàng:</span>
                     </label>
                     <div className="flex items-center gap-2">
                       <input

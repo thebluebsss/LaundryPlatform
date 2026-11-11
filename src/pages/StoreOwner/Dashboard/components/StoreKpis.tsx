@@ -60,7 +60,7 @@ export const StoreKpis: React.FC<StoreKpisProps> = ({
             </span>
           </p>
           <p className="text-xs text-slate-500 mt-1">
-            Đối chiếu từng dòng đồ (Order_Details)
+            Đối chiếu khối lượng thực tế từng món đồ
           </p>
         </div>
       </div>

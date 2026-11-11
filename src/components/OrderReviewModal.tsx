@@ -60,7 +60,7 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
       });
       const saved = res.data?.data;
       showToast(
-        "Đã lưu đánh giá chất lượng cửa hàng & tài xế vào bảng reviews!",
+        "Cảm ơn bạn! Đánh giá dịch vụ của bạn đã được ghi nhận.",
         "success"
       );
       if (saved) {
@@ -84,7 +84,7 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-4 flex items-center justify-between">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
-              Bảng reviews · Đơn #{order.id}
+              Đánh giá dịch vụ · Đơn #{order.id}
             </span>
             <h3 className="text-base font-black mt-1">
               Đánh Giá Chất Lượng Cửa Hàng & Tài Xế

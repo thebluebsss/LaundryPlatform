@@ -275,29 +275,7 @@ export const DriverStepControl: React.FC<DriverStepControlProps> = ({
         </div>
       </div>
 
-      {/* Khung giờ hẹn lấy & trả đồ của khách hàng */}
-      <div className="p-3 rounded-xl bg-teal-50/70 border border-teal-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-        <div className="flex items-center justify-between sm:justify-start gap-2">
-          <span className="text-slate-600 font-semibold">Giờ lấy đồ:</span>
-          <strong className="text-blue-700">
-            {task.pickupTime || "09:00 - 11:00"}
-            {task.pickupDate
-              ? ` (${task.pickupDate.split("-").reverse().join("/")})`
-              : ""}
-          </strong>
-        </div>
-        <div className="flex items-center justify-between sm:justify-start gap-2">
-          <span className="text-slate-600 font-semibold">Giờ trả đồ:</span>
-          <strong className="text-emerald-700">
-            {task.deliveryTime || "16:00 - 18:00"}
-            {task.deliveryDate
-              ? ` (${task.deliveryDate.split("-").reverse().join("/")})`
-              : ""}
-          </strong>
-        </div>
-      </div>
-
-      {/* SP-UC4.3: Liên hệ khách hàng hoặc chủ tiệm giặt */}
+      {/* Liên hệ khách hàng hoặc chủ tiệm giặt */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
         <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/60 border border-blue-100">
           <div>

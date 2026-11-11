@@ -23,10 +23,10 @@ export const MobileCustomerWeightConfirm: React.FC = () => {
           <div>
             <div className="flex items-center gap-1.5 text-xs font-black text-amber-600">
               <Scale className="w-4 h-4" />
-              <span>Bước Xác Nhận Khối Lượng Thực Tế (Sequence Diagram)</span>
+              <span>Xác Nhận Khối Lượng Cân Thực Tế</span>
             </div>
             <h2 className="text-base font-black text-slate-900 mt-0.5">
-              Duyệt Cân Nặng & Giá Chính Thức Từ Chủ Tiệm
+              Duyệt Cân Nặng & Chi Phí Chính Thức Từ Tiệm Giặt
             </h2>
           </div>
 

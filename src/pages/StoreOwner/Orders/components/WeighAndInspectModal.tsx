@@ -196,7 +196,7 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
           <div>
             <div className="flex items-center gap-2 text-xs text-blue-600 font-bold">
               <Scale className="w-4 h-4" />
-              <span>Bóc Tách Dòng Đồ (Order_Details) & Cân Thực Tế Tại Tiệm</span>
+              <span>Kiểm Tra Đồ Giặt & Cân Thực Tế Tại Tiệm</span>
             </div>
             <h3 className="text-xl font-black text-slate-900 mt-1">
               Đơn hàng #{order.id.toUpperCase()} — {order.customerName} (
@@ -288,7 +288,7 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
 
                     <div className="md:col-span-4">
                       <InputSelect
-                        title="Phân loại chất liệu vải (fabricType)"
+                        title="Chất liệu vải"
                         value={item.fabricType}
                         options={FABRIC_OPTIONS}
                         onChange={(e) =>
@@ -327,7 +327,7 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <InputText
-                      title="Mô tả món đồ cụ thể (garmentDescription)"
+                      title="Mô tả món đồ cụ thể"
                       placeholder="VD: 3 áo sơ mi trắng, 2 quần âu..."
                       inputProps={{
                         value: item.garmentDescription || "",
@@ -340,7 +340,7 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
                       }}
                     />
                     <InputText
-                      title="Hướng dẫn giặt ủi riêng (careInstructions)"
+                      title="Hướng dẫn giặt ủi riêng"
                       placeholder="VD: Giặt lạnh 30°C, không vắt mạnh..."
                       inputProps={{
                         value: item.careInstructions || "",
@@ -437,22 +437,22 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
               <div className="pt-1 flex items-center gap-1.5 text-[11px] text-amber-700 font-semibold">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>
-                  Sequence 3 (Nhánh 2): Có chênh lệch khối lượng ({diffAmount > 0 ? "+" : ""}
-                  {diffAmount.toLocaleString("vi-VN")}đ) → Gửi thông báo chờ khách xác nhận trước khi giặt.
+                  Có chênh lệch khối lượng ({diffAmount > 0 ? "+" : ""}
+                  {diffAmount.toLocaleString("vi-VN")}đ) → Hệ thống sẽ gửi thông báo chờ khách xác nhận trước khi giặt.
                 </span>
               </div>
             ) : (
               <div className="pt-1 flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                 <span>
-                  Sequence 3 (Nhánh 1): Khối lượng thực tế khớp với tạm tính → Sẵn sàng đưa vào giặt sấy ngay.
+                  Khối lượng thực tế khớp với tạm tính → Sẵn sàng đưa vào giặt sấy ngay.
                 </span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Footer Actions matching Sequence Diagram 3 */}
+        {/* Footer Actions */}
         <div className="flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-slate-100 pt-4">
           <ButtonOutLine
             type="button"
@@ -465,7 +465,7 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
             type="button"
             isSecondary
             iconStart={<Send className="w-4 h-4 text-amber-600" />}
-            label="Nhánh 2: Gửi Khách Duyệt Cân (Waiting Confirm)"
+            label="Gửi Khách Duyệt Khối Lượng"
             onClick={() =>
               onSave(order.id, {
                 items,
@@ -483,8 +483,8 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
             iconStart={<CheckCircle2 className="w-4 h-4" />}
             label={
               diffAmount !== 0
-                ? "Hoàn Tất Cân Thực Tế (Tự Động Xét Ngưỡng)"
-                : "Nhánh 1: Khớp Tạm Tính · Đưa Vào Giặt Ngay"
+                ? "Lưu Kết Quả Cân & Báo Khách"
+                : "Khớp Khối Lượng · Bắt Đầu Giặt Ngay"
             }
             onClick={() =>
               onSave(order.id, {

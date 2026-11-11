@@ -124,7 +124,7 @@ export const MobileCustomerTracking: React.FC = () => {
                     }
                     className="text-[11px] font-sans font-bold text-blue-600 flex items-center gap-0.5 ml-auto mt-0.5 cursor-pointer"
                   >
-                    <span>Chi tiết ({order.items.length} dòng)</span>
+                    <span>Chi tiết ({order.items.length} món)</span>
                     {isExpanded ? (
                       <ChevronUp className="w-3.5 h-3.5" />
                     ) : (
@@ -134,11 +134,11 @@ export const MobileCustomerTracking: React.FC = () => {
                 </div>
               </div>
 
-              {/* KH-UC7.2: Xem chi tiết hóa đơn và từng dòng đồ giặt */}
+              {/* Xem chi tiết hóa đơn và từng món đồ giặt */}
               {isExpanded && (
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
                   <div className="font-black text-slate-800 uppercase tracking-wider text-[10px]">
-                    Chi tiết từng dòng đồ giặt (Order_Details)
+                    Chi tiết các món đồ trong đơn
                   </div>
                   {order.items.map((it, iIdx) => {
                     const qty = it.actualQuantity ?? it.estimatedQuantity ?? it.quantity;

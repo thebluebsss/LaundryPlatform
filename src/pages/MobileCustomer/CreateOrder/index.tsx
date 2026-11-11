@@ -4,7 +4,6 @@ import {
   Minus,
   Sparkles,
   MapPin,
-  Calendar,
   Tag,
   ShieldCheck,
   ShoppingBag,
@@ -25,14 +24,6 @@ import { ButtonCustom } from "../../../components/ButtonCustom";
 import { GoogleMapCanvas } from "../../../components/GoogleMapCanvas";
 import { HANOI_DISTRICTS } from "../../../data";
 
-const TIME_SLOTS = [
-  { value: "08:00 - 10:00", label: "Sáng (08:00 - 10:00)" },
-  { value: "09:00 - 11:00", label: "Sáng (09:00 - 11:00)" },
-  { value: "13:30 - 15:30", label: "Chiều (13:30 - 15:30)" },
-  { value: "16:00 - 18:00", label: "Chiều tối (16:00 - 18:00)" },
-  { value: "18:30 - 20:30", label: "Tối (18:30 - 20:30)" },
-];
-
 const HANOI_DISTRICT_OPTIONS = HANOI_DISTRICTS.map((d) => ({
   value: d.name,
   label: d.name,
@@ -42,7 +33,7 @@ const MOBILE_STEPS = [
   { step: 1 as const, label: "1. Chọn tiệm", icon: Store },
   { step: 2 as const, label: "2. Đồ giặt", icon: Shirt },
   { step: 3 as const, label: "3. SP phụ", icon: ShoppingBag },
-  { step: 4 as const, label: "4. Đặt lịch", icon: MapPin },
+  { step: 4 as const, label: "4. Địa chỉ", icon: MapPin },
 ];
 
 export const MobileCustomerCreateOrder: React.FC = () => {
@@ -80,14 +71,6 @@ export const MobileCustomerCreateOrder: React.FC = () => {
     handleDistrictChange,
     customerCoords,
     setCustomerCoords,
-    pickupDate,
-    setPickupDate,
-    pickupTime,
-    setPickupTime,
-    deliveryDate,
-    setDeliveryDate,
-    deliveryTime,
-    setDeliveryTime,
     promoCode,
     setPromoCode,
     paymentMethod,
@@ -109,11 +92,11 @@ export const MobileCustomerCreateOrder: React.FC = () => {
       onSubmit={handleSubmitOrder}
       className="space-y-4 pb-8 animate-in fade-in duration-200"
     >
-      {/* Non-Skippable 4-Step Wizard Bar with Checkmarks */}
+      {/* 4-Step Wizard Bar */}
       <div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-2xs">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-black uppercase tracking-wider text-blue-600">
-            Quy Trình Đặt Đơn Tuần Tự (KH-UC4)
+            Đặt Dịch Vụ Giặt Sấy Tận Nơi
           </span>
           <span className="text-[11px] font-bold text-slate-500">
             Bước {activeStep}/4
@@ -168,15 +151,15 @@ export const MobileCustomerCreateOrder: React.FC = () => {
         </div>
       </div>
 
-      {/* Step 1: Select Store (KH-UC4.1) */}
+      {/* Step 1: Select Store */}
       {activeStep === 1 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4">
           <div className="flex items-center gap-2 text-xs font-black text-blue-600">
-            <MapPin className="w-4 h-4" />
-            <span>Bước 1: Chọn Cửa Hàng Giặt Là Tiếp Nhận (KH-UC4.1)</span>
+            <MapPin className="w-4 h-4 shrink-0" />
+            <span>Bước 1: Chọn Tiệm Giặt Gần Bạn</span>
           </div>
           <InputSelect
-            title="Cửa hàng xử lý đơn của bạn"
+            title="Cửa hàng tiếp nhận đồ giặt của bạn"
             value={selectedStoreId}
             options={storeOptions}
             onChange={(e) => setSelectedStoreId(e.target.value)}
@@ -190,24 +173,23 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-colors"
             >
               <Check className="w-4 h-4" />
-              <span>Xác Nhận Cửa Hàng & Sang Bước 2</span>
+              <span>Tiếp Tục Chọn Đồ Giặt</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Step 2: Loop [Thêm từng dòng đồ giặt] + Opt [AI Kiểm tra chất liệu] (KH-UC4.2, KH-UC4.4) */}
+      {/* Step 2: Danh sách đồ giặt */}
       {activeStep === 2 && (
         <div className="space-y-3">
           <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-black text-slate-900">
-                Bước 2: Danh Sách Từng Dòng Đồ Giặt ({lineItems.length} dòng)
+                Bước 2: Danh Sách Đồ Cần Giặt ({lineItems.length} món)
               </h3>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Tách riêng đồ màu, đồ trắng, lụa hoặc chăn mền. Số kg chính thức
-                sẽ được tiệm cân thực tế và gửi bạn duyệt.
+                Bạn có thể tách riêng đồ màu, đồ trắng, lụa hoặc chăn mền. Khối lượng thực tế sẽ được tiệm cân lại và báo bạn xác nhận.
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -225,7 +207,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
                 className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Thêm Dòng Đồ</span>
+                <span>Thêm Món Đồ</span>
               </button>
             </div>
           </div>
@@ -250,7 +232,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Bước 1</span>
+              <span>Quay lại</span>
             </button>
             <button
               type="button"
@@ -258,31 +240,31 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>Xác Nhận Đồ Giặt & Sang Bước 3</span>
+              <span>Xác Nhận Đồ Giặt & Tiếp Tục</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Chọn mua kèm sản phẩm chăm sóc quần áo (KH-UC4.5) */}
+      {/* Step 3: Chọn mua kèm sản phẩm chăm sóc quần áo */}
       {activeStep === 3 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs font-black text-blue-600">
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-4 h-4 shrink-0" />
               <span>
-                Bước 3: Mua Kèm Sản Phẩm Chăm Sóc Quần Áo (KH-UC4.5 - Tùy chọn)
+                Bước 3: Sản Phẩm Chăm Sóc Quần Áo Mua Kèm (Không bắt buộc)
               </span>
             </div>
             {selectedProducts.length > 0 && (
-              <span className="text-[11px] font-bold text-emerald-600">
+              <span className="text-[11px] font-bold text-emerald-600 shrink-0">
                 Đã chọn {selectedProducts.reduce((s, p) => s + p.quantity, 0)}{" "}
                 SP
               </span>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="space-y-2.5">
             {careProducts.map((product) => {
               const qty =
                 selectedProducts.find((p) => p.productId === product.id)
@@ -290,17 +272,17 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               return (
                 <div
                   key={product.id}
-                  className={`p-3 rounded-xl border flex items-center justify-between gap-2 transition-colors ${
+                  className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
                     qty > 0
                       ? "border-blue-500 bg-blue-50/40"
                       : "border-slate-200 bg-slate-50/60"
                   }`}
                 >
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-800 truncate">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-slate-800 break-words leading-snug">
                       {product.name}
                     </div>
-                    <div className="text-[11px] font-mono text-blue-600 font-bold">
+                    <div className="text-[11px] font-mono text-blue-600 font-bold mt-0.5">
                       {product.price.toLocaleString("vi-VN")}đ / {product.unit}
                     </div>
                   </div>
@@ -341,7 +323,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Bước 2</span>
+              <span>Quay lại</span>
             </button>
             <button
               type="button"
@@ -351,7 +333,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               <Check className="w-4 h-4" />
               <span>
                 {selectedProducts.length > 0
-                  ? "Xác Nhận SP & Sang Bước 4"
+                  ? "Xác Nhận & Sang Bước 4"
                   : "Bỏ Qua & Sang Bước 4"}
               </span>
               <ArrowRight className="w-4 h-4" />
@@ -360,30 +342,29 @@ export const MobileCustomerCreateOrder: React.FC = () => {
         </div>
       )}
 
-      {/* Step 4: Customer Pickup & Delivery Address + Time Slots + Summary (KH-UC4.3, KH-UC4.6) */}
+      {/* Step 4: Customer Pickup & Delivery Address + Summary */}
       {activeStep === 4 && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3.5">
+            <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs font-black text-blue-600">
-                <Calendar className="w-4 h-4" />
-                <span>
-                  Bước 4: Địa Chỉ & Khung Giờ Shipper Lấy / Trả Đồ (KH-UC4.3)
-                </span>
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span>Bước 4: Thông Tin Liên Hệ & Địa Chỉ Nhận / Trả Đồ</span>
               </div>
               <button
                 type="button"
                 onClick={handlePrevStep}
-                className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer shrink-0"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Quay lại Bước 3</span>
+                <span>Quay lại</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Each input is on its own full-width row so users can read all text clearly */}
+            <div className="space-y-3">
               <InputText
-                title="Họ tên người gửi đồ"
+                title="Họ và tên người gửi đồ"
                 required
                 inputProps={{
                   placeholder: "Nhập họ và tên người nhận/gửi",
@@ -391,6 +372,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
                   onChange: (e) => setCustomerName(e.target.value),
                 }}
               />
+
               <InputText
                 title="Số điện thoại liên hệ"
                 required
@@ -400,26 +382,23 @@ export const MobileCustomerCreateOrder: React.FC = () => {
                   onChange: (e) => setPhoneNumber(e.target.value),
                 }}
               />
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="md:col-span-2">
-                <InputText
-                  title="Địa chỉ số nhà, ngõ/đường"
-                  required
-                  inputProps={{
-                    placeholder: "Nhập chi tiết số nhà, tên đường...",
-                    value: address,
-                    onChange: (e) => setAddress(e.target.value),
-                  }}
-                />
-              </div>
               <InputSelect
-                title="Quận / Huyện (TP. Hà Nội)"
+                title="Quận / Huyện tại Hà Nội"
                 value={district}
                 options={HANOI_DISTRICT_OPTIONS}
                 onChange={(e) => handleDistrictChange(e.target.value)}
                 required
+              />
+
+              <InputText
+                title="Địa chỉ chi tiết (Số nhà, ngõ/ngách, tên đường)"
+                required
+                inputProps={{
+                  placeholder: "VD: Số 14 ngõ 68 Cầu Giấy, Phường Quan Hoa...",
+                  value: address,
+                  onChange: (e) => setAddress(e.target.value),
+                }}
               />
             </div>
 
@@ -427,8 +406,8 @@ export const MobileCustomerCreateOrder: React.FC = () => {
             <div className="p-3 rounded-2xl bg-blue-50/50 border border-blue-200/80 space-y-2">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-800">
-                  <MapPin className="w-4 h-4 text-blue-600" />
-                  <span>Định vị điểm lấy đồ trên Google Maps (Phát đơn bán kính 1km)</span>
+                  <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>Ghim vị trí lấy đồ trên bản đồ (Tìm tài xế quanh 1km)</span>
                 </div>
                 <span className="text-[11px] font-mono font-bold text-blue-700 bg-white px-2.5 py-0.5 rounded-lg border border-blue-200">
                   GPS: {customerCoords.lat.toFixed(4)}, {customerCoords.lng.toFixed(4)}
@@ -444,155 +423,42 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               />
             </div>
 
-            {/* Full-Width Pickup & Delivery Schedule Cards so time slots are 100% visible without truncation */}
-            <div className="space-y-3 pt-1">
-              {/* 1. Pickup Schedule Card */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-xs font-extrabold text-slate-900">
-                    1. Lịch hẹn Tài xế đến lấy đồ tận nhà
-                  </span>
-                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
-                    {TIME_SLOTS.find((s) => s.value === pickupTime)?.label ||
-                      pickupTime}{" "}
-                    ·{" "}
-                    {pickupDate
-                      ? pickupDate.split("-").reverse().join("/")
-                      : ""}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <InputText
-                    title="Ngày Shipper lấy đồ"
-                    inputProps={{
-                      type: "date",
-                      value: pickupDate,
-                      onChange: (e) => setPickupDate(e.target.value),
-                    }}
-                  />
-                  <InputSelect
-                    title="Khung giờ lấy đồ"
-                    value={pickupTime}
-                    options={TIME_SLOTS}
-                    onChange={(e) => setPickupTime(e.target.value)}
-                  />
-                </div>
-
-                {/* Quick-Tap Full-Visibility Time Slot Chips */}
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {TIME_SLOTS.map((slot) => {
-                    const active = pickupTime === slot.value;
-                    return (
-                      <button
-                        key={slot.value}
-                        type="button"
-                        onClick={() => setPickupTime(slot.value)}
-                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                          active
-                            ? "bg-blue-600 text-white border-blue-600 shadow-2xs"
-                            : "bg-white text-slate-700 border-slate-200 hover:border-blue-300"
-                        }`}
-                      >
-                        {slot.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 2. Delivery Return Schedule Card */}
-              <div className="p-3.5 rounded-2xl bg-emerald-50/40 border border-emerald-200/80 space-y-2.5">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-xs font-extrabold text-slate-900">
-                    2. Lịch hẹn Tài xế giao trả đồ sạch
-                  </span>
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    {TIME_SLOTS.find((s) => s.value === deliveryTime)?.label ||
-                      deliveryTime}{" "}
-                    ·{" "}
-                    {deliveryDate
-                      ? deliveryDate.split("-").reverse().join("/")
-                      : ""}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <InputText
-                    title="Ngày nhận lại đồ sạch"
-                    inputProps={{
-                      type: "date",
-                      value: deliveryDate,
-                      onChange: (e) => setDeliveryDate(e.target.value),
-                    }}
-                  />
-                  <InputSelect
-                    title="Khung giờ giao trả"
-                    value={deliveryTime}
-                    options={TIME_SLOTS}
-                    onChange={(e) => setDeliveryTime(e.target.value)}
-                  />
-                </div>
-
-                {/* Quick-Tap Full-Visibility Time Slot Chips */}
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {TIME_SLOTS.map((slot) => {
-                    const active = deliveryTime === slot.value;
-                    return (
-                      <button
-                        key={slot.value}
-                        type="button"
-                        onClick={() => setDeliveryTime(slot.value)}
-                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                          active
-                            ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
-                            : "bg-white text-slate-700 border-slate-200 hover:border-emerald-300"
-                        }`}
-                      >
-                        {slot.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
             <InputArea
-              title="Dặn dò thêm cho Shipper hoặc Chủ tiệm"
+              title="Lời nhắn cho Tài xế hoặc Cửa hàng"
               rows={2}
-              placeholder="VD: Gọi trước 10 phút, gửi đồ ở sảnh lễ tân..."
+              placeholder="VD: Gọi trước khi đến 10 phút, gửi đồ tại quầy lễ tân..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 
-          {/* Promo Code & Estimated Summary (Sequence 1 Step 22) */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+          {/* Promo Code & Estimated Summary */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3.5">
             <div className="flex items-center gap-2 text-xs font-black text-blue-600">
-              <Tag className="w-4 h-4" />
-              <span>Tổng Chi Phí Tạm Tính & Xác Nhận Đặt Đơn (KH-UC4.6)</span>
+              <Tag className="w-4 h-4 shrink-0" />
+              <span>Thanh Toán & Chi Phí Tạm Tính</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-3">
               <InputText
-                title="Mã giảm giá (Nhập GIATMOI15 giảm 15%)"
+                title="Mã ưu đãi (Nhập GIATMOI15 để giảm 15%)"
                 inputProps={{
-                  placeholder: "Nhập mã khuyến mãi nếu có",
+                  placeholder: "Nhập mã giảm giá nếu có",
                   value: promoCode,
                   onChange: (e) => setPromoCode(e.target.value),
                 }}
               />
               <InputSelect
-                title="Phương thức thanh toán"
+                title="Hình thức thanh toán"
                 value={paymentMethod}
                 options={[
                   {
                     value: "vietqr",
-                    label: "Quét mã VietQR Napas 24/7 (Sau khi cân đồ)",
+                    label: "Chuyển khoản qua mã VietQR (Sau khi tiệm cân đồ)",
                   },
                   {
                     value: "cod",
-                    label: "Tiền mặt cho Shipper khi nhận đồ sạch",
+                    label: "Thanh toán tiền mặt cho Tài xế khi nhận đồ sạch",
                   },
                 ]}
                 onChange={(e) =>
@@ -603,7 +469,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
 
             <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600">
-                <span>Tiền giặt tạm tính ({lineItems.length} dòng đồ):</span>
+                <span>Tiền giặt tạm tính ({lineItems.length} món đồ):</span>
                 <span className="font-mono font-bold text-slate-900">
                   {pricingSummary.estimatedSubtotal.toLocaleString("vi-VN")}đ
                 </span>
@@ -617,7 +483,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
                 </div>
               )}
               <div className="flex justify-between text-slate-600">
-                <span>Phí Shipper thu gom & giao trả 2 chiều:</span>
+                <span>Phí giao nhận 2 chiều tận nơi:</span>
                 <span className="font-mono font-bold text-slate-900">
                   {pricingSummary.deliveryFee === 0
                     ? "Miễn Phí"
@@ -626,7 +492,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               </div>
               {pricingSummary.discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-600 font-semibold">
-                  <span>Khuyến mãi ({promoCode.toUpperCase()}):</span>
+                  <span>Ưu đãi ({promoCode.toUpperCase()}):</span>
                   <span className="font-mono">
                     -{pricingSummary.discountAmount.toLocaleString("vi-VN")}đ
                   </span>
@@ -634,7 +500,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               )}
               <div className="border-t border-slate-200 pt-2 flex justify-between items-baseline">
                 <span className="font-black text-slate-900 text-sm">
-                  Tổng tạm tính:
+                  Tổng cộng tạm tính:
                 </span>
                 <span className="font-mono font-black text-blue-600 text-base">
                   {pricingSummary.totalPrice.toLocaleString("vi-VN")}đ

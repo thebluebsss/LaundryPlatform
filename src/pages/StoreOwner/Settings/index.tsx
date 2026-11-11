@@ -85,10 +85,10 @@ export const StoreOwnerSettings: React.FC = () => {
         >
           <div className="border-b border-slate-100 pb-3">
             <h3 className="text-base font-black text-slate-900">
-              1. Hồ Sơ Chi Nhánh & Tọa Độ Google Maps Hà Nội (Bảng stores)
+              1. Hồ Sơ Chi Nhánh & Tọa Độ Bản Đồ Tại Hà Nội
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Hiển thị trực tiếp trên Bản đồ Google Maps của Web & App Khách hàng
+              Hiển thị trực tiếp trên bản đồ tìm kiếm tiệm giặt của khách hàng
             </p>
           </div>
 
@@ -104,7 +104,7 @@ export const StoreOwnerSettings: React.FC = () => {
               }}
             />
             <InputText
-              title="Mã chi nhánh (Store Code)"
+              title="Mã chi nhánh"
               required
               inputProps={{
                 value: store.code || "",
@@ -309,7 +309,7 @@ export const StoreOwnerSettings: React.FC = () => {
                 3. Tồn Kho Hóa Phẩm Giặt Xả Tại Tiệm
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Nước giặt hữu cơ, nước xả, túi giặt bán kèm (Bảng products)
+                Nước giặt hữu cơ, nước xả, túi giặt bán kèm cho khách hàng
               </p>
             </div>
 

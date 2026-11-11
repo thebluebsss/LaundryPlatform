@@ -66,19 +66,19 @@ export const OrderLineItemCard: React.FC<OrderLineItemCardProps> = ({
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
       <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="font-mono font-black text-blue-600">
-            Dòng #{index + 1}
+        <div className="flex items-center gap-2 text-xs min-w-0 flex-1">
+          <span className="font-mono font-black text-blue-600 shrink-0">
+            Món đồ #{index + 1}
           </span>
-          <span aria-hidden="true" className="text-slate-300">
+          <span aria-hidden="true" className="text-slate-300 shrink-0">
             ·
           </span>
-          <span className="font-bold text-slate-800 truncate">
+          <span className="font-bold text-slate-800 break-words leading-snug">
             {item.serviceName}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => onOpenAiScanner(index)}
@@ -92,7 +92,7 @@ export const OrderLineItemCard: React.FC<OrderLineItemCardProps> = ({
               type="button"
               onClick={() => onRemoveItem(index)}
               className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors"
-              title="Xóa dòng đồ này"
+              title="Xóa món đồ này"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -100,7 +100,7 @@ export const OrderLineItemCard: React.FC<OrderLineItemCardProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="space-y-3">
         <InputSelect
           title="Gói dịch vụ giặt"
           value={item.serviceId}
@@ -109,14 +109,12 @@ export const OrderLineItemCard: React.FC<OrderLineItemCardProps> = ({
         />
 
         <InputSelect
-          title="Phân loại chất liệu vải (fabric_type)"
+          title="Chất liệu vải"
           value={item.fabricType || "Cotton / Đồ mặc hàng ngày"}
           options={FABRIC_OPTIONS}
           onChange={(e) => onUpdateItem(index, { fabricType: e.target.value })}
         />
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
         <div>
           <label className="text-xs font-bold block text-slate-700 mb-1.5">
             Khối lượng / Số lượng tạm tính ({item.unitName})
@@ -148,8 +146,8 @@ export const OrderLineItemCard: React.FC<OrderLineItemCardProps> = ({
         </div>
 
         <InputText
-          title="Ghi chú riêng cho dòng đồ này"
-          placeholder="VD: Không vắt mạnh, nước ấm 30°C..."
+          title="Ghi chú riêng cho món đồ này"
+          placeholder="VD: Không vắt mạnh, giặt nước ấm 30°C..."
           inputProps={{
             value: item.careInstructions || "",
             onChange: (e) =>

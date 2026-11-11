@@ -93,27 +93,6 @@ export const BroadcastTaskCard: React.FC<BroadcastTaskCardProps> = ({
           </div>
         </div>
 
-        <div className="p-2.5 rounded-xl bg-teal-50/70 border border-teal-200/80 space-y-1 text-[11px]">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-slate-600 font-semibold">Khung giờ lấy đồ:</span>
-            <strong className="text-blue-700">
-              {task.pickupTime || "09:00 - 11:00"}
-              {task.pickupDate
-                ? ` (${task.pickupDate.split("-").reverse().join("/")})`
-                : ""}
-            </strong>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-slate-600 font-semibold">Khung giờ trả đồ:</span>
-            <strong className="text-emerald-700">
-              {task.deliveryTime || "16:00 - 18:00"}
-              {task.deliveryDate
-                ? ` (${task.deliveryDate.split("-").reverse().join("/")})`
-                : ""}
-            </strong>
-          </div>
-        </div>
-
         {task.notes && (
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-600 flex items-start gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />

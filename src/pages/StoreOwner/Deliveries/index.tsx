@@ -47,7 +47,7 @@ export const StoreOwnerDeliveries: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs text-indigo-600 font-bold">
             <Truck className="w-4 h-4" />
-            <span>Điều Phối Giao Nhận & Đội Ngũ Tài Xế (Bảng delivery_tasks)</span>
+            <span>Điều Phối Giao Nhận & Đội Ngũ Tài Xế</span>
           </div>
           <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
             Quản Lý Chuyến Lấy Đồ Bẩn & Giao Đồ Sạch
@@ -367,7 +367,7 @@ export const StoreOwnerDeliveries: React.FC = () => {
               Đội Tài Xế Trực Tại Chi Nhánh
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Danh sách Shipper thuộc biên chế cửa hàng (Bảng users · role: driver)
+              Danh sách tài xế đang hỗ trợ giao nhận cho cửa hàng
             </p>
           </div>
 

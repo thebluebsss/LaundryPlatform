@@ -83,7 +83,7 @@ export const WeightComparisonCard: React.FC<WeightComparisonCardProps> = ({
       <div className="space-y-2">
         <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
           <Scale className="w-3.5 h-3.5 text-amber-600" />
-          <span>Bảng đối chiếu từng dòng đồ (Order_Details):</span>
+          <span>Chi tiết cân nặng từng món đồ:</span>
         </div>
 
         <div className="space-y-2">
@@ -101,7 +101,7 @@ export const WeightComparisonCard: React.FC<WeightComparisonCardProps> = ({
               >
                 <div className="flex items-center justify-between font-bold text-slate-900">
                   <span>
-                    Dòng #{idx + 1}: {item.serviceName}
+                    Món đồ #{idx + 1}: {item.serviceName}
                   </span>
                   <span className="text-slate-500 font-normal">
                     {item.fabricType || "Cotton tiêu chuẩn"}

@@ -1,31 +1,8 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
-import { Bike, X, Banknote, Phone, Clock, Calendar } from "lucide-react";
+import { Bike, X, Banknote, Phone } from "lucide-react";
 import { useMobileDriverRadar } from "../pages/MobileDriver/BroadcastRadar/hook";
 import { getScopedToken } from "../utils/authStorage";
-
-const formatTimeSlotLabel = (slot?: string): string => {
-  if (!slot) return "Sáng (09:00 - 11:00)";
-  const map: Record<string, string> = {
-    "08:00 - 10:00": "Sáng (08:00 - 10:00)",
-    "09:00 - 11:00": "Sáng (09:00 - 11:00)",
-    "13:30 - 15:30": "Chiều (13:30 - 15:30)",
-    "16:00 - 18:00": "Chiều tối (16:00 - 18:00)",
-    "18:30 - 20:30": "Tối (18:30 - 20:30)",
-  };
-  return map[slot] || slot;
-};
-
-const formatDateVi = (dateStr?: string): string => {
-  if (!dateStr) return "Hôm nay";
-  if (dateStr.includes("-")) {
-    const parts = dateStr.split("T")[0].split("-");
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-  }
-  return dateStr;
-};
 
 export const DriverIncomingOrderModal: React.FC = () => {
   const location = useLocation();
@@ -82,11 +59,6 @@ export const DriverIncomingOrderModal: React.FC = () => {
     (incomingAlertTask as any)?.paymentMethod === "vietqr"
       ? "VietQR"
       : "Tiền mặt";
-
-  const pickupSlotFull = formatTimeSlotLabel(incomingAlertTask.pickupTime);
-  const pickupDateFormatted = formatDateVi(incomingAlertTask.pickupDate);
-  const deliverySlotFull = formatTimeSlotLabel(incomingAlertTask.deliveryTime);
-  const deliveryDateFormatted = formatDateVi(incomingAlertTask.deliveryDate);
 
   return (
     <div className="fixed top-0 left-0 right-0 bottom-[60px] z-50 bg-slate-950/35 backdrop-blur-2xs flex justify-center p-2 pointer-events-auto">
@@ -161,47 +133,6 @@ export const DriverIncomingOrderModal: React.FC = () => {
             <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
               Trong bán kính 1km
             </span>
-          </div>
-
-          {/* Scheduled Pickup & Delivery Time Slots Banner for Shipper */}
-          <div className="px-5 py-3 bg-teal-50/70 border-b border-teal-100 space-y-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-teal-800">
-              <Clock className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-              <span>Khung giờ hẹn lấy & trả đồ của khách</span>
-            </div>
-            <div className="grid grid-cols-1 gap-1.5 text-xs">
-              <div
-                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
-                  isPickupFromCustomer
-                    ? "bg-white border-teal-300 shadow-2xs"
-                    : "bg-white/70 border-slate-200"
-                }`}
-              >
-                <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>Giờ lấy đồ:</span>
-                </span>
-                <span className="font-extrabold text-blue-700 text-right">
-                  {pickupSlotFull} · {pickupDateFormatted}
-                </span>
-              </div>
-
-              <div
-                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
-                  !isPickupFromCustomer
-                    ? "bg-white border-teal-300 shadow-2xs"
-                    : "bg-white/70 border-slate-200"
-                }`}
-              >
-                <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Giờ trả đồ:</span>
-                </span>
-                <span className="font-extrabold text-emerald-700 text-right">
-                  {deliverySlotFull} · {deliveryDateFormatted}
-                </span>
-              </div>
-            </div>
           </div>
 
           {/* Route Timeline (Stop A -> Stop B) */}

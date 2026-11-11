@@ -134,7 +134,7 @@ export const StoreOwnerOrders: React.FC = () => {
             Danh Sách Đơn Giặt Tại Cửa Hàng
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Hỗ trợ đơn hàng nhiều chất liệu vải (Order_Details), đối chiếu cân nặng tạm tính & thực tế, tích hợp AI kiểm tra vải.
+            Hỗ trợ đơn hàng nhiều chất liệu vải, đối chiếu cân nặng tạm tính & thực tế, tích hợp AI kiểm tra vải.
           </p>
         </div>
 
@@ -338,7 +338,7 @@ export const StoreOwnerOrders: React.FC = () => {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500">
                   <th className="py-3.5 px-4">Mã Đơn & Khách Hàng</th>
-                  <th className="py-3.5 px-4">Chi Tiết Dòng Đồ (Order_Details)</th>
+                  <th className="py-3.5 px-4">Chi Tiết Đồ Giặt</th>
                   <th className="py-3.5 px-4 text-right">Tạm Tính vs Thực Tế</th>
                   <th className="py-3.5 px-4">Trạng Thái Cân</th>
                   <th className="py-3.5 px-4">Tiến Độ Giặt</th>
