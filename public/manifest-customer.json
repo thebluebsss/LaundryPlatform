@@ -1,0 +1,20 @@
+{
+  "id": "vn.sachse.customer",
+  "short_name": "Sạch Sẽ",
+  "name": "Sạch Sẽ - Đặt Giặt Sấy Giao Tận Nơi",
+  "description": "Ứng dụng đặt dịch vụ giặt sấy, phân loại đồ bằng AI, duyệt cân nặng minh bạch và thanh toán VietQR dành riêng cho Khách Hàng.",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/?standalone=customer#/mobile-customer/home",
+  "scope": "/",
+  "background_color": "#eff6ff",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait"
+}

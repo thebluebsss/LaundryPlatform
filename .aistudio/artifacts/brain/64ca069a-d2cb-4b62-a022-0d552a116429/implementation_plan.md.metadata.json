@@ -1,0 +1,6 @@
+{
+  "summary": "Kế hoạch sửa lỗi toàn hệ thống, xóa bỏ 100% dữ liệu mẫu (tiệm giặt, tài xế, đơn hàng), thay thế Leaflet bằng Google Maps Platform trên cả Web & Mobile, và tách cổng đăng nhập Web riêng biệt cho Chủ tiệm (/store-owner/login) và Quản trị viên (/admin/login).",
+  "updatedAt": "2026-11-04T15:13:20.666328441Z",
+  "requestFeedback": true,
+  "userFacing": true
+}
