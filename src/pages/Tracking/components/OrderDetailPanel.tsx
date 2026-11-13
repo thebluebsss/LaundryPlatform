@@ -161,31 +161,58 @@ export const OrderDetailPanel = ({
         </Box>
 
         <Box className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsChatOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Chat đơn hàng</span>
-            {Array.isArray(selectedOrder.messages) &&
-              selectedOrder.messages.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded bg-white text-teal-800 font-mono text-[10px] font-black">
-                  {selectedOrder.messages.length}
-                </span>
-              )}
-          </button>
+          {(() => {
+            const hasDriverAssigned = Boolean(
+              (selectedOrder.shipperId && selectedOrder.shipperId.trim()) ||
+                (selectedOrder.shipperName && selectedOrder.shipperName.trim())
+            );
+            return (
+              <>
+                <button
+                  type="button"
+                  disabled={!hasDriverAssigned}
+                  onClick={() => hasDriverAssigned && setIsChatOpen(true)}
+                  title={
+                    hasDriverAssigned
+                      ? "Mở kênh Chat nội bộ đơn hàng"
+                      : "Chưa có tài xế nhận chuyến nên chưa thể nhắn tin"
+                  }
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                    hasDriverAssigned
+                      ? "bg-teal-600 hover:bg-teal-700 text-white cursor-pointer"
+                      : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>
+                    {hasDriverAssigned
+                      ? "Chat đơn hàng"
+                      : "Chat (Chờ tài xế nhận chuyến)"}
+                  </span>
+                  {hasDriverAssigned &&
+                    Array.isArray(selectedOrder.messages) &&
+                    selectedOrder.messages.length > 0 && (
+                      <span className="px-1.5 py-0.2 rounded bg-white text-teal-800 font-mono text-[10px] font-black">
+                        {selectedOrder.messages.length}
+                      </span>
+                    )}
+                </button>
 
-          {selectedOrder.status !== "cancelled" && (
-            <button
-              type="button"
-              onClick={() => setShowLiveGps(!showLiveGps)}
-              className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-            >
-              <Navigation className="w-3.5 h-3.5" />
-              <span>{showLiveGps ? "Ẩn Live GPS" : "Xem Live GPS Tài Xế"}</span>
-            </button>
-          )}
+                {hasDriverAssigned && selectedOrder.status !== "cancelled" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowLiveGps(!showLiveGps)}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    <span>
+                      {showLiveGps ? "Ẩn Live GPS" : "Xem Live GPS Tài Xế"}
+                    </span>
+                  </button>
+                )}
+              </>
+            );
+          })()}
 
           {selectedOrder.paymentStatus !== "paid" &&
             selectedOrder.status !== "cancelled" && (
@@ -677,9 +704,14 @@ export const OrderDetailPanel = ({
       </Box>
 
       {/* Live GPS Map Section */}
-      {showLiveGps && selectedOrder.status !== "cancelled" && (
-        <OrderLiveGpsMap order={selectedOrder} heightClassName="h-[290px]" />
-      )}
+      {showLiveGps &&
+        Boolean(
+          (selectedOrder.shipperId && selectedOrder.shipperId.trim()) ||
+            (selectedOrder.shipperName && selectedOrder.shipperName.trim())
+        ) &&
+        selectedOrder.status !== "cancelled" && (
+          <OrderLiveGpsMap order={selectedOrder} heightClassName="h-[290px]" />
+        )}
 
       <OrderChatDrawer
         orderId={selectedOrder.id}

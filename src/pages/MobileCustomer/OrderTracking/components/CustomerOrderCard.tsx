@@ -51,10 +51,16 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
   onNavigateWeightConfirm,
   onReorder,
 }) => {
+  const hasDriverAssigned = Boolean(
+    (order.shipperId && order.shipperId.trim()) ||
+      (order.shipperName && order.shipperName.trim())
+  );
+
   const isDriverOnRoad =
-    order.status === "picking_up" ||
-    order.status === "delivering" ||
-    order.status === "returning";
+    hasDriverAssigned &&
+    (order.status === "picking_up" ||
+      order.status === "delivering" ||
+      order.status === "returning");
 
   const [showLiveMap, setShowLiveMap] = useState<boolean>(isDriverOnRoad);
 
@@ -257,7 +263,7 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
       )}
 
       {/* Live GPS Tracking Map Section */}
-      {showLiveMap && order.status !== "cancelled" && (
+      {showLiveMap && hasDriverAssigned && order.status !== "cancelled" && (
         <OrderLiveGpsMap order={order} heightClassName="h-[230px]" compact />
       )}
 
@@ -343,7 +349,7 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
             />
           )}
 
-          {order.status !== "cancelled" && (
+          {hasDriverAssigned && order.status !== "cancelled" && (
             <button
               type="button"
               onClick={() => setShowLiveMap(!showLiveMap)}
@@ -360,12 +366,30 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
 
           <button
             type="button"
-            onClick={() => onOpenChat(order)}
-            className="h-10 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+            disabled={!hasDriverAssigned}
+            onClick={() => hasDriverAssigned && onOpenChat(order)}
+            title={
+              hasDriverAssigned
+                ? "Mở kênh Chat nội bộ đơn hàng"
+                : "Chưa có tài xế nhận chuyến nên chưa thể nhắn tin"
+            }
+            className={`h-10 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+              hasDriverAssigned
+                ? "bg-teal-50 hover:bg-teal-100 text-teal-800 border-teal-200 cursor-pointer"
+                : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+            }`}
           >
-            <MessageSquare className="w-3.5 h-3.5 text-teal-600" />
-            <span>Chat đơn hàng</span>
-            {messageCount > 0 && (
+            <MessageSquare
+              className={`w-3.5 h-3.5 ${
+                hasDriverAssigned ? "text-teal-600" : "text-slate-400"
+              }`}
+            />
+            <span>
+              {hasDriverAssigned
+                ? "Chat đơn hàng"
+                : "Chat (Chờ tài xế nhận chuyến)"}
+            </span>
+            {hasDriverAssigned && messageCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-md bg-teal-600 text-white font-mono text-[10px] font-black">
                 {messageCount}
               </span>

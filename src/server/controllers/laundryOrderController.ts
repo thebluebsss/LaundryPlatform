@@ -135,20 +135,8 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
   orderData.storeCoordinates = storeCoords;
 
-  // Seed initial welcome chat message if customer has a special request
   if (!Array.isArray(orderData.messages)) {
     orderData.messages = [];
-  }
-  if (orderData.customerSpecialRequest) {
-    orderData.messages.push({
-      id: "msg-init-" + Date.now(),
-      orderId: orderData.id,
-      senderRole: "customer",
-      senderName: orderData.customerName || "Khách hàng",
-      text: `Yêu cầu đặc biệt: ${orderData.customerSpecialRequest}`,
-      isQuickReply: false,
-      createdAt: new Date().toISOString(),
-    });
   }
 
   const order = await (LaundryOrder as any).create(orderData);
@@ -509,6 +497,18 @@ export const sendOrderMessage = asyncHandler(async (req: Request, res: Response)
   const order = await findOrderByIdOrCustomId(req.params.id);
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+
+  const hasAssignedDriver = Boolean(
+    (order.shipperId && String(order.shipperId).trim()) ||
+      (order.shipperName && String(order.shipperName).trim())
+  );
+
+  if (!hasAssignedDriver && senderRole !== "driver") {
+    return res.status(400).json({
+      success: false,
+      message: "Chưa có tài xế nhận chuyến nên chưa thể nhắn tin trong đơn hàng này",
+    });
   }
 
   const resolvedRole: "customer" | "driver" | "store" | "system" =

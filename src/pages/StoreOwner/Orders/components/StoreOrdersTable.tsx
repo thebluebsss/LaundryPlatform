@@ -462,32 +462,65 @@ export const StoreOrdersTable: React.FC<StoreOrdersTableProps> = ({
                         />
 
                         {/* Live GPS Button */}
-                        <button
-                          type="button"
-                          onClick={() => onOpenGps(order)}
-                          className="h-8 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                          title="Xem vị trí tài xế di chuyển thời gian thực (Live GPS)"
-                        >
-                          <Navigation className="w-3.5 h-3.5" />
-                          <span>Live GPS</span>
-                        </button>
+                        {Boolean(
+                          (order.shipperId && order.shipperId.trim()) ||
+                            (order.shipperName && order.shipperName.trim())
+                        ) && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenGps(order)}
+                            className="h-8 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                            title="Xem vị trí tài xế di chuyển thời gian thực (Live GPS)"
+                          >
+                            <Navigation className="w-3.5 h-3.5" />
+                            <span>Live GPS</span>
+                          </button>
+                        )}
 
-                        {/* In-App Order Chat Button */}
-                        <button
-                          type="button"
-                          onClick={() => onOpenChat(order)}
-                          className="h-8 px-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                          title="Mở kênh Chat nội bộ theo mã đơn (Khách - Tài xế - Tiệm)"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5 text-teal-600" />
-                          <span>Chat</span>
-                          {Array.isArray(order.messages) &&
-                            order.messages.length > 0 && (
-                              <span className="px-1.5 py-0.2 rounded bg-teal-600 text-white font-mono text-[10px] font-black">
-                                {order.messages.length}
+                        {/* In-App Order Chat Button (Disabled if no driver accepted yet) */}
+                        {(() => {
+                          const hasDriverAssigned = Boolean(
+                            (order.shipperId && order.shipperId.trim()) ||
+                              (order.shipperName && order.shipperName.trim())
+                          );
+                          return (
+                            <button
+                              type="button"
+                              disabled={!hasDriverAssigned}
+                              onClick={() =>
+                                hasDriverAssigned && onOpenChat(order)
+                              }
+                              className={`h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1 transition-colors ${
+                                hasDriverAssigned
+                                  ? "bg-teal-50 hover:bg-teal-100 text-teal-800 border-teal-200 cursor-pointer"
+                                  : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                              }`}
+                              title={
+                                hasDriverAssigned
+                                  ? "Mở kênh Chat nội bộ theo mã đơn (Khách - Tài xế - Tiệm)"
+                                  : "Chưa có tài xế nhận chuyến nên chưa thể nhắn tin"
+                              }
+                            >
+                              <MessageSquare
+                                className={`w-3.5 h-3.5 ${
+                                  hasDriverAssigned
+                                    ? "text-teal-600"
+                                    : "text-slate-400"
+                                }`}
+                              />
+                              <span>
+                                {hasDriverAssigned ? "Chat" : "Chờ TX nhận"}
                               </span>
-                            )}
-                        </button>
+                              {hasDriverAssigned &&
+                                Array.isArray(order.messages) &&
+                                order.messages.length > 0 && (
+                                  <span className="px-1.5 py-0.2 rounded bg-teal-600 text-white font-mono text-[10px] font-black">
+                                    {order.messages.length}
+                                  </span>
+                                )}
+                            </button>
+                          );
+                        })()}
 
                         {/* Electronic Payment & Auto-Reconciliation Button */}
                         {order.paymentStatus !== "paid" &&
