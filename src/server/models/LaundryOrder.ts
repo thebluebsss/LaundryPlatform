@@ -15,7 +15,6 @@ const orderDetailItemSchema = new mongoose.Schema(
     actualQuantity: { type: Number, default: null },
     estimatedLineTotal: { type: Number },
     actualLineTotal: { type: Number, default: null },
-    aiInspectionResult: { type: String, default: "" },
   },
   { _id: false }
 );
@@ -38,6 +37,9 @@ const laundryOrderSchema = new mongoose.Schema(
     actualWeighedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
     notes: { type: String, default: "" },
+    customerSpecialRequest: { type: String, default: "" },
+    extraFee: { type: Number, default: 0 },
+    extraFeeReason: { type: String, default: "" },
     promoCode: { type: String },
     discountAmount: { type: Number, default: 0 },
     subtotal: { type: Number, required: true },
@@ -59,10 +61,6 @@ const laundryOrderSchema = new mongoose.Schema(
     customerCoordinates: {
       lat: { type: Number, default: 21.0285 },
       lng: { type: Number, default: 105.8542 },
-    },
-    aiInspection: {
-      type: Object,
-      default: null,
     },
     paymentMethod: {
       type: String,

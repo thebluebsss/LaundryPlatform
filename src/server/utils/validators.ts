@@ -53,12 +53,12 @@ export const updateProfileSchema = Joi.object({
 });
 
 export const forgotPasswordSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().trim().min(1).required(),
 });
 
 export const resetPasswordSchema = Joi.object({
-  email: Joi.string().email().required(),
-  otp: Joi.string().length(6).required(),
+  email: Joi.string().trim().min(1).required(),
+  otp: Joi.string().trim().length(6).required(),
   newPassword: Joi.string().min(6).required(),
 });
 

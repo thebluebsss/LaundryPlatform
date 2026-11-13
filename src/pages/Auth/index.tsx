@@ -67,30 +67,100 @@ export const UserAuth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoadingState] = useState(false);
   const [selectedRole] = useState<"user" | "store_owner" | "driver">("user");
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
   const [forgotIdentifier, setForgotIdentifier] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
   const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [fallbackOtpHint, setFallbackOtpHint] = useState<string | null>(null);
 
   const setLoading = (val: boolean) => {
     setLoadingState(val);
     setGlobalLoading(val);
   };
 
-  const handleForgotPassword = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!forgotIdentifier.trim() || forgotNewPassword.length < 6) {
-      showToast(
-        "Vui lòng nhập Email/SĐT và mật khẩu mới tối thiểu 6 ký tự!",
-        "error",
-      );
+    if (!forgotIdentifier.trim()) {
+      showToast("Vui lòng nhập địa chỉ Email đã đăng ký!", "error");
       return;
     }
-    showToast(
-      `Đã xác thực tài khoản "${forgotIdentifier}" và cập nhật mật khẩu mới thành công!`,
-      "success",
-    );
-    setForgotIdentifier("");
-    setForgotNewPassword("");
-    setActiveTab("login");
+    setLoading(true);
+    setFallbackOtpHint(null);
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotIdentifier.trim() }),
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const data = result.data || {};
+        if (data.email) setForgotIdentifier(data.email);
+        if (data.devOtp) {
+          setFallbackOtpHint(String(data.devOtp));
+          setForgotOtp(String(data.devOtp));
+        }
+        showToast(
+          data.message || "Mã xác nhận OTP đã được gửi tới email của bạn!",
+          "success",
+        );
+        setForgotStep(2);
+      } else {
+        showToast(
+          result.message || "Không tìm thấy tài khoản khớp với Email này!",
+          "error",
+        );
+      }
+    } catch {
+      showToast("Không thể kết nối máy chủ để gửi mã OTP!", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotOtp.trim() || forgotOtp.trim().length !== 6) {
+      showToast("Vui lòng nhập đúng mã OTP gồm 6 chữ số!", "error");
+      return;
+    }
+    if (forgotNewPassword.length < 6) {
+      showToast("Mật khẩu mới phải có tối thiểu 6 ký tự!", "error");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: forgotIdentifier.trim(),
+          otp: forgotOtp.trim(),
+          newPassword: forgotNewPassword,
+        }),
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        showToast(
+          result.data?.message || "Đặt lại mật khẩu mới thành công!",
+          "success",
+        );
+        setForgotStep(1);
+        setForgotOtp("");
+        setForgotNewPassword("");
+        setFallbackOtpHint(null);
+        setActiveTab("login");
+      } else {
+        showToast(
+          result.message || "Mã OTP không hợp lệ hoặc đã hết hạn!",
+          "error",
+        );
+      }
+    } catch {
+      showToast("Lỗi kết nối máy chủ khi đặt lại mật khẩu!", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Get redirect path from query parameter
@@ -550,46 +620,86 @@ export const UserAuth = () => {
               </Stack>
             </Box>
           ) : activeTab === "forgot" ? (
-            <Box component="form" onSubmit={handleForgotPassword}>
-              <Stack spacing={2.5}>
-                <InputText
-                  title="Email hoặc Số điện thoại đã đăng ký"
-                  required
-                  placeholder="Nhập email hoặc số điện thoại"
-                  startAdornment={<User className="w-4 h-4 text-slate-400" />}
-                  inputProps={{
-                    type: "text",
-                    value: forgotIdentifier,
-                    onChange: (e: any) => setForgotIdentifier(e.target.value),
-                  }}
-                />
-                <InputText
-                  title="Đặt lại mật khẩu mới"
-                  required
-                  placeholder="Nhập mật khẩu mới tối thiểu 6 ký tự"
-                  startAdornment={<Lock className="w-4 h-4 text-slate-400" />}
-                  inputProps={{
-                    type: "password",
-                    value: forgotNewPassword,
-                    onChange: (e: any) => setForgotNewPassword(e.target.value),
-                  }}
-                />
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  sx={{
-                    py: 1.5,
-                    borderRadius: "12px",
-                    fontWeight: "bold",
-                    textTransform: "none",
-                    bgcolor: "primary.main",
-                  }}
-                >
-                  XÁC NHẬN ĐẶT LẠI MẬT KHẨU
-                </Button>
-              </Stack>
-            </Box>
+            forgotStep === 1 ? (
+              <Box component="form" onSubmit={handleSendOtp}>
+                <Stack spacing={2.5}>
+                  <InputText
+                    title="Email đã đăng ký tài khoản"
+                    required
+                    placeholder="Nhập địa chỉ email của bạn"
+                    startAdornment={<User className="w-4 h-4 text-slate-400" />}
+                    inputProps={{
+                      type: "text",
+                      value: forgotIdentifier,
+                      onChange: (e: any) => setForgotIdentifier(e.target.value),
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    fullWidth
+                    variant="contained"
+                    sx={{
+                      py: 1.5,
+                      borderRadius: "12px",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      bgcolor: "primary.main",
+                    }}
+                  >
+                    {loading ? "ĐANG GỬI MÃ OTP..." : "GỬI MÃ XÁC NHẬN QUA EMAIL"}
+                  </Button>
+                </Stack>
+              </Box>
+            ) : (
+              <Box component="form" onSubmit={handleForgotPassword}>
+                <Stack spacing={2.5}>
+                  {fallbackOtpHint && (
+                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                      Mã OTP xác thực của bạn: <strong>{fallbackOtpHint}</strong>
+                    </div>
+                  )}
+                  <InputText
+                    title="Mã OTP (6 chữ số gửi qua Email)"
+                    required
+                    placeholder="Nhập 6 chữ số OTP"
+                    inputProps={{
+                      type: "text",
+                      maxLength: 6,
+                      value: forgotOtp,
+                      onChange: (e: any) =>
+                        setForgotOtp(e.target.value.replace(/\D/g, "")),
+                    }}
+                  />
+                  <InputText
+                    title="Đặt lại mật khẩu mới"
+                    required
+                    placeholder="Nhập mật khẩu mới tối thiểu 6 ký tự"
+                    startAdornment={<Lock className="w-4 h-4 text-slate-400" />}
+                    inputProps={{
+                      type: "password",
+                      value: forgotNewPassword,
+                      onChange: (e: any) => setForgotNewPassword(e.target.value),
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    fullWidth
+                    variant="contained"
+                    sx={{
+                      py: 1.5,
+                      borderRadius: "12px",
+                      fontWeight: "bold",
+                      textTransform: "none",
+                      bgcolor: "primary.main",
+                    }}
+                  >
+                    XÁC NHẬN ĐẶT LẠI MẬT KHẨU
+                  </Button>
+                </Stack>
+              </Box>
+            )
           ) : (
             <Box component="form" onSubmit={rhfHandleSubmit(onRegisterSubmit)}>
               <Stack spacing={2.5}>

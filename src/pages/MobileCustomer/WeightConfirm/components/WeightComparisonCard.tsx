@@ -31,7 +31,8 @@ export const WeightComparisonCard: React.FC<WeightComparisonCardProps> = ({
     );
 
   const actualSub = order.actualSubtotal ?? order.subtotal;
-  const deltaSub = actualSub - estimatedSub;
+  const extraFeeAmount = Number(order.extraFee || 0);
+  const deltaSub = actualSub + extraFeeAmount - estimatedSub;
 
   return (
     <div
@@ -78,6 +79,13 @@ export const WeightComparisonCard: React.FC<WeightComparisonCardProps> = ({
           </div>
         </div>
       </div>
+
+      {order.customerSpecialRequest && (
+        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
+          <span className="font-bold text-slate-900">Yêu cầu của bạn: </span>
+          <span>“{order.customerSpecialRequest}”</span>
+        </div>
+      )}
 
       {/* Line-by-line Estimated vs Actual Weight Comparison */}
       <div className="space-y-2">
@@ -128,10 +136,21 @@ export const WeightComparisonCard: React.FC<WeightComparisonCardProps> = ({
         </div>
       </div>
 
+      {extraFeeAmount > 0 && (
+        <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200 flex items-center justify-between text-xs">
+          <span className="text-slate-800 font-semibold">
+            Phụ phí cửa hàng thêm ({order.extraFeeReason || "Xử lý yêu cầu riêng"}):
+          </span>
+          <span className="font-mono font-black text-blue-700">
+            +{extraFeeAmount.toLocaleString("vi-VN")}đ
+          </span>
+        </div>
+      )}
+
       {/* Summary Difference */}
       <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/80 flex items-center justify-between text-xs">
         <span className="text-slate-700 font-semibold">
-          Chênh lệch sau khi chủ tiệm cân thực tế:
+          Chênh lệch sau khi chủ tiệm cân thực tế & tính phụ phí:
         </span>
         <span
           className={`font-mono font-black ${

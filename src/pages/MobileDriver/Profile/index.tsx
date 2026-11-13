@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
 import {
   User,
   Phone,
@@ -12,127 +11,13 @@ import {
   LogOut,
   ShieldCheck,
 } from "lucide-react";
-import { authAPI } from "../../../services/api";
-import { useToast } from "../../../components/Toast";
-import {
-  getScopedProfile,
-  getScopedToken,
-  setScopedSession,
-  clearScopedSession,
-} from "../../../utils/authStorage";
+import { InputText } from "../../../components/InputText";
+import { ButtonCustom } from "../../../components/ButtonCustom";
+import { useMobileDriverProfile } from "./hook";
 
 export const MobileDriverProfile: React.FC = () => {
-  const navigate = useNavigate();
-  const { showToast } = useToast();
-  const [saving, setSaving] = useState(false);
-
-  const [form, setForm] = useState({
-    username: "",
-    fullName: "",
-    phone: "",
-    email: "",
-    address: "",
-    vehicleType: "Xe máy Honda Wave / Vision",
-    licensePlate: "",
-    idCardNumber: "",
-    driverLicenseNumber: "",
-    driverLicenseImage: "",
-    password: "",
-  });
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      const parsed = getScopedProfile("driver");
-      if (parsed) {
-        setForm((prev) => ({
-          ...prev,
-          username: parsed.username || "",
-          fullName: parsed.fullName || "",
-          phone: parsed.phone || "",
-          email: parsed.email || "",
-          address: parsed.address || "",
-          vehicleType: parsed.vehicleType || prev.vehicleType,
-          licensePlate: parsed.licensePlate || "",
-          idCardNumber: parsed.idCardNumber || "",
-          driverLicenseNumber: parsed.driverLicenseNumber || "",
-          driverLicenseImage: parsed.driverLicenseImage || "",
-        }));
-      }
-      try {
-        const res = await authAPI.getProfile();
-        const u = res.data?.data;
-        if (u) {
-          setForm((prev) => ({
-            ...prev,
-            username: u.username || prev.username,
-            fullName: u.fullName || prev.fullName,
-            phone: u.phone || prev.phone,
-            email: u.email || prev.email,
-            address: u.address || prev.address,
-            vehicleType: u.vehicleType || prev.vehicleType,
-            licensePlate: u.licensePlate || prev.licensePlate,
-            idCardNumber: u.idCardNumber || prev.idCardNumber,
-            driverLicenseNumber:
-              u.driverLicenseNumber || prev.driverLicenseNumber,
-            driverLicenseImage: u.driverLicenseImage || prev.driverLicenseImage,
-          }));
-        }
-      } catch {
-        // fallback to cached profile
-      }
-    };
-    loadProfile();
-  }, []);
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.fullName.trim() || !form.phone.trim()) {
-      showToast("Vui lòng nhập đầy đủ Họ tên và Số điện thoại!", "warning");
-      return;
-    }
-    setSaving(true);
-    try {
-      const payload: any = {
-        fullName: form.fullName.trim(),
-        phone: form.phone.trim(),
-        email: form.email.trim() || undefined,
-        address: form.address.trim(),
-        vehicleType: form.vehicleType.trim(),
-        licensePlate: form.licensePlate.trim(),
-      };
-      if (form.password.trim().length >= 6) {
-        payload.password = form.password.trim();
-      } else if (form.password.trim().length > 0) {
-        showToast("Mật khẩu mới phải có tối thiểu 6 ký tự!", "warning");
-        setSaving(false);
-        return;
-      }
-
-      const res = await authAPI.updateProfile(payload);
-      const updatedUser = res.data?.data || payload;
-
-      const currentObj = getScopedProfile("driver") || {};
-      const merged = { ...currentObj, ...updatedUser };
-      const token = getScopedToken("driver") || "";
-      setScopedSession("driver", token, merged);
-
-      setForm((prev) => ({ ...prev, password: "" }));
-      showToast("Đã cập nhật hồ sơ Tài xế thành công!", "success");
-    } catch (err: any) {
-      showToast(
-        err.response?.data?.message || "Không thể cập nhật thông tin Tài xế!",
-        "error",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleLogout = () => {
-    clearScopedSession("driver");
-    showToast("Đã đăng xuất khỏi App Tài Xế!", "info");
-    navigate("/mobile-driver/login", { replace: true });
-  };
+  const { form, setForm, saving, handleSave, handleLogout } =
+    useMobileDriverProfile();
 
   return (
     <div className="space-y-4">
@@ -193,137 +78,95 @@ export const MobileDriverProfile: React.FC = () => {
         </div>
 
         <form onSubmit={handleSave} className="space-y-3.5 mt-4">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">
-              Họ và Tên Tài xế *
-            </label>
-            <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                required
-                value={form.fullName}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, fullName: e.target.value }))
-                }
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
+          <InputText
+            title="Họ và Tên Tài xế"
+            required
+            startAdornment={<User className="w-4 h-4 text-slate-400" />}
+            inputProps={{
+              value: form.fullName,
+              onChange: (e: any) =>
+                setForm((p) => ({ ...p, fullName: e.target.value })),
+            }}
+          />
 
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                Số điện thoại *
-              </label>
-              <div className="relative">
-                <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="tel"
-                  required
-                  value={form.phone}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, phone: e.target.value }))
-                  }
-                  className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <InputText
+              title="Số điện thoại"
+              required
+              startAdornment={<Phone className="w-3.5 h-3.5 text-slate-400" />}
+              inputProps={{
+                type: "tel",
+                value: form.phone,
+                onChange: (e: any) =>
+                  setForm((p) => ({ ...p, phone: e.target.value })),
+              }}
+            />
 
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                Biển kiểm soát Hà Nội
-              </label>
-              <input
-                type="text"
-                value={form.licensePlate}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, licensePlate: e.target.value }))
-                }
-                placeholder="VD: 29-B1 123.45"
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">
-              Loại phương tiện giao nhận
-            </label>
-            <input
-              type="text"
-              value={form.vehicleType}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, vehicleType: e.target.value }))
-              }
-              placeholder="VD: Xe máy Honda Wave có baga chở túi giặt"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
+            <InputText
+              title="Biển kiểm soát Hà Nội"
+              placeholder="VD: 29-B1 123.45"
+              inputProps={{
+                value: form.licensePlate,
+                onChange: (e: any) =>
+                  setForm((p) => ({ ...p, licensePlate: e.target.value })),
+              }}
             />
           </div>
 
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">
-              Email nhận thông báo đối soát
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, email: e.target.value }))
-                }
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
+          <InputText
+            title="Loại phương tiện giao nhận"
+            placeholder="VD: Xe máy Honda Wave có baga chở túi giặt"
+            inputProps={{
+              value: form.vehicleType,
+              onChange: (e: any) =>
+                setForm((p) => ({ ...p, vehicleType: e.target.value })),
+            }}
+          />
 
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">
-              Khu vực hoạt động thường trú tại Hà Nội
-            </label>
-            <div className="relative">
-              <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={form.address}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, address: e.target.value }))
-                }
-                placeholder="VD: Quận Cầu Giấy, Đống Đa, Hà Nội"
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
+          <InputText
+            title="Email nhận thông báo đối soát"
+            startAdornment={<Mail className="w-4 h-4 text-slate-400" />}
+            inputProps={{
+              type: "email",
+              value: form.email,
+              onChange: (e: any) =>
+                setForm((p) => ({ ...p, email: e.target.value })),
+            }}
+          />
 
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">
-              Đổi mật khẩu mới (Để trống nếu giữ nguyên)
-            </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, password: e.target.value }))
-                }
-                placeholder="Nhập tối thiểu 6 ký tự nếu đổi mật khẩu"
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
+          <InputText
+            title="Khu vực hoạt động thường trú tại Hà Nội"
+            placeholder="VD: Quận Cầu Giấy, Đống Đa, Hà Nội"
+            startAdornment={<MapPin className="w-4 h-4 text-slate-400" />}
+            inputProps={{
+              value: form.address,
+              onChange: (e: any) =>
+                setForm((p) => ({ ...p, address: e.target.value })),
+            }}
+          />
 
-          <button
+          <InputText
+            title="Đổi mật khẩu mới (Để trống nếu giữ nguyên)"
+            placeholder="Nhập tối thiểu 6 ký tự nếu đổi mật khẩu"
+            startAdornment={<Lock className="w-4 h-4 text-slate-400" />}
+            inputProps={{
+              type: "password",
+              value: form.password,
+              onChange: (e: any) =>
+                setForm((p) => ({ ...p, password: e.target.value })),
+            }}
+          />
+
+          <ButtonCustom
             type="submit"
-            disabled={saving}
-            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer"
-          >
-            <Save className="w-4 h-4" />
-            <span>
-              {saving ? "ĐANG LƯU HỒ SƠ..." : "LƯU THAY ĐỔI HỒ SƠ TÀI XẾ"}
-            </span>
-          </button>
+            loading={saving}
+            iconStart={<Save className="w-4 h-4" />}
+            label={
+              saving ? "ĐANG LƯU HỒ SƠ..." : "LƯU THAY ĐỔI HỒ SƠ TÀI XẾ"
+            }
+            className="!bg-emerald-600 hover:!bg-emerald-700"
+            textClassName="!text-xs !font-black"
+          />
         </form>
 
         <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">

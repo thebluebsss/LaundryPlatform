@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate, useLocation, NavLink } from "react-router-dom";
+import React from "react";
+import { NavLink } from "react-router-dom";
 import {
   Store,
   LogIn,
@@ -10,79 +10,19 @@ import {
   ShieldCheck,
   Info,
 } from "lucide-react";
-import { useToast } from "../../../components/Toast";
-import { useLoading } from "../../../context/LoadingContext";
 import { InputText } from "../../../components/InputText";
 import { ButtonCustom } from "../../../components/ButtonCustom";
-import { setScopedSession } from "../../../utils/authStorage";
+import { useStoreOwnerLogin } from "./hook";
 
 export const StoreOwnerLogin: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { showToast } = useToast();
-  const { setLoading: setGlobalLoading } = useLoading();
-
-  const [submitting, setSubmitting] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
-  const queryParams = new URLSearchParams(location.search);
-  const redirectTo = queryParams.get("redirect") || "/store-owner/dashboard";
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      showToast("Vui lòng nhập đầy đủ tài khoản và mật khẩu!", "warning");
-      return;
-    }
-
-    setSubmitting(true);
-    setGlobalLoading(true);
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: username.trim(),
-          password,
-        }),
-      });
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        const loggedUser = result.data.user;
-        const normalizedRole =
-          loggedUser.role === "store_manager" ? "store_owner" : loggedUser.role;
-
-        if (normalizedRole !== "store_owner" && normalizedRole !== "admin") {
-          showToast(
-            "Tài khoản này không có quyền Chủ cửa hàng! Vui lòng đăng nhập bằng tài khoản Đối tác Chủ tiệm do Admin cấp.",
-            "error"
-          );
-          return;
-        }
-
-        const profileToSave = { ...loggedUser, role: "store_owner" };
-        setScopedSession("store_owner", result.data.token, profileToSave);
-
-        showToast(
-          `Chào mừng Chủ cửa hàng: ${loggedUser.fullName || loggedUser.username}!`,
-          "success"
-        );
-        navigate(redirectTo, { replace: true });
-      } else {
-        showToast(
-          result.message || "Tài khoản hoặc mật khẩu không chính xác!",
-          "error"
-        );
-      }
-    } catch {
-      showToast("Lỗi kết nối máy chủ khi đăng nhập!", "error");
-    } finally {
-      setSubmitting(false);
-      setGlobalLoading(false);
-    }
-  };
+  const {
+    submitting,
+    username,
+    setUsername,
+    password,
+    setPassword,
+    handleLogin,
+  } = useStoreOwnerLogin();
 
   return (
     <div className="min-h-[560px] flex items-center justify-center py-8 px-4">

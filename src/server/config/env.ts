@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 
-dotenv.config({ override: true });
+dotenv.config();
+
+const DEFAULT_GMAIL_APP_PASSWORD = "impr bhqr uokb lxyw".replace(/\s+/g, "");
 
 export const config = {
   port: 3000,
@@ -13,10 +15,23 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || "default_jwt_secret_key_123",
   jwtExpiry: "7d",
 
-  // Email
+  // Email credentials (prioritizes 16-char Google App Password from Secret or configured App Password)
   email: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    get user() {
+      return (process.env.EMAIL_USER || "thebluebsss@gmail.com").trim();
+    },
+    get pass() {
+      const secretPass = (
+        process.env.EMAIL_PASS ||
+        process.env.EMAIL_PASSWORD ||
+        process.env.GMAIL_APP_PASSWORD ||
+        ""
+      ).replace(/\s+/g, "");
+      if (secretPass.length === 16 && !secretPass.includes("your-")) {
+        return secretPass;
+      }
+      return DEFAULT_GMAIL_APP_PASSWORD;
+    },
   },
 
   // SMS

@@ -122,6 +122,10 @@ export const authAPI = {
   getProfile: () => api.get("/auth/profile"),
   updateProfile: (profileData: any) => api.patch("/auth/profile", profileData),
   logout: () => api.post("/auth/logout"),
+  forgotPassword: (email: string) =>
+    api.post("/auth/forgot-password", { email }),
+  resetPassword: (data: { email: string; otp: string; newPassword: string }) =>
+    api.post("/auth/reset-password", data),
 };
 
 // Stores API
@@ -179,15 +183,6 @@ export const deliveryAPI = {
     api.post("/delivery/update-location", data),
 };
 
-// AI Inspection API
-export const aiAPI = {
-  inspectGarment: (data: { image: string; declaredService?: string; itemName?: string }) =>
-    api.post("/ai/inspect-garment", data),
-  analyzeFabric: (data: { image: string; declaredService?: string; itemName?: string }) =>
-    api.post("/ai/analyze-fabric", data),
-  verifyCloth: (data: { image: string; expectedType?: string }) =>
-    api.post("/ai/verify-cloth", data),
-};
 
 // Payments API (VietQR Napas 24/7 & PayOS)
 export const paymentsAPI = {

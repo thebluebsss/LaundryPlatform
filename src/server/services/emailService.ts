@@ -1,27 +1,53 @@
 import nodemailer from "nodemailer";
+import { config } from "../config/env";
+
+const getEmailCredentials = () => {
+  const user = config.email.user;
+  const pass = config.email.pass;
+  const isConfigured = Boolean(user && pass && pass.length === 16);
+
+  return { user, pass, isConfigured };
+};
 
 const createTransporter = () => {
+  const { user, pass } = getEmailCredentials();
   return nodemailer.createTransport({
     service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
+      user,
+      pass,
     },
   });
 };
 
 // Gửi OTP qua email
-export const sendOTPEmail = async (email: string, otp: string, userName: string = "Khách hàng") => {
+export const sendOTPEmail = async (
+  email: string,
+  otp: string,
+  userName: string = "Khách hàng"
+) => {
+  const { user, isConfigured } = getEmailCredentials();
+  if (!isConfigured) {
+    return {
+      success: false,
+      notConfigured: true,
+      error: "Chưa cấu hình EMAIL_PASS",
+    };
+  }
+
   try {
     const transporter = createTransporter();
 
     const mailOptions = {
       from: {
-        name: "Hệ Thống Giặt Là Prolaundry",
-        address: process.env.EMAIL_USER || "",
+        name: "Hệ Thống Giặt Là Sạch Sẽ",
+        address: user,
       },
       to: email,
-      subject: "Mã OTP Đặt Lại Mật Khẩu - Prolaundry",
+      subject: `[Giặt Là Sạch Sẽ] Mã OTP Đặt Lại Mật Khẩu: ${otp}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -91,8 +117,8 @@ export const sendOTPEmail = async (email: string, otp: string, userName: string 
         <body>
           <div class="container">
             <div class="header">
-              <h1>🧺 Prolaundry</h1>
-              <p>Hệ Thống Giặt Là Chuyên Nghiệp</p>
+              <h1>Giặt Là Sạch Sẽ</h1>
+              <p>Hệ Thống Giặt Sấy Giao Nhận Tận Nơi</p>
             </div>
             
             <div class="content">
@@ -108,18 +134,15 @@ export const sendOTPEmail = async (email: string, otp: string, userName: string 
               <p><strong>Vui lòng không chia sẻ mã này với bất kỳ ai!</strong></p>
               
               <div class="warning">
-                <strong>⚠️ Lưu ý:</strong> Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi ngay lập tức.
+                <strong>Lưu ý:</strong> Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
               </div>
               
-              <p>Nếu bạn có bất kỳ câu hỏi nào, đừng ngần ngại liên hệ với đội ngũ hỗ trợ của chúng tôi.</p>
-              
-              <p>Trân trọng,<br><strong>Đội ngũ Prolaundry</strong></p>
+              <p>Trân trọng,<br><strong>Đội ngũ Giặt Là Sạch Sẽ</strong></p>
             </div>
             
             <div class="footer">
               <p>Email này được gửi tự động, vui lòng không trả lời.</p>
-              <p>© 2025 Prolaundry. All rights reserved.</p>
-              <p>Hotline: 0969263238 thebluebsss@gmail.com</p>
+              <p>Hotline: 0969263238 · ${user}</p>
             </div>
           </div>
         </body>
@@ -130,74 +153,41 @@ export const sendOTPEmail = async (email: string, otp: string, userName: string 
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error: any) {
-    console.error(" Lỗi gửi email:", error);
-    return { success: false, error: error.message };
+    console.error("[emailService] Lỗi gửi email qua Gmail SMTP:", error?.message || error);
+    return {
+      success: false,
+      error: String(error?.message || "Lỗi gửi email"),
+    };
   }
 };
 
-export const sendPasswordResetConfirmation = async (email: string, userName: string) => {
+export const sendPasswordResetConfirmation = async (
+  email: string,
+  userName: string
+) => {
   try {
+    const { user, isConfigured } = getEmailCredentials();
+    if (!isConfigured) return { success: false };
+
     const transporter = createTransporter();
 
     const mailOptions = {
       from: {
-        name: "Hệ Thống Giặt Là Prolaundry",
-        address: process.env.EMAIL_USER || "",
+        name: "Hệ Thống Giặt Là Sạch Sẽ",
+        address: user,
       },
       to: email,
-      subject: "Đặt Lại Mật Khẩu Thành Công - Prolaundry",
+      subject: "Đặt Lại Mật Khẩu Thành Công - Giặt Là Sạch Sẽ",
       html: `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
-          <style>
-            body {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              line-height: 1.6;
-              color: #333;
-            }
-            .container {
-              max-width: 600px;
-              margin: 20px auto;
-              background: white;
-              border-radius: 10px;
-              overflow: hidden;
-              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            }
-            .header {
-              background: linear-gradient(135deg, #4caf50 0%, #81c784 100%);
-              color: white;
-              padding: 30px;
-              text-align: center;
-            }
-            .content {
-              padding: 40px 30px;
-            }
-            .success-icon {
-              font-size: 64px;
-              text-align: center;
-              margin: 20px 0;
-            }
-          </style>
         </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🧺 Prolaundry</h1>
-            </div>
-            <div class="content">
-              <div class="success-icon">✅</div>
-              <h2 style="text-align: center; color: #4caf50;">Đặt Lại Mật Khẩu Thành Công!</h2>
-              <p>Xin chào ${userName},</p>
-              <p>Mật khẩu của bạn đã được đặt lại thành công vào lúc ${new Date().toLocaleString(
-                "vi-VN",
-              )}.</p>
-              <p>Bạn có thể đăng nhập ngay bây giờ với mật khẩu mới.</p>
-              <p><strong>Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ với chúng tôi ngay lập tức!</strong></p>
-              <p>Trân trọng,<br><strong>Đội ngũ Prolaundry</strong></p>
-            </div>
-          </div>
+        <body style="font-family: sans-serif; color: #333;">
+          <h2>Đặt Lại Mật Khẩu Thành Công!</h2>
+          <p>Xin chào ${userName},</p>
+          <p>Mật khẩu của bạn đã được đặt lại thành công vào lúc ${new Date().toLocaleString("vi-VN")}.</p>
         </body>
         </html>
       `,
@@ -206,7 +196,6 @@ export const sendPasswordResetConfirmation = async (email: string, userName: str
     await transporter.sendMail(mailOptions);
     return { success: true };
   } catch (error: any) {
-    console.error(" Lỗi gửi email xác nhận:", error);
     return { success: false, error: error.message };
   }
 };

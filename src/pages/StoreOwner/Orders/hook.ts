@@ -4,7 +4,6 @@ import {
   laundryOrdersAPI,
   bookingsAPI,
   servicesAPI,
-  aiAPI,
   deliveryAPI,
   reviewsAPI,
 } from "../../../services/api";
@@ -101,9 +100,9 @@ export const useStoreOwnerOrders = () => {
                 customerName: b.name || b.customerName || "Khách hàng",
                 phoneNumber: b.phone || b.phoneNumber || "",
                 address: b.address || "",
-                district: b.district || "Quận 1",
-                storeId: b.storeId || "store-hcm-q1",
-                storeName: b.storeName || "Tiệm Giặt Sấy Vô Trùng Q1",
+                district: b.district || "Quận Hoàn Kiếm",
+                storeId: b.storeId || "store-hn-hoankiem",
+                storeName: b.storeName || "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
                 items: (b.items || []).map((it: any) => ({
                   serviceId: it.serviceId || "wf-regular",
                   serviceName: it.serviceName || "Giặt Sấy Thường",
@@ -136,6 +135,9 @@ export const useStoreOwnerOrders = () => {
                   : "",
                 deliveryTime: b.deliveryTime || "16:00 - 18:00",
                 notes: b.notes || "",
+                customerSpecialRequest: b.customerSpecialRequest || "",
+                extraFee: Number(b.extraFee || 0),
+                extraFeeReason: b.extraFeeReason || "",
                 promoCode: b.promoCode,
                 discountAmount: b.discountAmount || 0,
                 subtotal: b.subtotal || 0,
@@ -182,6 +184,8 @@ export const useStoreOwnerOrders = () => {
       weightConfirmStatus?: WeightConfirmStatus;
       status?: OrderStatus;
       notes: string;
+      extraFee?: number;
+      extraFeeReason?: string;
       paymentStatus?: "pending" | "paid" | "refunded" | "failed";
     }
   ) => {
@@ -193,7 +197,7 @@ export const useStoreOwnerOrders = () => {
       showToast(
         serverMsg ||
           (savedData?.weightConfirmStatus === "waiting_customer"
-            ? "Khối lượng chênh lệch vượt ngưỡng: Đã gửi thông báo chờ khách hàng xác nhận qua App!"
+            ? "Đã lưu cân nặng & phụ phí, gửi thông báo chờ khách hàng xác nhận!"
             : "Đã xác nhận khối lượng thực tế và chuyển vào lồng giặt!"),
         "success"
       );
@@ -201,7 +205,6 @@ export const useStoreOwnerOrders = () => {
       setSearchParams({});
       await loadOrdersAndServices();
     } catch (err) {
-      // Also try updating booking status if it came from bookings collection
       try {
         if (payload.status) {
           await bookingsAPI.updateStatus(orderId, payload.status);
@@ -217,15 +220,25 @@ export const useStoreOwnerOrders = () => {
                 Number(it.unitPrice || 0),
             0
           );
+          const extraFeeVal = Math.max(0, Number(payload.extraFee ?? o.extraFee ?? 0));
           const totalPrice = Math.max(
             0,
-            actualSubtotal + (o.deliveryFee || 0) - (o.discountAmount || 0)
+            actualSubtotal +
+              (o.productsTotal || 0) +
+              (o.deliveryFee || 0) +
+              extraFeeVal -
+              (o.discountAmount || 0)
           );
           return {
             ...o,
             items: payload.items,
             actualSubtotal,
             subtotal: actualSubtotal,
+            extraFee: extraFeeVal,
+            extraFeeReason:
+              payload.extraFeeReason !== undefined
+                ? payload.extraFeeReason
+                : o.extraFeeReason,
             totalPrice,
             weightConfirmStatus: payload.weightConfirmStatus || "accepted",
             status: payload.status || "washing",
@@ -235,7 +248,7 @@ export const useStoreOwnerOrders = () => {
           };
         })
       );
-      showToast("Đã cập nhật khối lượng thực tế cho đơn hàng!", "success");
+      showToast("Đã cập nhật khối lượng thực tế & chi phí cho đơn hàng!", "success");
       setWeighingOrder(null);
       setSearchParams({});
     } finally {
@@ -243,7 +256,7 @@ export const useStoreOwnerOrders = () => {
     }
   };
 
-  // Sequence 2 (SM-UC4.1): Chủ tiệm giặt phát yêu cầu tìm Shipper lấy đồ bẩn cho đơn đang chờ xác nhận (pending)
+  // Chủ tiệm giặt phát yêu cầu tìm Shipper lấy đồ bẩn cho đơn đang chờ xác nhận (pending)
   const handleBroadcastPickup = async (order: LaundryOrder) => {
     setLoading(true);
     try {
@@ -277,7 +290,7 @@ export const useStoreOwnerOrders = () => {
     }
   };
 
-  // SM-UC4.2: Chủ tiệm giặt phát sóng tìm Shipper giao trả đồ sạch cho khách khi đã hoàn thành quy trình giặt
+  // Chủ tiệm giặt phát sóng tìm Shipper giao trả đồ sạch cho khách khi đã hoàn thành quy trình giặt
   const handleBroadcastDelivery = async (order: LaundryOrder) => {
     setLoading(true);
     try {
@@ -319,13 +332,13 @@ export const useStoreOwnerOrders = () => {
     }
   };
 
-  // Sequence 2 -> Sequence 3 (SM-UC4.3): Chủ tiệm xác nhận đã nhận bàn giao túi đồ từ Shipper tại quầy
+  // Chủ tiệm xác nhận đã nhận bàn giao túi đồ từ Shipper tại quầy
   const handleConfirmHandoverFromShipper = async (order: LaundryOrder) => {
     setLoading(true);
     try {
       await laundryOrdersAPI.updateStatus(order.id, { status: "sorting" });
       showToast(
-        `Đã xác nhận nhận túi đồ đơn #${order.id} từ Shipper! Mở bảng cân thực tế (Sequence 3).`,
+        `Đã xác nhận nhận túi đồ đơn #${order.id} từ Shipper! Mở bảng cân thực tế.`,
         "success"
       );
       await loadOrdersAndServices();
@@ -344,7 +357,6 @@ export const useStoreOwnerOrders = () => {
     setLoading(true);
     try {
       await laundryOrdersAPI.updateStatus(order.id, { status: newStatus });
-      // If ready for delivery, automatically broadcast a delivery task to drivers
       if (newStatus === "delivering") {
         try {
           await deliveryAPI.broadcastTask({
@@ -426,35 +438,6 @@ export const useStoreOwnerOrders = () => {
     }
   };
 
-  const handleRunAiInspect = async (
-    itemName: string,
-    declaredService: string,
-    imageUrl?: string
-  ) => {
-    try {
-      const sampleImage =
-        imageUrl ||
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-      const res = await aiAPI.inspectGarment({
-        image: sampleImage,
-        declaredService,
-        itemName,
-      });
-      return res.data?.data;
-    } catch (error) {
-      return {
-        detectedFabric: "Lụa / Cotton cao cấp (AI Vision)",
-        recommendedServiceName: "Giặt Hấp / Giặt Sấy Nhiệt Độ Thấp",
-        careInstructions: [
-          "Giặt nước lạnh dưới 30°C",
-          "Không dùng chất tẩy Clo",
-          "Ủi hơi nước mặt trái",
-        ],
-        notes: `AI phân tích "${itemName}": Chất vải mềm, khuyến nghị tách riêng màu sáng.`,
-      };
-    }
-  };
-
   const filteredOrders = orders.filter((o) => {
     if (statusFilter !== "all" && o.status !== statusFilter) return false;
     if (weightFilter !== "all") {
@@ -467,7 +450,8 @@ export const useStoreOwnerOrders = () => {
         o.id.toLowerCase().includes(q) ||
         o.customerName.toLowerCase().includes(q) ||
         o.phoneNumber.includes(q) ||
-        o.address.toLowerCase().includes(q)
+        o.address.toLowerCase().includes(q) ||
+        (o.customerSpecialRequest || "").toLowerCase().includes(q)
       );
     }
     return true;
@@ -515,7 +499,6 @@ export const useStoreOwnerOrders = () => {
     handleUpdateOrderStatus,
     handleCreatePosOrder,
     handleDeleteOrder,
-    handleRunAiInspect,
     handleReplyOrderReview,
   };
 };

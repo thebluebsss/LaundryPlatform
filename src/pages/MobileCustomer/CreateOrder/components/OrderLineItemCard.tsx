@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2, Sparkles, Minus, Plus } from "lucide-react";
+import { Trash2, Minus, Plus } from "lucide-react";
 import { CartItem, LaundryService } from "../../../../types";
 import { InputSelect } from "../../../../components/InputSelect";
 import { InputText } from "../../../../components/InputText";
@@ -11,7 +11,6 @@ interface OrderLineItemCardProps {
   canRemove: boolean;
   onUpdateItem: (index: number, patch: Partial<CartItem>) => void;
   onRemoveItem: (index: number) => void;
-  onOpenAiScanner: (index: number) => void;
 }
 
 const FABRIC_OPTIONS = [
@@ -31,7 +30,6 @@ export const OrderLineItemCard: React.FC<OrderLineItemCardProps> = ({
   canRemove,
   onUpdateItem,
   onRemoveItem,
-  onOpenAiScanner,
 }) => {
   const serviceOptions = services.map((s) => ({
     value: s.id,
@@ -79,14 +77,6 @@ export const OrderLineItemCard: React.FC<OrderLineItemCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => onOpenAiScanner(index)}
-            className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI Quét Vải</span>
-          </button>
           {canRemove && (
             <button
               type="button"

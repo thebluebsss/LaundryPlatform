@@ -92,22 +92,6 @@ export interface CourierDriver {
   avatar?: string;
 }
 
-export interface GarmentInspectionResult {
-  garmentType: string;
-  detectedFabric: string;
-  confidence: number;
-  careInstructions: string[];
-  recommendedService: ServiceCategory;
-  recommendedServiceName: string;
-  declaredService: string;
-  isDiscrepancy: boolean;
-  discrepancySeverity: "none" | "low" | "medium" | "high";
-  warningMessage: string;
-  suggestedUnitPrice: number;
-  fraudRiskScore: number;
-  notes: string;
-  imageUrl?: string;
-}
 
 export interface LaundryEquipment {
   id: string;
@@ -191,6 +175,9 @@ export interface LaundryOrder {
   actualWeighedAt?: string;
   completedAt?: string;
   notes: string;
+  customerSpecialRequest?: string;
+  extraFee?: number;
+  extraFeeReason?: string;
   promoCode?: string;
   discountAmount: number;
   subtotal: number;
@@ -204,7 +191,6 @@ export interface LaundryOrder {
   paymentMethod?: "vietqr" | "vnpay" | "momo" | "payos" | "cod" | "cash";
   paymentStatus?: "pending" | "paid" | "refunded" | "failed";
   vietQrUrl?: string;
-  aiInspection?: GarmentInspectionResult;
   createdAt: string;
 }
 

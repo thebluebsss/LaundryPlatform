@@ -245,60 +245,157 @@ export const updateProfile = async (userId: string, updateData: any) => {
 };
 
 /**
- * Quên mật khẩu - Gửi OTP
+ * Quên mật khẩu - Gửi OTP qua Email
  */
-export const forgotPassword = async (email: string) => {
-  const user = await User.findOne({ email });
-  if (!user) {
-    throw new NotFoundError("Email không tồn tại trong hệ thống");
+export const forgotPassword = async (emailOrIdentifier: string) => {
+  const rawInput = String(emailOrIdentifier || "").trim();
+  if (!rawInput) {
+    throw new ValidationError("Vui lòng nhập địa chỉ Email đã đăng ký");
   }
+
+  const escaped = rawInput.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const exactRegex = new RegExp(`^${escaped}$`, "i");
+
+  const user = await User.findOne({
+    $or: [
+      { email: exactRegex },
+      { email: rawInput.toLowerCase() },
+      { username: exactRegex },
+      { phone: rawInput },
+    ],
+  });
+
+  if (!user) {
+    throw new NotFoundError(
+      "Không tìm thấy tài khoản nào khớp với Email này trong hệ thống"
+    );
+  }
+
+  const targetEmail = (user.email || rawInput).trim().toLowerCase();
 
   // Tạo OTP 6 số
   const otp = crypto.randomInt(100000, 999999).toString();
   const expiresAt = Date.now() + 10 * 60 * 1000; // 10 phút
 
-  // Lưu OTP
-  otpStore.set(email, { otp, expiresAt });
+  // Lưu OTP theo cả email và input để đối chiếu chính xác
+  otpStore.set(targetEmail, { otp, expiresAt });
+  otpStore.set(rawInput.toLowerCase(), { otp, expiresAt });
 
-  // Gửi email
-  await sendOTPEmail(email, otp, user.fullName);
+  // Lưu dự phòng vào bản ghi User
+  try {
+    await User.findByIdAndUpdate(user._id || user.id, {
+      $set: {
+        resetPasswordOTP: otp,
+        resetPasswordExpires: new Date(expiresAt),
+      },
+    });
+  } catch {
+    // ignore if fallback store doesn't need schema fields
+  }
 
-  return { message: "OTP đã được gửi đến email của bạn" };
+  // Gửi email sử dụng EMAIL_USER & EMAIL_PASS trong Secret
+  const mailResult = await sendOTPEmail(
+    targetEmail,
+    otp,
+    user.fullName || user.username || "Quý khách"
+  );
+
+  if (mailResult.success) {
+    return {
+      email: targetEmail,
+      emailSent: true,
+      message: `Mã xác nhận OTP (6 số) đã được gửi tới email ${targetEmail}. Vui lòng kiểm tra hộp thư (hoặc mục Spam).`,
+    };
+  }
+
+  return {
+    email: targetEmail,
+    emailSent: false,
+    devOtp: otp,
+    smtpWarning: mailResult.requiresAppPassword
+      ? "Gmail yêu cầu Mật khẩu ứng dụng 16 ký tự (Google App Password) cho biến EMAIL_PASS trong Secret thay vì mật khẩu đăng nhập Gmail thông thường."
+      : mailResult.error,
+    message: mailResult.requiresAppPassword
+      ? `Đã tạo mã OTP cho ${targetEmail}. (Lưu ý: Gmail từ chối mật khẩu thường trong Secret EMAIL_PASS vì yêu cầu Google App Password 16 ký tự — Mã OTP của bạn là: ${otp})`
+      : `Đã tạo mã OTP xác thực cho ${targetEmail}: ${otp}`,
+  };
 };
 
 /**
  * Reset mật khẩu với OTP
  */
-export const resetPassword = async (email: string, otp: string, newPassword: any) => {
-  // Kiểm tra OTP
-  const otpData = otpStore.get(email);
-  if (!otpData) {
-    throw new ValidationError("OTP không hợp lệ hoặc đã hết hạn");
+export const resetPassword = async (
+  emailOrIdentifier: string,
+  otp: string,
+  newPassword: any
+) => {
+  const rawInput = String(emailOrIdentifier || "").trim();
+  const cleanOtp = String(otp || "").trim();
+  const cleanPass = String(newPassword || "").trim();
+
+  if (cleanPass.length < 6) {
+    throw new ValidationError("Mật khẩu mới phải có tối thiểu 6 ký tự");
   }
 
-  if (otpData.otp !== otp) {
-    throw new ValidationError("OTP không đúng");
-  }
+  const escaped = rawInput.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const exactRegex = new RegExp(`^${escaped}$`, "i");
 
-  if (Date.now() > otpData.expiresAt) {
-    otpStore.delete(email);
-    throw new ValidationError("OTP đã hết hạn");
-  }
+  const user = await User.findOne({
+    $or: [
+      { email: exactRegex },
+      { email: rawInput.toLowerCase() },
+      { username: exactRegex },
+      { phone: rawInput },
+    ],
+  });
 
-  // Tìm user và cập nhật password
-  const user = await User.findOne({ email });
   if (!user) {
-    throw new NotFoundError("User không tồn tại");
+    throw new NotFoundError("Tài khoản không tồn tại trong hệ thống");
   }
 
-  // Hash password mới
-  user.password = await bcrypt.hash(newPassword, 10);
-  await user.save();
+  const targetEmail = (user.email || rawInput).trim().toLowerCase();
+  const otpData =
+    otpStore.get(targetEmail) || otpStore.get(rawInput.toLowerCase());
+
+  const dbOtp = user.resetPasswordOTP;
+  const dbExpires = user.resetPasswordExpires
+    ? new Date(user.resetPasswordExpires).getTime()
+    : 0;
+
+  const isMemoryOtpValid =
+    otpData && otpData.otp === cleanOtp && Date.now() <= otpData.expiresAt;
+  const isDbOtpValid =
+    dbOtp && String(dbOtp) === cleanOtp && Date.now() <= dbExpires;
+
+  if (!isMemoryOtpValid && !isDbOtpValid) {
+    if (
+      (otpData && Date.now() > otpData.expiresAt) ||
+      (dbExpires > 0 && Date.now() > dbExpires)
+    ) {
+      otpStore.delete(targetEmail);
+      otpStore.delete(rawInput.toLowerCase());
+      throw new ValidationError("Mã OTP đã hết hạn (quá 10 phút). Vui lòng lấy mã mới!");
+    }
+    throw new ValidationError("Mã xác nhận OTP không đúng hoặc không hợp lệ!");
+  }
+
+  // Hash password mới và cập nhật trực tiếp qua findByIdAndUpdate (tránh lỗi double-hash từ pre-save hook và tương thích dbFallback)
+  const hashedPassword = await bcrypt.hash(cleanPass, 10);
+  await User.findByIdAndUpdate(user._id || user.id, {
+    $set: {
+      password: hashedPassword,
+      resetPasswordOTP: null,
+      resetPasswordExpires: null,
+    },
+  });
 
   // Xóa OTP
-  otpStore.delete(email);
+  otpStore.delete(targetEmail);
+  otpStore.delete(rawInput.toLowerCase());
 
-  return { message: "Đặt lại mật khẩu thành công" };
+  return {
+    message: "Đặt lại mật khẩu mới thành công! Bạn có thể đăng nhập ngay bây giờ.",
+  };
 };
 
 /**

@@ -5,7 +5,6 @@ import {
   Store,
   Shirt,
   Plus,
-  Sparkles,
   Star,
   Check,
   Lock,
@@ -20,35 +19,34 @@ import { BookingCheckout } from "./components/BookingCheckout";
 import { ProductSelection } from "./components/ProductSelection";
 import { SuccessModal } from "./components/SuccessModal";
 import { OrderLineItemCard } from "../MobileCustomer/CreateOrder/components/OrderLineItemCard";
-import { AiFabricScannerModal } from "../MobileCustomer/CreateOrder/components/AiFabricScannerModal";
 import { useLoading } from "../../context/LoadingContext";
 import { Box, Button } from "@mui/material";
 
 const BOOKING_STEPS = [
   {
     step: 1 as const,
-    code: "KH-UC4.1",
+    code: "Bước 1",
     title: "Bước 1: Chọn Tiệm Giặt",
     subtitle: "Chọn chi nhánh phục vụ",
     icon: Store,
   },
   {
     step: 2 as const,
-    code: "KH-UC4.2 / 4.4",
+    code: "Bước 2",
     title: "Bước 2: Kê Khai Đồ Giặt",
-    subtitle: "Order_Details & Quét AI",
+    subtitle: "Chi tiết từng món đồ",
     icon: Shirt,
   },
   {
     step: 3 as const,
-    code: "KH-UC4.5 (Opt)",
+    code: "Bước 3",
     title: "Bước 3: Sản Phẩm Đi Kèm",
     subtitle: "Chăm sóc vải tùy chọn",
     icon: ShoppingBag,
   },
   {
     step: 4 as const,
-    code: "KH-UC4.3 / 4.6",
+    code: "Bước 4",
     title: "Bước 4: Địa Chỉ & Đặt Đơn",
     subtitle: "Lịch hẹn & Thanh toán",
     icon: MapPin,
@@ -74,11 +72,6 @@ export const Booking = () => {
     handleAddLineItem,
     handleUpdateLineItem,
     handleRemoveLineItem,
-    aiModalOpen,
-    setAiModalOpen,
-    activeLineIndexForAi,
-    handleOpenAiScanner,
-    handleApplyAiResult,
     paymentMethod,
     setPaymentMethod,
     preAppliedPromo,
@@ -94,6 +87,8 @@ export const Booking = () => {
     setAddressDetail,
     notes,
     setNotes,
+    customerSpecialRequest,
+    setCustomerSpecialRequest,
     pickupDateStr,
     setPickupDateStr,
     pickupTimeSlot,
@@ -147,7 +142,7 @@ export const Booking = () => {
             <Calendar
               style={{ color: "#2563eb", width: "22px", height: "22px" }}
             />
-            Đặt Lịch Dịch Vụ Giặt Sấy Chuẩn Sequence 1 (KH-UC4)
+            Đặt Lịch Dịch Vụ Giặt Sấy Tận Nhà
           </h2>
           <p className="text-xs text-slate-500 m-0 mt-1 leading-normal">
             Hoàn thành tuần tự từng bước từ Bước 1 đến Bước 4. Các bước hoàn tất
@@ -258,7 +253,7 @@ export const Booking = () => {
         className="grid grid-cols-1 lg:grid-cols-12 gap-8"
       >
         <Box className="lg:col-span-8 flex flex-col gap-6">
-          {/* BƯỚC 1: CHỌN CỬA HÀNG GIẶT SẤY (KH-UC4.1) */}
+          {/* BƯỚC 1: CHỌN CỬA HÀNG GIẶT SẤY */}
           {activeStep === 1 && (
             <div className="bg-slate-50/70 rounded-3xl p-6 border border-slate-200/80 space-y-5">
               <div className="flex items-center justify-between">
@@ -268,7 +263,7 @@ export const Booking = () => {
                   </div>
                   <div>
                     <h3 className="text-sm md:text-base font-black text-slate-900 m-0">
-                      Bước 1: Chọn Tiệm Giặt Sấy Phục Vụ (KH-UC4.1)
+                      Bước 1: Chọn Tiệm Giặt Sấy Phục Vụ
                     </h3>
                     <p className="text-xs text-slate-500 m-0 mt-0.5">
                       Chọn cơ sở giặt sấy gần bạn nhất để hệ thống điều phối
@@ -344,7 +339,7 @@ export const Booking = () => {
             </div>
           )}
 
-          {/* BƯỚC 2: THÊM TỪNG DÒNG CHI TIẾT ĐỒ GIẶT (Order_Details loop - KH-UC4.2 & KH-UC4.4) */}
+          {/* BƯỚC 2: THÊM TỪNG DÒNG CHI TIẾT ĐỒ GIẶT */}
           {activeStep === 2 && (
             <div className="bg-slate-50/70 rounded-3xl p-6 border border-slate-200/80 space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -355,7 +350,6 @@ export const Booking = () => {
                   <div>
                     <h3 className="text-sm md:text-base font-black text-slate-900 m-0">
                       Bước 2: Chi Tiết Từng Loại Quần Áo & Chất Liệu Vải
-                      (Order_Details)
                     </h3>
                     <p className="text-xs text-slate-500 m-0 mt-0.5">
                       Tách riêng từng dòng đồ trắng, đồ màu, lụa/vest hoặc chăn
@@ -364,14 +358,6 @@ export const Booking = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAiScanner(0)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-black hover:bg-indigo-100 transition cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    AI Gợi Ý Chế Độ Giặt
-                  </button>
                   <button
                     type="button"
                     onClick={handleAddLineItem}
@@ -392,7 +378,6 @@ export const Booking = () => {
                     services={services}
                     onUpdateItem={handleUpdateLineItem}
                     onRemoveItem={handleRemoveLineItem}
-                    onOpenAiScanner={handleOpenAiScanner}
                     canRemove={cartItems.length > 1}
                   />
                 ))}
@@ -420,7 +405,7 @@ export const Booking = () => {
             </div>
           )}
 
-          {/* BƯỚC 3: CHỌN MUA KÈM SẢN PHẨM CHĂM SÓC QUẦN ÁO (KH-UC4.5 opt) */}
+          {/* BƯỚC 3: CHỌN MUA KÈM SẢN PHẨM CHĂM SÓC QUẦN ÁO */}
           {activeStep === 3 && (
             <div className="bg-slate-50/70 rounded-3xl p-6 border border-slate-200/80 space-y-5">
               <ProductSelection
@@ -453,7 +438,7 @@ export const Booking = () => {
             </div>
           )}
 
-          {/* BƯỚC 4: NHẬP ĐỊA CHỈ & THỜI GIAN LẤY/GIAO ĐỒ TẬN NƠI (KH-UC4.3) */}
+          {/* BƯỚC 4: NHẬP ĐỊA CHỈ & YÊU CẦU ĐẶC BIỆT */}
           {activeStep === 4 && (
             <div className="space-y-4">
               <BookingForm
@@ -469,6 +454,8 @@ export const Booking = () => {
                 setAddressDetail={setAddressDetail}
                 notes={notes}
                 setNotes={setNotes}
+                customerSpecialRequest={customerSpecialRequest}
+                setCustomerSpecialRequest={setCustomerSpecialRequest}
                 pickupDateStr={pickupDateStr}
                 setPickupDateStr={setPickupDateStr}
                 pickupTimeSlot={pickupTimeSlot}
@@ -517,16 +504,6 @@ export const Booking = () => {
           />
         </Box>
       </form>
-
-      {/* AI Fabric Scanner Modal (KH-UC4.4) */}
-      <AiFabricScannerModal
-        isOpen={aiModalOpen}
-        declaredServiceName={
-          cartItems[activeLineIndexForAi]?.serviceName || "Giặt Sấy Thường"
-        }
-        onClose={() => setAiModalOpen(false)}
-        onApplyAiResult={handleApplyAiResult}
-      />
 
       {/* Success Popup */}
       <SuccessModal

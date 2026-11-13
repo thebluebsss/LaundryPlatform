@@ -7,7 +7,6 @@ import {
   PromoCode,
   LaundryStore,
   LaundryService,
-  GarmentInspectionResult,
 } from "../../types";
 import { useToast } from "../../components/Toast";
 import { Product, CartProduct } from "../../data/products";
@@ -27,7 +26,7 @@ export const useBooking = () => {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
   const [maxCompletedStep, setMaxCompletedStep] = useState<number>(0);
 
-  // Step 1: Store & Service catalog from backend API (KH-UC4.1)
+  // Step 1: Store & Service catalog from backend API
   const [stores, setStores] = useState<LaundryStore[]>([]);
   const [services, setServices] = useState<LaundryService[]>([]);
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
@@ -35,12 +34,8 @@ export const useBooking = () => {
     searchParams.get("storeId") || "",
   );
 
-  // Step 2: Order_Details line items loop + AI Fabric Scanner (KH-UC4.2 & KH-UC4.4)
+  // Step 2: Order_Details line items loop
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [activeLineIndexForAi, setActiveLineIndexForAi] = useState<number>(0);
-  const [lastAiResult, setLastAiResult] =
-    useState<GarmentInspectionResult | null>(null);
 
   const [preAppliedPromo, setPreAppliedPromo] = useState<PromoCode | undefined>(
     undefined,
@@ -219,7 +214,6 @@ export const useBooking = () => {
     }
   };
 
-  // Order_Details line item handlers (Sequence 1 loop)
   const handleAddLineItem = () => {
     const defaultSvc = services[0];
     if (!defaultSvc) return;
@@ -248,37 +242,6 @@ export const useBooking = () => {
 
   const handleRemoveLineItem = (index: number) => {
     setCartItems((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  const handleOpenAiScanner = (index: number) => {
-    setActiveLineIndexForAi(index);
-    setAiModalOpen(true);
-  };
-
-  const handleApplyAiResult = (result: GarmentInspectionResult) => {
-    setLastAiResult(result);
-    const matchedSvc =
-      services.find((s) => s.category === result.recommendedService) ||
-      services[0];
-
-    handleUpdateLineItem(activeLineIndexForAi, {
-      ...(matchedSvc
-        ? {
-            serviceId: matchedSvc.id,
-            serviceName: matchedSvc.name,
-            unitPrice: matchedSvc.unitPrice,
-            pricingType: matchedSvc.pricingType,
-            unitName: matchedSvc.unitName,
-            estimatedLineTotal:
-              (cartItems[activeLineIndexForAi]?.estimatedQuantity ||
-                cartItems[activeLineIndexForAi]?.quantity ||
-                1) * matchedSvc.unitPrice,
-          }
-        : {}),
-      fabricType: result.detectedFabric,
-      garmentDescription: result.garmentType,
-      careInstructions: result.careInstructions.join(", "),
-    });
   };
 
   // Form registration state prefilled solely from authenticated profile
@@ -331,6 +294,7 @@ export const useBooking = () => {
   }, []);
 
   const [notes, setNotes] = useState("");
+  const [customerSpecialRequest, setCustomerSpecialRequest] = useState("");
 
   // Product selection state (Step 3 opt)
   const [selectedProducts, setSelectedProducts] = useState<CartProduct[]>([]);
@@ -388,7 +352,7 @@ export const useBooking = () => {
     "19:00 - 21:00",
   ];
 
-  // Financial values (Sequence 1 Step 22)
+  // Financial values
   const subtotal = cartItems.reduce(
     (sum, item) =>
       sum +
@@ -530,6 +494,7 @@ export const useBooking = () => {
       deliveryDate: deliveryDateStr,
       deliveryTime: deliveryTimeSlot,
       notes: notes.trim(),
+      customerSpecialRequest: customerSpecialRequest.trim(),
       promoCode: preAppliedPromo?.code,
       discountAmount,
       subtotal,
@@ -541,14 +506,12 @@ export const useBooking = () => {
       weightConfirmStatus: "not_weighed",
       paymentMethod,
       paymentStatus: "pending",
-      aiInspection: lastAiResult || undefined,
       createdAt: new Date().toISOString(),
     };
 
     try {
       const orderRes = await laundryOrdersAPI.create({
         ...compiledOrder,
-        aiInspection: lastAiResult || undefined,
       });
       const savedOrder = orderRes.data?.data;
 
@@ -661,11 +624,6 @@ export const useBooking = () => {
     handleAddLineItem,
     handleUpdateLineItem,
     handleRemoveLineItem,
-    aiModalOpen,
-    setAiModalOpen,
-    activeLineIndexForAi,
-    handleOpenAiScanner,
-    handleApplyAiResult,
     paymentMethod,
     setPaymentMethod,
     preAppliedPromo,
@@ -681,6 +639,8 @@ export const useBooking = () => {
     setAddressDetail,
     notes,
     setNotes,
+    customerSpecialRequest,
+    setCustomerSpecialRequest,
     pickupDateStr,
     setPickupDateStr,
     pickupTimeSlot,

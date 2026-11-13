@@ -10,7 +10,6 @@ import {
   LaundryStore,
   LaundryService,
   CartItem,
-  GarmentInspectionResult,
 } from "../../../types";
 import { useToast } from "../../../components/Toast";
 import { getScopedProfile } from "../../../utils/authStorage";
@@ -50,8 +49,6 @@ export const useMobileCustomerCreateOrder = () => {
   );
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
   const [lineItems, setLineItems] = useState<CartItem[]>([]);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [activeLineIndexForAi, setActiveLineIndexForAi] = useState<number>(0);
 
   // Customer contact & schedule prefilled strictly from authenticated profile
   const [customerName, setCustomerName] = useState(() => {
@@ -116,9 +113,8 @@ export const useMobileCustomerCreateOrder = () => {
   const [promoCode, setPromoCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"vietqr" | "cod">("cod");
   const [notes, setNotes] = useState("");
+  const [customerSpecialRequest, setCustomerSpecialRequest] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [lastAiResult, setLastAiResult] =
-    useState<GarmentInspectionResult | null>(null);
 
   const loadInitialCatalog = useCallback(async () => {
     try {
@@ -200,10 +196,6 @@ export const useMobileCustomerCreateOrder = () => {
             estimatedLineTotal: 3 * firstSvc.unitPrice,
           },
         ]);
-      }
-
-      if (searchParams.get("openAi") === "1") {
-        setAiModalOpen(true);
       }
     } catch {
       showToast("Không thể tải danh mục dịch vụ", "error");
@@ -322,36 +314,6 @@ export const useMobileCustomerCreateOrder = () => {
     });
   };
 
-  const handleOpenAiScanner = (index: number) => {
-    setActiveLineIndexForAi(index);
-    setAiModalOpen(true);
-  };
-
-  const handleApplyAiResult = (result: GarmentInspectionResult) => {
-    setLastAiResult(result);
-    const matchedSvc =
-      services.find((s) => s.category === result.recommendedService) ||
-      services[0];
-
-    handleUpdateLineItem(activeLineIndexForAi, {
-      ...(matchedSvc
-        ? {
-            serviceId: matchedSvc.id,
-            serviceName: matchedSvc.name,
-            unitPrice: matchedSvc.unitPrice,
-            pricingType: matchedSvc.pricingType,
-            unitName: matchedSvc.unitName,
-            estimatedLineTotal:
-              (lineItems[activeLineIndexForAi]?.estimatedQuantity || 1) *
-              matchedSvc.unitPrice,
-          }
-        : {}),
-      fabricType: result.detectedFabric,
-      garmentDescription: result.garmentType,
-      careInstructions: result.careInstructions.join(", "),
-    });
-  };
-
   const pricingSummary = useMemo(() => {
     const estimatedSubtotal = lineItems.reduce(
       (sum, item) =>
@@ -427,6 +389,7 @@ export const useMobileCustomerCreateOrder = () => {
         deliveryDate,
         deliveryTime,
         notes,
+        customerSpecialRequest: customerSpecialRequest.trim(),
         promoCode: promoCode.trim().toUpperCase(),
         discountAmount: pricingSummary.discountAmount,
         subtotal: pricingSummary.estimatedSubtotal,
@@ -435,7 +398,6 @@ export const useMobileCustomerCreateOrder = () => {
         deliveryFee: pricingSummary.deliveryFee,
         totalPrice: pricingSummary.totalPrice,
         paymentMethod,
-        aiInspection: lastAiResult || undefined,
       };
 
       await laundryOrdersAPI.create({
@@ -479,11 +441,6 @@ export const useMobileCustomerCreateOrder = () => {
     handleAddLineItem,
     handleUpdateLineItem,
     handleRemoveLineItem,
-    aiModalOpen,
-    setAiModalOpen,
-    activeLineIndexForAi,
-    handleOpenAiScanner,
-    handleApplyAiResult,
     customerName,
     setCustomerName,
     phoneNumber,
@@ -509,6 +466,8 @@ export const useMobileCustomerCreateOrder = () => {
     setPaymentMethod,
     notes,
     setNotes,
+    customerSpecialRequest,
+    setCustomerSpecialRequest,
     pricingSummary,
     submitting,
     handleSubmitOrder,

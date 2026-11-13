@@ -9,7 +9,6 @@ import equipmentRoutes from "./equipment";
 import paymentRoutes from "./payments";
 import laundryOrderRoutes from "./laundryOrders";
 import storeRoutes from "./stores";
-import aiRoutes from "./ai";
 import deliveryRoutes from "./delivery";
 import reviewRoutes from "./reviews";
 
@@ -44,7 +43,6 @@ router.use("/equipment", equipmentRoutes);
 router.use("/payment", paymentRoutes);
 router.use("/laundry-orders", laundryOrderRoutes);
 router.use("/stores", storeRoutes);
-router.use("/ai", aiRoutes);
 router.use("/delivery", deliveryRoutes);
 router.use("/reviews", reviewRoutes);
 

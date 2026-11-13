@@ -1,24 +1,26 @@
-import React from 'react';
-import { User, Phone, MapPin } from 'lucide-react';
-import { DISTRICTS } from '../../../data';
-import { InputText } from '../../../components/InputText';
-import { InputSelect } from '../../../components/InputSelect';
-import { InputArea } from '../../../components/InputArea';
-import { Box } from '@mui/material';
+import React from "react";
+import { User, Phone, MapPin, Clock } from "lucide-react";
+import { DISTRICTS } from "../../../data";
+import { InputText } from "../../../components/InputText";
+import { InputSelect } from "../../../components/InputSelect";
+import { InputArea } from "../../../components/InputArea";
+import { Box } from "@mui/material";
 
 interface BookingFormProps {
   fullname: string;
   setFullname: (val: string) => void;
   phoneNumber: string;
   setPhoneNumber: (val: string) => void;
-  city: 'hanoi' | 'hcm';
-  setCity: (val: 'hanoi' | 'hcm') => void;
+  city: "hanoi" | "hcm";
+  setCity: (val: "hanoi" | "hcm") => void;
   district: string;
   setDistrict: (val: string) => void;
   addressDetail: string;
   setAddressDetail: (val: string) => void;
   notes: string;
   setNotes: (val: string) => void;
+  customerSpecialRequest?: string;
+  setCustomerSpecialRequest?: (val: string) => void;
   pickupDateStr: string;
   setPickupDateStr: (val: string) => void;
   pickupTimeSlot: string;
@@ -31,12 +33,18 @@ interface BookingFormProps {
   timeSlots: string[];
 }
 
+const QUICK_REQUEST_SUGGESTIONS = [
+  "Trả đồ gấp trước 18h tối nay",
+  "Trả đồ trước 9h sáng mai để đi công tác",
+  "Ủi phẳng treo móc sẵn (không gấp)",
+  "Giặt riêng đồ em bé bằng nước ấm",
+];
+
 export const BookingForm: React.FC<BookingFormProps> = ({
   fullname,
   setFullname,
   phoneNumber,
   setPhoneNumber,
-  city,
   setCity,
   district,
   setDistrict,
@@ -44,31 +52,26 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   setAddressDetail,
   notes,
   setNotes,
-  pickupDateStr,
-  setPickupDateStr,
-  pickupTimeSlot,
-  setPickupTimeSlot,
-  deliveryDateStr,
-  setDeliveryDateStr,
-  deliveryTimeSlot,
-  setDeliveryTimeSlot,
+  customerSpecialRequest = "",
+  setCustomerSpecialRequest,
   errors,
-  timeSlots
 }) => {
   return (
-    <Box className="flex flex-col gap-8">
+    <Box className="flex flex-col gap-6">
       {/* Section 1: Customer info */}
       <Box className="flex flex-col gap-4">
         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 m-0 select-none">
           <span className="w-1.5 h-3.5 bg-blue-600 rounded-full inline-block" />
           1. Thông tin liên hệ nhận hàng
         </h3>
-        
-        <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <Box className="flex flex-col gap-4">
           <InputText
             title="Họ & Tên khách hàng *"
             placeholder="Nguyễn Văn A"
-            startAdornment={<User style={{ width: '16px', height: '16px', color: '#94a3b8' }} />}
+            startAdornment={
+              <User style={{ width: "16px", height: "16px", color: "#94a3b8" }} />
+            }
             inputProps={{
               value: fullname,
               onChange: (e: any) => setFullname(e.target.value),
@@ -79,7 +82,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           <InputText
             title="Số điện thoại di động *"
             placeholder="0912345678"
-            startAdornment={<Phone style={{ width: '16px', height: '16px', color: '#94a3b8' }} />}
+            startAdornment={
+              <Phone style={{ width: "16px", height: "16px", color: "#94a3b8" }} />
+            }
             inputProps={{
               value: phoneNumber,
               onChange: (e: any) => setPhoneNumber(e.target.value),
@@ -93,114 +98,82 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       <Box className="flex flex-col gap-4">
         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 m-0 select-none">
           <span className="w-1.5 h-3.5 bg-blue-600 rounded-full inline-block" />
-          2. Khu vực giao nhận hàng
+          2. Khu vực giao nhận hàng (TP. Hà Nội)
         </h3>
 
-        <Box className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Box className="flex flex-col gap-4">
           <InputSelect
             title="Thành phố *"
             value="hanoi"
             onChange={() => {
-              setCity('hanoi');
+              setCity("hanoi");
               setDistrict(DISTRICTS.hanoi[0]);
             }}
-            options={[
-              { value: 'hanoi', label: 'TP. Hà Nội' }
-            ]}
+            options={[{ value: "hanoi", label: "TP. Hà Nội" }]}
           />
 
-          <Box className="md:col-span-2">
-            <InputSelect
-              title="Chọn Quận / Huyện (Hà Nội) *"
-              value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              options={DISTRICTS.hanoi.map(d => ({ value: d, label: d }))}
-            />
-          </Box>
-        </Box>
+          <InputSelect
+            title="Chọn Quận / Huyện (Hà Nội) *"
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            options={DISTRICTS.hanoi.map((d) => ({ value: d, label: d }))}
+          />
 
+          <InputText
+            title="Địa chỉ chi tiết (Số nhà, ngõ ngách, tên đường) *"
+            placeholder="Ví dụ: Số 25, Ngõ 102 Đường Kim Mã"
+            startAdornment={
+              <MapPin
+                style={{ width: "16px", height: "16px", color: "#94a3b8" }}
+              />
+            }
+            inputProps={{
+              value: addressDetail,
+              onChange: (e: any) => setAddressDetail(e.target.value),
+            }}
+            inputError={errors.addressDetail}
+          />
+        </Box>
+      </Box>
+
+      {/* Section 3: Customer Special Request */}
+      <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2.5">
+        <div className="flex items-center gap-2 text-xs font-black text-amber-900">
+          <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>
+            3. Yêu cầu đặc biệt của khách (VD: Muốn trả đồ trước ngày/giờ cụ thể, giặt gấp...)
+          </span>
+        </div>
+        <p className="text-[11px] text-amber-800 leading-relaxed m-0">
+          Chủ cửa hàng sẽ nhìn thấy yêu cầu này ngay trên đơn giặt và có thể cập nhật phụ phí xử lý nhanh (nếu có) để bạn duyệt.
+        </p>
         <InputText
-          title="Địa chỉ chi tiết (Số nhà, ngõ ngách, tên đường) *"
-          placeholder="Ví dụ: Số 25, Ngõ 102 Đường Kim Mã"
-          startAdornment={<MapPin style={{ width: '16px', height: '16px', color: '#94a3b8' }} />}
           inputProps={{
-            value: addressDetail,
-            onChange: (e: any) => setAddressDetail(e.target.value),
+            placeholder:
+              "VD: Mình muốn nhận lại đồ sạch trước 17h ngày mai (Thứ 6)...",
+            value: customerSpecialRequest,
+            onChange: (e: any) =>
+              setCustomerSpecialRequest?.(e.target.value),
           }}
-          inputError={errors.addressDetail}
         />
-      </Box>
-
-      {/* Section 3: Time Booking */}
-      <Box className="flex flex-col gap-4">
-        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 m-0 select-none">
-          <span className="w-1.5 h-3.5 bg-blue-600 rounded-full inline-block" />
-          3. Chọn ngày & giờ giao nhận hàng
-        </h3>
-
-        <Box className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Pickup Strip */}
-          <Box className="p-5 border border-blue-100/80 bg-blue-50/10 rounded-2xl flex flex-col gap-4 transition-all duration-300 hover:border-blue-200/80 hover:bg-blue-50/20 shadow-sm shadow-blue-100/10">
-            <Box className="flex items-center gap-2 pb-3 border-b border-blue-100/40">
-              <span className="w-2 h-2 rounded-full inline-block bg-blue-600" />
-              <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider">
-                Hẹn thu nhận quần áo tại nhà
-              </span>
-            </Box>
-            
-            <InputText
-              title="Ngày thu gom"
-              inputProps={{
-                type: 'date',
-                value: pickupDateStr,
-                min: new Date().toISOString().split('T')[0],
-                onChange: (e: any) => setPickupDateStr(e.target.value),
-              }}
-              inputError={errors.pickupDate}
-            />
-
-            <InputSelect
-              title="Giờ vàng thu gom:"
-              value={pickupTimeSlot}
-              onChange={(e) => setPickupTimeSlot(e.target.value)}
-              options={timeSlots.map(slot => ({ value: slot, label: slot }))}
-            />
-          </Box>
-
-          {/* Delivery Strip */}
-          <Box className="p-5 border border-indigo-100/80 bg-indigo-50/10 rounded-2xl flex flex-col gap-4 transition-all duration-300 hover:border-indigo-200/80 hover:bg-indigo-50/20 shadow-sm shadow-indigo-100/10">
-            <Box className="flex items-center gap-2 pb-3 border-b border-indigo-100/40">
-              <span className="w-2 h-2 rounded-full inline-block bg-indigo-600" />
-              <span className="text-[11px] font-black text-slate-800 uppercase tracking-wider">
-                Hẹn hoàn trả đồ sạch gấp phẳng
-              </span>
-            </Box>
-
-            <InputText
-              title="Ngày giao đồ"
-              inputProps={{
-                type: 'date',
-                value: deliveryDateStr,
-                min: pickupDateStr || new Date().toISOString().split('T')[0],
-                onChange: (e: any) => setDeliveryDateStr(e.target.value),
-              }}
-              inputError={errors.deliveryDate}
-            />
-
-            <InputSelect
-              title="Khung giờ giao hàng:"
-              value={deliveryTimeSlot}
-              onChange={(e) => setDeliveryTimeSlot(e.target.value)}
-              options={timeSlots.map(slot => ({ value: slot, label: slot }))}
-            />
-          </Box>
-        </Box>
-      </Box>
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
+          {QUICK_REQUEST_SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => setCustomerSpecialRequest?.(suggestion)}
+              className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100/80 border border-amber-200 text-[11px] font-semibold text-amber-900 cursor-pointer transition-colors"
+            >
+              + {suggestion}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Section 4: Notes */}
       <InputArea
-        title="4. Ghi chú đặc biệt gửi thợ giặt"
-        placeholder="Ví dụ: Đồ màu loang có vết dầu mỡ lớn cần tẩy điểm ở gấu quần, hoặc treo móc thay vì gấp xếp..."
+        title="4. Ghi chú thêm cho Tài xế hoặc Thợ giặt"
+        placeholder="Ví dụ: Gọi điện trước 10 phút khi đến lấy đồ, gửi tại lễ tân tòa nhà..."
         rows={3}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}

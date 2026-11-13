@@ -52,9 +52,13 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   const estimatedSubtotal = Number(orderData.estimatedSubtotal ?? subtotal);
   const deliveryFee = Number(orderData.deliveryFee ?? 25000);
   const discountAmount = Number(orderData.discountAmount ?? 0);
+  const extraFee = Number(orderData.extraFee ?? 0);
   const totalPrice = Number(
     orderData.totalPrice ??
-      Math.max(0, subtotal + computedProductsTotal + deliveryFee - discountAmount)
+      Math.max(
+        0,
+        subtotal + computedProductsTotal + deliveryFee + extraFee - discountAmount
+      )
   );
 
   orderData.subtotal = subtotal;
@@ -62,6 +66,9 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   orderData.productsTotal = computedProductsTotal;
   orderData.deliveryFee = deliveryFee;
   orderData.discountAmount = discountAmount;
+  orderData.extraFee = extraFee;
+  orderData.extraFeeReason = orderData.extraFeeReason || "";
+  orderData.customerSpecialRequest = orderData.customerSpecialRequest || "";
   orderData.totalPrice = totalPrice;
 
   // Resolve customer Google Maps coordinates in Hanoi
@@ -267,7 +274,7 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
 });
 
 /**
- * @desc    Cập nhật cân đo thực tế, dòng đồ giặt (Order_Details) & kết quả AI của chủ tiệm
+ * @desc    Cập nhật cân đo thực tế, dòng đồ giặt (Order_Details) & phụ phí yêu cầu đặc biệt của chủ tiệm
  * @route   PATCH /api/laundry-orders/:id/weigh
  * @access  Public / Store Owner
  */
@@ -277,7 +284,9 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
     weightConfirmStatus,
     status,
     notes,
-    aiInspection,
+    customerSpecialRequest,
+    extraFee,
+    extraFeeReason,
     paymentStatus,
     shipperId,
     shipperName,
@@ -312,17 +321,23 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
   const productsTotal = Number(order.productsTotal ?? 0);
   const deliveryFee = Number(order.deliveryFee ?? 20000);
   const discountAmount = Number(order.discountAmount ?? 0);
+  const resolvedExtraFee =
+    extraFee !== undefined && extraFee !== null
+      ? Math.max(0, Number(extraFee) || 0)
+      : Number(order.extraFee ?? 0);
   const totalPrice = Math.max(
     0,
-    actualSubtotal + productsTotal + deliveryFee - discountAmount
+    actualSubtotal + productsTotal + deliveryFee + resolvedExtraFee - discountAmount
   );
 
-  // Sequence 3 discrepancy check: compare actualSubtotal vs estimatedSubtotal
+  // Sequence 3 discrepancy check: compare actualSubtotal + extraFee vs estimatedSubtotal
   const diffRatio =
     estimatedSubtotal > 0
       ? Math.abs(actualSubtotal - estimatedSubtotal) / estimatedSubtotal
       : 0;
-  const exceedsThreshold = actualSubtotal > estimatedSubtotal && diffRatio > 0.05;
+  const exceedsThreshold =
+    (actualSubtotal > estimatedSubtotal && diffRatio > 0.05) ||
+    resolvedExtraFee > Number(order.extraFee ?? 0);
 
   const resolvedWeightStatus =
     weightConfirmStatus ||
@@ -346,6 +361,7 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
     estimatedSubtotal: order.estimatedSubtotal || estimatedSubtotal,
     actualSubtotal,
     subtotal: actualSubtotal,
+    extraFee: resolvedExtraFee,
     totalPrice,
     actualWeighedAt: new Date().toISOString(),
     weightConfirmStatus: resolvedWeightStatus,
@@ -353,7 +369,9 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
   };
 
   if (notes !== undefined) payload.notes = notes;
-  if (aiInspection !== undefined) payload.aiInspection = aiInspection;
+  if (customerSpecialRequest !== undefined)
+    payload.customerSpecialRequest = customerSpecialRequest;
+  if (extraFeeReason !== undefined) payload.extraFeeReason = extraFeeReason;
   if (paymentStatus !== undefined) payload.paymentStatus = paymentStatus;
   if (shipperId !== undefined) payload.shipperId = shipperId;
   if (shipperName !== undefined) payload.shipperName = shipperName;
@@ -369,8 +387,8 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
     res,
     updatedOrder,
     resolvedWeightStatus === "waiting_customer"
-      ? "Khối lượng chênh lệch vượt ngưỡng: Đã gửi thông báo chờ Khách hàng xác nhận giá mới"
-      : "Khối lượng khớp ngưỡng cho phép: Đã chuyển đơn sang trạng thái Đang giặt sấy"
+      ? "Đã cập nhật cân nặng & phụ phí: Đã gửi thông báo chờ Khách hàng xác nhận giá mới"
+      : "Đã cập nhật đơn hàng và chuyển sang trạng thái Đang giặt sấy"
   );
 });
 

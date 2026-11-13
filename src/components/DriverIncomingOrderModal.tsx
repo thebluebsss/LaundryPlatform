@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
-import { Bike, X, Banknote, Phone } from "lucide-react";
+import { Bike, Banknote, Phone } from "lucide-react";
 import { useMobileDriverRadar } from "../pages/MobileDriver/BroadcastRadar/hook";
 import { getScopedToken } from "../utils/authStorage";
 
@@ -63,7 +63,7 @@ export const DriverIncomingOrderModal: React.FC = () => {
   return (
     <div className="fixed top-0 left-0 right-0 bottom-[60px] z-50 bg-slate-950/35 backdrop-blur-2xs flex justify-center p-2 pointer-events-auto">
       <div className="w-full max-w-md h-full bg-white rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col justify-between overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 select-none">
-        {/* Top Header Bar: Service Icon + Name on Left, Close 'X' on Right */}
+        {/* Top Header Bar: Service Icon + Name */}
         <div className="bg-[#f1f3f2] px-4 py-3 flex items-center justify-between border-b border-slate-200/70 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-[#d3ece6] flex items-center justify-center text-[#00796b] shadow-2xs shrink-0">
@@ -81,14 +81,9 @@ export const DriverIncomingOrderModal: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => handleSkipTask(incomingAlertTask.id, "manual")}
-            title="Từ chối chuyến này (Chuyển cho tài xế khác)"
-            className="p-2 rounded-full hover:bg-slate-200/70 text-slate-800 active:scale-95 transition-all cursor-pointer shrink-0"
-          >
-            <X className="w-6 h-6 stroke-[2]" />
-          </button>
+          <span className="px-2.5 py-1 rounded-full bg-teal-100/80 text-teal-800 text-[11px] font-bold shrink-0">
+            Chuyến mới
+          </span>
         </div>
 
         {/* Scrollable Middle Content */}
@@ -99,7 +94,7 @@ export const DriverIncomingOrderModal: React.FC = () => {
               <span className="text-base font-bold text-slate-900">
                 Cước phí
               </span>
-              <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight tabular-nums">
                 {(
                   Number(incomingAlertTask.shippingFee) || 25000
                 ).toLocaleString("vi-VN")}
@@ -180,20 +175,29 @@ export const DriverIncomingOrderModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Full-Width Teal "Nhận chuyến [20]" Button */}
-        <div className="p-3.5 bg-white border-t border-slate-100 shrink-0">
+        {/* Bottom Friendly Action Bar: "Từ chối chuyến" + "Nhận chuyến [20]" */}
+        <div className="p-3.5 bg-white border-t border-slate-100 shrink-0 grid grid-cols-12 gap-2.5">
+          <button
+            type="button"
+            disabled={acceptingId === incomingAlertTask.id}
+            onClick={() => handleSkipTask(incomingAlertTask.id, "manual")}
+            className="col-span-5 py-3.5 px-3 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-sm sm:text-base flex items-center justify-center active:scale-[0.99] transition-all cursor-pointer"
+          >
+            Từ chối chuyến
+          </button>
+
           <button
             type="button"
             disabled={acceptingId === incomingAlertTask.id}
             onClick={() => handleAcceptTask(incomingAlertTask.id)}
-            className="w-full py-3.5 px-6 rounded-full bg-[#1b858b] hover:bg-[#146e73] disabled:bg-slate-300 text-white font-bold text-lg sm:text-xl flex items-center justify-center gap-3 shadow-lg active:scale-[0.99] transition-all cursor-pointer"
+            className="col-span-7 py-3.5 px-4 rounded-full bg-[#1b858b] hover:bg-[#146e73] disabled:bg-slate-300 text-white font-bold text-base sm:text-lg flex items-center justify-center gap-2.5 shadow-lg active:scale-[0.99] transition-all cursor-pointer"
           >
             <span>
               {acceptingId === incomingAlertTask.id
-                ? "Đang nhận chuyến..."
+                ? "Đang nhận..."
                 : "Nhận chuyến"}
             </span>
-            <span className="px-3 py-0.5 rounded-full bg-white text-slate-900 text-base font-black min-w-[40px] text-center">
+            <span className="px-2.5 py-0.5 rounded-full bg-white text-slate-900 text-sm font-black min-w-[36px] text-center tabular-nums">
               {acceptCountdown}
             </span>
           </button>

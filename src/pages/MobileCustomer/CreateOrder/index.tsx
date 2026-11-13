@@ -2,7 +2,6 @@ import React from "react";
 import {
   Plus,
   Minus,
-  Sparkles,
   MapPin,
   Tag,
   ShieldCheck,
@@ -13,10 +12,10 @@ import {
   ArrowLeft,
   Store,
   Shirt,
+  Clock,
 } from "lucide-react";
 import { useMobileCustomerCreateOrder } from "./hook";
 import { OrderLineItemCard } from "./components/OrderLineItemCard";
-import { AiFabricScannerModal } from "./components/AiFabricScannerModal";
 import { InputText } from "../../../components/InputText";
 import { InputSelect } from "../../../components/InputSelect";
 import { InputArea } from "../../../components/InputArea";
@@ -34,6 +33,13 @@ const MOBILE_STEPS = [
   { step: 2 as const, label: "2. Đồ giặt", icon: Shirt },
   { step: 3 as const, label: "3. SP phụ", icon: ShoppingBag },
   { step: 4 as const, label: "4. Địa chỉ", icon: MapPin },
+];
+
+const QUICK_REQUEST_SUGGESTIONS = [
+  "Trả đồ gấp trước 18h tối nay",
+  "Trả đồ trước 9h sáng mai để đi công tác",
+  "Ủi phẳng treo móc sẵn (không gấp)",
+  "Giặt riêng đồ em bé bằng nước ấm",
 ];
 
 export const MobileCustomerCreateOrder: React.FC = () => {
@@ -56,11 +62,6 @@ export const MobileCustomerCreateOrder: React.FC = () => {
     handleAddLineItem,
     handleUpdateLineItem,
     handleRemoveLineItem,
-    aiModalOpen,
-    setAiModalOpen,
-    activeLineIndexForAi,
-    handleOpenAiScanner,
-    handleApplyAiResult,
     customerName,
     setCustomerName,
     phoneNumber,
@@ -77,6 +78,8 @@ export const MobileCustomerCreateOrder: React.FC = () => {
     setPaymentMethod,
     notes,
     setNotes,
+    customerSpecialRequest,
+    setCustomerSpecialRequest,
     pricingSummary,
     submitting,
     handleSubmitOrder,
@@ -195,14 +198,6 @@ export const MobileCustomerCreateOrder: React.FC = () => {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => handleOpenAiScanner(0)}
-                className="px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Quét AI</span>
-              </button>
-              <button
-                type="button"
                 onClick={handleAddLineItem}
                 className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
               >
@@ -221,7 +216,6 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               canRemove={lineItems.length > 1}
               onUpdateItem={handleUpdateLineItem}
               onRemoveItem={handleRemoveLineItem}
-              onOpenAiScanner={handleOpenAiScanner}
             />
           ))}
 
@@ -342,7 +336,7 @@ export const MobileCustomerCreateOrder: React.FC = () => {
         </div>
       )}
 
-      {/* Step 4: Customer Pickup & Delivery Address + Summary */}
+      {/* Step 4: Customer Pickup & Delivery Address + Special Request + Summary */}
       {activeStep === 4 && (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3.5">
@@ -361,7 +355,6 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               </button>
             </div>
 
-            {/* Each input is on its own full-width row so users can read all text clearly */}
             <div className="space-y-3">
               <InputText
                 title="Họ và tên người gửi đồ"
@@ -423,8 +416,41 @@ export const MobileCustomerCreateOrder: React.FC = () => {
               />
             </div>
 
+            {/* Customer Special Request (e.g., return before a specific date/time) */}
+            <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-black text-amber-900">
+                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  Yêu cầu riêng của bạn với Cửa hàng (Thời gian trả đồ, giặt gấp...)
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                Ví dụ: Muốn nhận lại đồ sạch trước ngày/giờ cụ thể. Chủ cửa hàng sẽ xem yêu cầu này và cập nhật phụ phí (nếu có) khi kiểm đồ.
+              </p>
+              <InputText
+                inputProps={{
+                  placeholder:
+                    "VD: Mình muốn nhận lại đồ trước 17h ngày mai (Thứ 6)...",
+                  value: customerSpecialRequest,
+                  onChange: (e) => setCustomerSpecialRequest(e.target.value),
+                }}
+              />
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {QUICK_REQUEST_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setCustomerSpecialRequest(suggestion)}
+                    className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100/80 border border-amber-200 text-[11px] font-semibold text-amber-900 cursor-pointer transition-colors"
+                  >
+                    + {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <InputArea
-              title="Lời nhắn cho Tài xế hoặc Cửa hàng"
+              title="Ghi chú chỉ đường cho Tài xế"
               rows={2}
               placeholder="VD: Gọi trước khi đến 10 phút, gửi đồ tại quầy lễ tân..."
               value={notes}
@@ -527,16 +553,6 @@ export const MobileCustomerCreateOrder: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Optional AI Garment Scanner Modal */}
-      <AiFabricScannerModal
-        isOpen={aiModalOpen}
-        declaredServiceName={
-          lineItems[activeLineIndexForAi]?.serviceName || "Giặt Sấy Thường"
-        }
-        onClose={() => setAiModalOpen(false)}
-        onApplyAiResult={handleApplyAiResult}
-      />
     </form>
   );
 };

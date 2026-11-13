@@ -4,10 +4,11 @@ import {
   Scale,
   Plus,
   Trash2,
-  Sparkles,
   CheckCircle2,
   Send,
   AlertCircle,
+  Clock,
+  Coins,
 } from "lucide-react";
 import {
   LaundryOrder,
@@ -31,14 +32,11 @@ interface WeighAndInspectModalProps {
       weightConfirmStatus: WeightConfirmStatus;
       status: OrderStatus;
       notes: string;
+      extraFee?: number;
+      extraFeeReason?: string;
       paymentStatus?: "pending" | "paid" | "refunded" | "failed";
     }
   ) => void;
-  onRunAiInspect: (
-    itemName: string,
-    declaredService: string,
-    imageUrl?: string
-  ) => Promise<any>;
 }
 
 const FABRIC_OPTIONS = [
@@ -51,17 +49,23 @@ const FABRIC_OPTIONS = [
   { value: "Âu phục / Vest / Áo dài", label: "Âu phục / Vest / Áo dài" },
 ];
 
+const EXTRA_FEE_PRESETS = [
+  { label: "+20.000đ (Giặt nhanh)", amount: 20000, reason: "Phụ phí ưu tiên giặt nhanh lấy sớm theo yêu cầu" },
+  { label: "+30.000đ (Trả gấp trong ngày)", amount: 30000, reason: "Phụ phí giặt sấy hỏa tốc trả đồ trước hẹn" },
+  { label: "+50.000đ (Ủi hơi & Treo móc riêng)", amount: 50000, reason: "Phụ phí ủi hơi nước & đóng túi treo móc theo yêu cầu" },
+];
+
 export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
   order,
   services,
   onClose,
   onSave,
-  onRunAiInspect,
 }) => {
   const [items, setItems] = useState<any[]>([]);
   const [notes, setNotes] = useState<string>("");
+  const [extraFee, setExtraFee] = useState<number>(0);
+  const [extraFeeReason, setExtraFeeReason] = useState<string>("");
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "paid" | "refunded" | "failed">("pending");
-  const [aiLoadingIndex, setAiLoadingIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (order) {
@@ -76,10 +80,16 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
               : Number(it.estimatedQuantity ?? it.quantity ?? 1),
           garmentDescription: it.garmentDescription || "",
           careInstructions: it.careInstructions || "",
-          aiInspectionResult: it.aiInspectionResult || "",
         }))
       );
       setNotes(order.notes || "");
+      setExtraFee(Number(order.extraFee ?? 0));
+      setExtraFeeReason(
+        order.extraFeeReason ||
+          (order.customerSpecialRequest
+            ? `Phụ phí đáp ứng yêu cầu: ${order.customerSpecialRequest}`
+            : "")
+      );
       setPaymentStatus(order.paymentStatus || "pending");
     }
   }, [order]);
@@ -135,7 +145,6 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
         quantity: 1,
         estimatedQuantity: 0,
         actualQuantity: 1,
-        aiInspectionResult: "",
       },
     ]);
   };
@@ -143,32 +152,6 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
   const handleRemoveLine = (index: number) => {
     if (items.length <= 1) return;
     setItems((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  const handleAiAnalyzeLine = async (index: number) => {
-    const target = items[index];
-    setAiLoadingIndex(index);
-    try {
-      const result = await onRunAiInspect(
-        target.garmentDescription || target.fabricType || target.serviceName,
-        target.serviceId
-      );
-      const summaryText =
-        result?.notes ||
-        `AI nhận diện: ${result?.detectedFabric || target.fabricType}. Khuyến nghị: ${(
-          result?.careInstructions || []
-        ).join(", ")}`;
-      handleUpdateLine(index, "aiInspectionResult", summaryText);
-      if (result?.careInstructions?.length) {
-        handleUpdateLine(
-          index,
-          "careInstructions",
-          result.careInstructions.join(" · ")
-        );
-      }
-    } finally {
-      setAiLoadingIndex(null);
-    }
   };
 
   const estimatedSubtotal = items.reduce(
@@ -183,10 +166,15 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
     0
   );
 
+  const productsTotal = Number(order.productsTotal ?? 0);
   const deliveryFee = Number(order.deliveryFee ?? 20000);
   const discountAmount = Number(order.discountAmount ?? 0);
-  const finalTotal = Math.max(0, actualSubtotal + deliveryFee - discountAmount);
-  const diffAmount = actualSubtotal - estimatedSubtotal;
+  const normalizedExtraFee = Math.max(0, Number(extraFee || 0));
+  const finalTotal = Math.max(
+    0,
+    actualSubtotal + productsTotal + deliveryFee + normalizedExtraFee - discountAmount
+  );
+  const diffAmount = actualSubtotal + normalizedExtraFee - estimatedSubtotal;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
@@ -196,15 +184,14 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
           <div>
             <div className="flex items-center gap-2 text-xs text-blue-600 font-bold">
               <Scale className="w-4 h-4" />
-              <span>Kiểm Tra Đồ Giặt & Cân Thực Tế Tại Tiệm</span>
+              <span>Kiểm Tra Đồ Giặt, Cân Thực Tế & Xử Lý Yêu Cầu Khách</span>
             </div>
             <h3 className="text-xl font-black text-slate-900 mt-1">
               Đơn hàng #{order.id.toUpperCase()} — {order.customerName} (
               {order.phoneNumber})
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Địa chỉ: {order.address}, {order.district} · Hẹn trả:{" "}
-              {order.deliveryDate} ({order.deliveryTime})
+              Địa chỉ: {order.address}, {order.district}
             </p>
           </div>
           <button
@@ -213,6 +200,90 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Highlighted Customer Special Request & Extra Fee Configuration */}
+        <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-3.5">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-black text-amber-900">
+                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Yêu Cầu Đặc Biệt Của Khách Hàng Khi Đặt Lịch:</span>
+              </div>
+              {order.customerSpecialRequest ? (
+                <div className="text-sm font-bold text-slate-900 bg-white px-3.5 py-2 rounded-xl border border-amber-300 shadow-2xs">
+                  “{order.customerSpecialRequest}”
+                </div>
+              ) : (
+                <p className="text-xs text-slate-600">
+                  Khách không ghi yêu cầu thời gian đặc biệt (Bạn vẫn có thể thêm phụ phí nếu khách nhắn riêng hoặc phát sinh xử lý vết bẩn khó).
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-100/80 px-3 py-1.5 rounded-xl">
+              <Coins className="w-4 h-4 text-amber-700" />
+              <span>Thêm chi phí / Phụ phí yêu cầu</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-1">
+            <div className="md:col-span-4">
+              <InputText
+                title="Chi phí cộng thêm (VNĐ)"
+                inputProps={{
+                  type: "number",
+                  step: "5000",
+                  min: "0",
+                  placeholder: "VD: 30000",
+                  value: String(extraFee || 0),
+                  onChange: (e: any) =>
+                    setExtraFee(Math.max(0, parseInt(e.target.value, 10) || 0)),
+                }}
+              />
+            </div>
+            <div className="md:col-span-8">
+              <InputText
+                title="Nội dung / Lý do cộng thêm chi phí (Hiển thị cho khách)"
+                placeholder="VD: Phụ phí giặt gấp trả đồ trước 17h chiều theo yêu cầu của khách"
+                inputProps={{
+                  value: extraFeeReason,
+                  onChange: (e: any) => setExtraFeeReason(e.target.value),
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-bold text-amber-900 mr-1">
+              Chọn nhanh phụ phí:
+            </span>
+            {EXTRA_FEE_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => {
+                  setExtraFee(preset.amount);
+                  setExtraFeeReason(preset.reason);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-100 border border-amber-200 text-[11px] font-bold text-amber-900 cursor-pointer transition-colors"
+              >
+                {preset.label}
+              </button>
+            ))}
+            {extraFee > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setExtraFee(0);
+                  setExtraFeeReason("");
+                }}
+                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-[11px] font-bold text-rose-700 cursor-pointer transition-colors"
+              >
+                Xóa phụ phí (0đ)
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Multi-Fabric Order Items List */}
@@ -249,18 +320,6 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
                     </span>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleAiAnalyzeLine(idx)}
-                        disabled={aiLoadingIndex === idx}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        {aiLoadingIndex === idx
-                          ? "Đang phân tích AI..."
-                          : "AI Kiểm Tra Chất Vải & Tem Mác"}
-                      </button>
-
                       {items.length > 1 && (
                         <button
                           type="button"
@@ -353,16 +412,6 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
                       }}
                     />
                   </div>
-
-                  {item.aiInspectionResult && (
-                    <div className="p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-100 text-xs text-indigo-900 flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold">Kết quả AI Vision: </span>
-                        <span>{item.aiInspectionResult}</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -395,8 +444,16 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
                 {actualSubtotal.toLocaleString("vi-VN")}đ
               </span>
             </div>
+            {normalizedExtraFee > 0 && (
+              <div className="flex justify-between text-amber-700 font-bold">
+                <span>Phụ phí yêu cầu đặc biệt:</span>
+                <span className="font-mono tabular-nums">
+                  +{normalizedExtraFee.toLocaleString("vi-VN")}đ
+                </span>
+              </div>
+            )}
             <div className="flex justify-between text-slate-600">
-              <span>Chênh lệch sau cân:</span>
+              <span>Chênh lệch tổng:</span>
               <span
                 className={`font-mono font-bold tabular-nums ${
                   diffAmount > 0
@@ -437,7 +494,7 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
               <div className="pt-1 flex items-center gap-1.5 text-[11px] text-amber-700 font-semibold">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>
-                  Có chênh lệch khối lượng ({diffAmount > 0 ? "+" : ""}
+                  Có chênh lệch giá ({diffAmount > 0 ? "+" : ""}
                   {diffAmount.toLocaleString("vi-VN")}đ) → Hệ thống sẽ gửi thông báo chờ khách xác nhận trước khi giặt.
                 </span>
               </div>
@@ -465,13 +522,15 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
             type="button"
             isSecondary
             iconStart={<Send className="w-4 h-4 text-amber-600" />}
-            label="Gửi Khách Duyệt Khối Lượng"
+            label="Gửi Khách Duyệt Giá & Cân Nặng"
             onClick={() =>
               onSave(order.id, {
                 items,
                 weightConfirmStatus: "waiting_customer",
                 status: "waiting_confirm",
                 notes,
+                extraFee: normalizedExtraFee,
+                extraFeeReason: extraFeeReason.trim(),
                 paymentStatus,
               })
             }
@@ -493,6 +552,8 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
                   diffAmount !== 0 ? "waiting_customer" : "accepted",
                 status: diffAmount !== 0 ? "waiting_confirm" : "washing",
                 notes,
+                extraFee: normalizedExtraFee,
+                extraFeeReason: extraFeeReason.trim(),
                 paymentStatus,
               })
             }

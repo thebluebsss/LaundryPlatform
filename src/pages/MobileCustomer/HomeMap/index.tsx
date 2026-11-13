@@ -4,7 +4,6 @@ import {
   MapPin,
   Search,
   Scale,
-  Sparkles,
   PlusCircle,
   RefreshCw,
   Compass,
@@ -68,36 +67,28 @@ export const MobileCustomerHome: React.FC = () => {
         </div>
       )}
 
-      {/* Hero Action Card: Quick Multi-Fabric & AI Order Entry */}
+      {/* Hero Action Card: Quick Multi-Fabric Order Entry */}
       <div className="bg-slate-900 text-white rounded-2xl p-5 space-y-3">
         <div className="flex items-center justify-between text-xs text-blue-300 font-semibold">
-          <span>Ứng Dụng Đặt Giặt Thông Minh</span>
+          <span>Ứng Dụng Đặt Giặt Tận Nơi</span>
           <span className="font-mono">Shipper lấy tận cửa 30p</span>
         </div>
         <h2 className="text-lg font-black tracking-tight">
           Đặt Lịch Thu Gom Đồ Giặt Tận Nhà
         </h2>
         <p className="text-xs text-slate-300 leading-relaxed">
-          Thêm từng dòng đồ theo chất liệu vải hoặc dùng Camera AI quét nhãn mác
-          quần áo tự động. Chủ tiệm cân thực tế minh bạch trước khi giặt.
+          Kê khai từng món đồ theo chất liệu vải và ghi chú yêu cầu trả đồ theo
+          lịch của bạn. Chủ tiệm cân thực tế minh bạch trước khi giặt.
         </p>
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
+        <div className="pt-1">
           <ButtonCustom
             type="button"
             onClick={() => navigate("/mobile-customer/create-order")}
             iconStart={<PlusCircle className="w-4 h-4" />}
-            label="Tạo Đơn Giặt Mới"
+            label="Tạo Đơn Giặt Mới Ngay"
             className="!h-11 !text-xs"
             textClassName="!text-xs"
           />
-          <button
-            type="button"
-            onClick={() => navigate("/mobile-customer/create-order?openAi=1")}
-            className="h-11 px-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <Sparkles className="w-4 h-4 text-blue-400" />
-            <span>Quét AI Món Đồ</span>
-          </button>
         </div>
       </div>
 
