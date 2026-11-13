@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Droplets, Bike, ShieldCheck, Sparkles } from "lucide-react";
 
 interface MobileAppSplashProps {
@@ -12,24 +12,30 @@ export const MobileAppSplash: React.FC<MobileAppSplashProps> = ({
   appType,
   isLoggedIn,
   onFinish,
-  durationMs = 3500,
+  durationMs = 2400,
 }) => {
   const [progress, setProgress] = useState(8);
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
 
   useEffect(() => {
+    setProgress(8);
     const start = Date.now();
+    let finished = false;
+
     const interval = setInterval(() => {
       const elapsed = Date.now() - start;
       const pct = Math.min(100, Math.round((elapsed / durationMs) * 100));
       setProgress(pct);
-      if (elapsed >= durationMs) {
+      if (elapsed >= durationMs && !finished) {
+        finished = true;
         clearInterval(interval);
-        onFinish();
+        onFinishRef.current();
       }
-    }, 60);
+    }, 50);
 
     return () => clearInterval(interval);
-  }, [durationMs, onFinish]);
+  }, [durationMs, appType]);
 
   const isCustomer = appType === "customer";
 
@@ -79,7 +85,7 @@ export const MobileAppSplash: React.FC<MobileAppSplashProps> = ({
         </h1>
         <p className="text-xs text-white/80 mt-2 leading-relaxed">
           {isCustomer
-            ? "Định vị tiệm giặt GPS · Chụp ảnh quần áo · Duyệt cân thực tế minh bạch tại Hà Nội"
+            ? "Định vị tiệm giặt GPS · Đặt lịch thu gom tận nhà · Duyệt cân thực tế minh bạch tại Hà Nội"
             : "Sàn nhận chuyến Radar GPS · Điều hướng Google Maps · Ví thu nhập tự động 80%"}
         </p>
       </div>

@@ -246,21 +246,24 @@ const AppContent = () => {
     getScopedProfile("store_owner"),
   );
 
-  // 3.5s Splash Screen state when launching Mobile Customer App or Mobile Driver App
-  const [customerSplashDone, setCustomerSplashDone] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem("sachse_splash_done_customer") === "1";
-    } catch {
-      return false;
+  // Splash Screen state when launching Mobile Customer App or Mobile Driver App
+  const [customerSplashDone, setCustomerSplashDone] = useState<boolean>(false);
+  const [driverSplashDone, setDriverSplashDone] = useState<boolean>(false);
+
+  // Reset splash state when leaving a mobile app so re-entering either app plays its intro once
+  useEffect(() => {
+    if (!isMobileCustomerPage && customerSplashDone) {
+      setCustomerSplashDone(false);
     }
-  });
-  const [driverSplashDone, setDriverSplashDone] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem("sachse_splash_done_driver") === "1";
-    } catch {
-      return false;
+    if (!isMobileDriverPage && driverSplashDone) {
+      setDriverSplashDone(false);
     }
-  });
+  }, [
+    isMobileCustomerPage,
+    isMobileDriverPage,
+    customerSplashDone,
+    driverSplashDone,
+  ]);
 
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -401,20 +404,15 @@ const AppContent = () => {
     navigate("/mobile-driver/login", { replace: true });
   };
 
-  // Show 3.5-second App Logo Splash Screen when opening Customer App
+  // Show App Logo Splash Screen when opening Customer App
   if (isMobileCustomerPage && !customerSplashDone) {
     const hasCustomerToken = !!getScopedToken("customer");
     return (
       <MobileAppSplash
         appType="customer"
-        durationMs={3500}
+        durationMs={2400}
         isLoggedIn={hasCustomerToken}
         onFinish={() => {
-          try {
-            sessionStorage.setItem("sachse_splash_done_customer", "1");
-          } catch {
-            // ignore
-          }
           setCustomerSplashDone(true);
           if (hasCustomerToken) {
             if (location.pathname === "/mobile-customer/login") {
@@ -428,20 +426,15 @@ const AppContent = () => {
     );
   }
 
-  // Show 3.5-second App Logo Splash Screen when opening Driver App
+  // Show App Logo Splash Screen when opening Driver App
   if (isMobileDriverPage && !driverSplashDone) {
     const hasDriverToken = !!getScopedToken("driver");
     return (
       <MobileAppSplash
         appType="driver"
-        durationMs={3500}
+        durationMs={2400}
         isLoggedIn={hasDriverToken}
         onFinish={() => {
-          try {
-            sessionStorage.setItem("sachse_splash_done_driver", "1");
-          } catch {
-            // ignore
-          }
           setDriverSplashDone(true);
           if (hasDriverToken) {
             if (location.pathname === "/mobile-driver/login") {
