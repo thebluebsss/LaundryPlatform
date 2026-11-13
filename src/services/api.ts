@@ -138,7 +138,7 @@ export const storesAPI = {
   delete: (id: string) => api.delete(`/stores/${id}`),
 };
 
-// Laundry Orders API (Smart Multi-Fabric & Actual Weighing Orders)
+// Laundry Orders API (Smart Multi-Fabric, Live GPS, In-App Order Chat & Auto Payment Reconciliation)
 export const laundryOrdersAPI = {
   getAll: (params?: any) => api.get("/laundry-orders", { params }),
   getById: (id: string) => api.get(`/laundry-orders/${id}`),
@@ -149,6 +149,39 @@ export const laundryOrdersAPI = {
     api.patch(`/laundry-orders/${id}/weigh`, payload),
   confirmWeight: (id: string, approved: boolean) =>
     api.post(`/laundry-orders/${id}/confirm-weight`, { approved }),
+  getMessages: (id: string) => api.get(`/laundry-orders/${id}/messages`),
+  sendMessage: (
+    id: string,
+    payload: {
+      senderRole: "customer" | "driver" | "store" | "system";
+      senderName?: string;
+      text: string;
+      isQuickReply?: boolean;
+    }
+  ) => api.post(`/laundry-orders/${id}/messages`, payload),
+  updateDriverLocation: (
+    id: string,
+    payload: {
+      lat: number;
+      lng: number;
+      heading?: number;
+      speedKmh?: number;
+      driverId?: string;
+      driverName?: string;
+    }
+  ) => api.post(`/laundry-orders/${id}/driver-location`, payload),
+  createPaymentLink: (
+    id: string,
+    gateway: "vietqr" | "payos" | "vnpay" = "vietqr"
+  ) => api.post(`/laundry-orders/${id}/payment-link`, { gateway }),
+  reconcilePaymentWebhook: (
+    id: string,
+    payload?: {
+      gateway?: "vietqr" | "payos" | "vnpay";
+      transactionId?: string;
+      amount?: number;
+    }
+  ) => api.post(`/laundry-orders/${id}/payment-webhook`, payload || {}),
   delete: (id: string) => api.delete(`/laundry-orders/${id}`),
 };
 
@@ -179,19 +212,26 @@ export const deliveryAPI = {
     api.post("/delivery/reject-task", data),
   updateTaskStatus: (data: { taskId: string; status: string; notes?: string; codCollected?: boolean }) =>
     api.patch("/delivery/task-status", data),
-  updateLocation: (data: { driverId: string; lat: number; lng: number }) =>
-    api.post("/delivery/update-location", data),
+  updateLocation: (data: {
+    driverId?: string;
+    driverName?: string;
+    orderId?: string;
+    taskId?: string;
+    lat: number;
+    lng: number;
+    heading?: number;
+    speedKmh?: number;
+  }) => api.post("/delivery/update-location", data),
 };
-
 
 // Payments API (VietQR Napas 24/7 & PayOS)
 export const paymentsAPI = {
-  createVietQR: (data: { bookingId: string; amount: number; customerName?: string }) =>
-    api.post("/payments/vietqr/create", data),
-  confirmVietQR: (data: { bookingId: string }) =>
-    api.post("/payments/vietqr/confirm", data),
+  createVietQR: (data: { orderId: string; amount: number; customerName?: string }) =>
+    api.post("/payment/vietqr/create", data),
+  confirmVietQR: (data: { orderId: string; transactionId?: string; amount?: number }) =>
+    api.post("/payment/vietqr/confirm", data),
   createPayOS: (data: { bookingId: string; amount: number; description?: string }) =>
-    api.post("/payments/payos/create", data),
+    api.post("/payment/payos/create", data),
 };
 
 // Reviews API (Customer Store & Driver Ratings, Store Replies & Admin Moderation)

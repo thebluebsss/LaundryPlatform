@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { laundryOrdersAPI, reviewsAPI } from "../../../services/api";
-import { LaundryOrder, OrderReview } from "../../../types";
+import { LaundryOrder, OrderReview, OrderChatMessage } from "../../../types";
 import { useToast } from "../../../components/Toast";
 import { getScopedProfile } from "../../../utils/authStorage";
+import { useRealtimeOrders } from "../../../utils/realtimeClient";
 
 export const useMobileCustomerTracking = () => {
   const { showToast } = useToast();
@@ -10,6 +11,7 @@ export const useMobileCustomerTracking = () => {
   const [reviewsMap, setReviewsMap] = useState<Record<string, OrderReview>>({});
   const [loading, setLoading] = useState(false);
   const [qrOrder, setQrOrder] = useState<LaundryOrder | null>(null);
+  const [chatOrder, setChatOrder] = useState<LaundryOrder | null>(null);
   const [reviewingOrder, setReviewingOrder] = useState<LaundryOrder | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
 
@@ -55,13 +57,53 @@ export const useMobileCustomerTracking = () => {
     fetchOrders();
   }, [fetchOrders]);
 
+  // Real-time SSE updates for Live GPS, Chat, Payment Webhook, and Order Status
+  useRealtimeOrders(
+    useCallback((event) => {
+      if (event.type === "DRIVER_GPS_UPDATED" && event.data?.orderId) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === event.data.orderId
+              ? { ...o, driverLocation: event.data.driverLocation }
+              : o
+          )
+        );
+      } else if (event.type === "ORDER_CHAT_MESSAGE" && event.data?.orderId) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === event.data.orderId
+              ? { ...o, messages: event.data.messages }
+              : o
+          )
+        );
+      } else if (
+        event.type === "ORDER_PAYMENT_RECONCILED" &&
+        event.data?.order
+      ) {
+        const updated = event.data.order;
+        setOrders((prev) =>
+          prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+        );
+      } else if (event.type === "ORDER_UPDATED" && event.data?.id) {
+        const updated = event.data;
+        if (updated.deleted) {
+          setOrders((prev) => prev.filter((o) => o.id !== updated.id));
+        } else {
+          setOrders((prev) =>
+            prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+          );
+        }
+      }
+    }, [])
+  );
+
   const handleConfirmPaid = async (orderId: string) => {
     setProcessingPayment(true);
     try {
       await laundryOrdersAPI.updateStatus(orderId, {
         paymentStatus: "paid",
       });
-      showToast(`Đã xác nhận thanh toán VietQR cho đơn #${orderId}!`, "success");
+      showToast(`Đã xác nhận thanh toán cho đơn #${orderId}!`, "success");
       setQrOrder(null);
       await fetchOrders();
     } catch {
@@ -91,12 +133,23 @@ export const useMobileCustomerTracking = () => {
     }));
   };
 
+  const handleMessagesChanged = useCallback(
+    (orderId: string, messages: OrderChatMessage[]) => {
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, messages } : o))
+      );
+    },
+    []
+  );
+
   return {
     orders,
     reviewsMap,
     loading,
     qrOrder,
     setQrOrder,
+    chatOrder,
+    setChatOrder,
     reviewingOrder,
     setReviewingOrder,
     processingPayment,
@@ -104,5 +157,6 @@ export const useMobileCustomerTracking = () => {
     handleConfirmPaid,
     handleCancelPendingOrder,
     handleReviewSaved,
+    handleMessagesChanged,
   };
 };

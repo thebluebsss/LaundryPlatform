@@ -4,6 +4,7 @@ import DeliveryTask from "../models/DeliveryTask";
 import LaundryOrder from "../models/LaundryOrder";
 import User from "../models/User";
 import mongoose from "mongoose";
+import { realtimeHub } from "../services/realtimeHub";
 
 const HANOI_DISTRICT_COORDS: Record<string, { lat: number; lng: number }> = {
   "Quận Hoàn Kiếm": { lat: 21.0285, lng: 105.8542 },
@@ -404,16 +405,39 @@ export const acceptTask = async (req: Request, res: Response) => {
     if (task && task.orderId) {
       const nextOrderStatus =
         task.taskType === "deliver_to_customer" ? "delivering" : "picking_up";
+      const initialDriverLoc = task.pickupCoordinates
+        ? {
+            lat: Number((Number(task.pickupCoordinates.lat) - 0.0025).toFixed(6)),
+            lng: Number((Number(task.pickupCoordinates.lng) - 0.0022).toFixed(6)),
+            heading: 45,
+            speedKmh: 26,
+            updatedAt: new Date().toISOString(),
+            driverId: assignedDriverId,
+            driverName: assignedDriverName,
+          }
+        : undefined;
       try {
-        await LaundryOrder.findOneAndUpdate(
+        const updatedOrd = await LaundryOrder.findOneAndUpdate(
           { id: task.orderId },
           {
             status: nextOrderStatus,
             shipperId: assignedDriverId,
             shipperName: assignedDriverName,
             shipperPhone: assignedDriverPhone,
-          }
+            ...(initialDriverLoc ? { driverLocation: initialDriverLoc } : {}),
+          },
+          { new: true }
         );
+        if (updatedOrd) {
+          realtimeHub.broadcast("ORDER_UPDATED", updatedOrd, task.orderId);
+          if (initialDriverLoc) {
+            realtimeHub.broadcast(
+              "DRIVER_GPS_UPDATED",
+              { orderId: task.orderId, driverLocation: initialDriverLoc },
+              task.orderId
+            );
+          }
+        }
       } catch (e) {}
     }
 
@@ -507,6 +531,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
           orderUpdate.completedAt = new Date().toISOString();
           if (codCollected) {
             orderUpdate.paymentStatus = "paid";
+            orderUpdate.paidAt = new Date().toISOString();
           }
         }
       }
@@ -521,8 +546,16 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
             existingOrder.paymentMethod === "cod"
           ) {
             orderUpdate.paymentStatus = "paid";
+            orderUpdate.paidAt = new Date().toISOString();
           }
-          await LaundryOrder.findOneAndUpdate({ id: task.orderId }, orderUpdate);
+          const updatedOrd = await LaundryOrder.findOneAndUpdate(
+            { id: task.orderId },
+            orderUpdate,
+            { new: true }
+          );
+          if (updatedOrd) {
+            realtimeHub.broadcast("ORDER_UPDATED", updatedOrd, task.orderId);
+          }
         } catch (e) {}
       }
     }
@@ -622,31 +655,98 @@ export const getMyTasks = async (req: Request, res: Response) => {
 };
 
 /**
- * Tài xế cập nhật tọa độ GPS trực tiếp
+ * Tài xế cập nhật tọa độ GPS trực tiếp & phát sóng thời gian thực tới Khách hàng và Chủ tiệm
  * @route POST /api/delivery/update-location
  */
 export const updateDriverLocation = async (req: Request, res: Response) => {
   try {
-    const { driverId, lat, lng } = req.body;
+    const { driverId, driverName, orderId, taskId, lat, lng, heading, speedKmh } =
+      req.body;
 
-    if (!driverId || lat === undefined || lng === undefined) {
+    if (lat === undefined || lng === undefined) {
       return res.status(400).json({
         success: false,
-        message: "Cần cung cấp driverId, lat và lng",
+        message: "Cần cung cấp tọa độ lat và lng",
       });
     }
 
+    const liveLocation = {
+      lat: Number(Number(lat).toFixed(6)),
+      lng: Number(Number(lng).toFixed(6)),
+      heading: heading !== undefined ? Number(heading) : 0,
+      speedKmh: speedKmh !== undefined ? Number(speedKmh) : 28,
+      updatedAt: new Date().toISOString(),
+      driverId: driverId || "drv-live",
+      driverName: driverName || "Tài xế Sạch Sẽ",
+    };
+
     try {
-      await User.findByIdAndUpdate(driverId, {
-        currentLocation: { lat, lng },
-        lastLogin: new Date(),
-      });
+      if (driverId) {
+        await User.findByIdAndUpdate(driverId, {
+          currentLocation: { lat: liveLocation.lat, lng: liveLocation.lng },
+          lastLogin: new Date(),
+        });
+      }
+    } catch (e) {}
+
+    // Update active DeliveryTask(s) and linked LaundryOrder(s)
+    const updatedOrderIds = new Set<string>();
+    if (orderId) {
+      updatedOrderIds.add(String(orderId));
+    }
+
+    try {
+      const allTasks = (await DeliveryTask.find({})) || [];
+      for (const t of allTasks) {
+        const isActive =
+          t.status !== "broadcasting" &&
+          t.status !== "completed" &&
+          t.status !== "cancelled";
+        if (!isActive) continue;
+
+        const matchesTask =
+          (taskId && t.id === taskId) ||
+          (orderId && t.orderId === orderId) ||
+          (driverId && String(t.driverId) === String(driverId));
+
+        if (matchesTask) {
+          await DeliveryTask.findOneAndUpdate(
+            { id: t.id },
+            { driverLocation: liveLocation }
+          );
+          if (t.orderId) {
+            updatedOrderIds.add(String(t.orderId));
+          }
+        }
+      }
+
+      for (const ordId of updatedOrderIds) {
+        await LaundryOrder.findOneAndUpdate(
+          { id: ordId },
+          { driverLocation: liveLocation }
+        );
+        realtimeHub.broadcast(
+          "DRIVER_GPS_UPDATED",
+          {
+            orderId: ordId,
+            driverLocation: liveLocation,
+          },
+          ordId
+        );
+      }
     } catch (e) {}
 
     res.json({
       success: true,
-      message: "Cập nhật vị trí GPS tài xế thành công",
-      data: { driverId, lat, lng, timestamp: new Date().toISOString() },
+      message: "Cập nhật vị trí Live GPS tài xế thành công",
+      data: {
+        driverId: liveLocation.driverId,
+        lat: liveLocation.lat,
+        lng: liveLocation.lng,
+        speedKmh: liveLocation.speedKmh,
+        updatedOrders: Array.from(updatedOrderIds),
+        timestamp: liveLocation.updatedAt,
+      },
     });
   } catch (error: any) {
     res.status(500).json({

@@ -7,6 +7,9 @@ import {
   Truck,
   Star,
   MessageSquareReply,
+  MessageSquare,
+  Navigation,
+  QrCode,
   RotateCcw,
   Coins,
 } from "lucide-react";
@@ -27,6 +30,9 @@ interface StoreOrdersTableProps {
   onPageChange: (page: number) => void;
   onOpenPosModal: () => void;
   onWeighOrder: (order: LaundryOrder) => void;
+  onOpenChat: (order: LaundryOrder) => void;
+  onOpenGps: (order: LaundryOrder) => void;
+  onOpenPayment: (order: LaundryOrder) => void;
   onDeleteOrder: (order: LaundryOrder) => void;
   onBroadcastPickup: (order: LaundryOrder) => void;
   onBroadcastDelivery: (order: LaundryOrder) => void;
@@ -45,6 +51,9 @@ export const StoreOrdersTable: React.FC<StoreOrdersTableProps> = ({
   onPageChange,
   onOpenPosModal,
   onWeighOrder,
+  onOpenChat,
+  onOpenGps,
+  onOpenPayment,
   onDeleteOrder,
   onBroadcastPickup,
   onBroadcastDelivery,
@@ -281,10 +290,15 @@ export const StoreOrdersTable: React.FC<StoreOrdersTableProps> = ({
                           }
                         >
                           {order.paymentStatus === "paid"
-                            ? "Đã thanh toán"
+                            ? "Đã đối soát"
                             : "Chờ thu tiền"}
                         </span>
                       </div>
+                      {order.paymentTransactionId && (
+                        <div className="text-[10px] text-teal-700 font-bold mt-0.5">
+                          GD: {order.paymentTransactionId}
+                        </div>
+                      )}
                     </td>
 
                     {/* Col 4: Weighing Status */}
@@ -446,6 +460,48 @@ export const StoreOrdersTable: React.FC<StoreOrdersTableProps> = ({
                           className="!w-auto !h-8 !px-3 !text-xs whitespace-nowrap"
                           textClassName="!text-xs"
                         />
+
+                        {/* Live GPS Button */}
+                        <button
+                          type="button"
+                          onClick={() => onOpenGps(order)}
+                          className="h-8 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Xem vị trí tài xế di chuyển thời gian thực (Live GPS)"
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                          <span>Live GPS</span>
+                        </button>
+
+                        {/* In-App Order Chat Button */}
+                        <button
+                          type="button"
+                          onClick={() => onOpenChat(order)}
+                          className="h-8 px-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Mở kênh Chat nội bộ theo mã đơn (Khách - Tài xế - Tiệm)"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-teal-600" />
+                          <span>Chat</span>
+                          {Array.isArray(order.messages) &&
+                            order.messages.length > 0 && (
+                              <span className="px-1.5 py-0.2 rounded bg-teal-600 text-white font-mono text-[10px] font-black">
+                                {order.messages.length}
+                              </span>
+                            )}
+                        </button>
+
+                        {/* Electronic Payment & Auto-Reconciliation Button */}
+                        {order.paymentStatus !== "paid" &&
+                          order.status !== "cancelled" && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenPayment(order)}
+                              className="h-8 px-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Cổng thanh toán điện tử & Đối soát tự động Webhook"
+                            >
+                              <QrCode className="w-3.5 h-3.5" />
+                              <span>Đối Soát QR</span>
+                            </button>
+                          )}
 
                         <button
                           onClick={() => onDeleteOrder(order)}

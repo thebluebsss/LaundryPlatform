@@ -2,6 +2,17 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../utils/errorHandler";
 import { successResponse } from "../utils/response";
 import LaundryOrder from "../models/LaundryOrder";
+import { realtimeHub } from "../services/realtimeHub";
+
+const findOrderByIdOrCustomId = async (rawId: string) => {
+  let order = await (LaundryOrder as any).findOne({ id: rawId });
+  if (!order) {
+    try {
+      order = await (LaundryOrder as any).findById(rawId);
+    } catch {}
+  }
+  return order;
+};
 
 /**
  * @desc    Tạo đơn hàng mới
@@ -20,7 +31,6 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     orderData.weightConfirmStatus = "not_weighed";
   }
 
-  // Ensure each item in Order_Details has estimatedQuantity and estimatedLineTotal per Sequence 1
   let computedSubtotal = 0;
   if (Array.isArray(orderData.items)) {
     orderData.items = orderData.items.map((item: any) => {
@@ -47,7 +57,6 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       )
     : Number(orderData.productsTotal || 0);
 
-  // Step 22 of Sequence 1: Tính giá tạm tính (estimated_subtotal, total_price)
   const subtotal = Number(orderData.subtotal ?? computedSubtotal);
   const estimatedSubtotal = Number(orderData.estimatedSubtotal ?? subtotal);
   const deliveryFee = Number(orderData.deliveryFee ?? 25000);
@@ -71,7 +80,6 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   orderData.customerSpecialRequest = orderData.customerSpecialRequest || "";
   orderData.totalPrice = totalPrice;
 
-  // Resolve customer Google Maps coordinates in Hanoi
   const HANOI_DISTRICT_COORDS: Record<string, { lat: number; lng: number }> = {
     "Quận Hoàn Kiếm": { lat: 21.0285, lng: 105.8542 },
     "Quận Ba Đình": { lat: 21.0341, lng: 105.8372 },
@@ -105,6 +113,44 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
   orderData.customerCoordinates = customerCoords;
 
+  let storeCoords = {
+    lat: Number((customerCoords.lat + 0.008).toFixed(6)),
+    lng: Number((customerCoords.lng + 0.006).toFixed(6)),
+  };
+
+  try {
+    const Store = (await import("../models/Store")).default;
+    if (orderData.storeId) {
+      const storeDoc: any = await (Store as any).findOne({
+        $or: [{ customId: orderData.storeId }, { id: orderData.storeId }],
+      });
+      if (storeDoc && storeDoc.lat && storeDoc.lng) {
+        storeCoords = {
+          lat: Number(storeDoc.lat),
+          lng: Number(storeDoc.lng),
+        };
+      }
+    }
+  } catch {}
+
+  orderData.storeCoordinates = storeCoords;
+
+  // Seed initial welcome chat message if customer has a special request
+  if (!Array.isArray(orderData.messages)) {
+    orderData.messages = [];
+  }
+  if (orderData.customerSpecialRequest) {
+    orderData.messages.push({
+      id: "msg-init-" + Date.now(),
+      orderId: orderData.id,
+      senderRole: "customer",
+      senderName: orderData.customerName || "Khách hàng",
+      text: `Yêu cầu đặc biệt: ${orderData.customerSpecialRequest}`,
+      isQuickReply: false,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   const order = await (LaundryOrder as any).create(orderData);
 
   // Broadcast pickup task within 1km radius of customer's Google Maps pin to online drivers
@@ -120,14 +166,6 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
         });
       }
 
-      const storeCoords =
-        storeDoc && storeDoc.lat && storeDoc.lng
-          ? { lat: Number(storeDoc.lat), lng: Number(storeDoc.lng) }
-          : {
-              lat: Number((customerCoords.lat + 0.008).toFixed(6)),
-              lng: Number((customerCoords.lng + 0.006).toFixed(6)),
-            };
-
       const storeAddressFull =
         storeDoc?.address ||
         `${order.storeName || "Tiệm Giặt Sạch Sẽ"}, ${order.district || "Quận Hoàn Kiếm"}, Thành Phố Hà Nội, Việt Nam`;
@@ -136,7 +174,6 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
         order.district ? `, ${order.district}` : ""
       }, Thành Phố Hà Nội, Việt Nam`;
 
-      // Calculate route distance between customer and store
       const toRad = (deg: number) => (deg * Math.PI) / 180;
       const dLat = toRad(storeCoords.lat - customerCoords.lat);
       const dLng = toRad(storeCoords.lng - customerCoords.lng);
@@ -183,6 +220,8 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
+  realtimeHub.broadcast("ORDER_UPDATED", order, order.id);
+
   successResponse(res, order, "Đặt lịch dịch vụ giặt sấy thành công", 201);
 });
 
@@ -210,10 +249,7 @@ export const getOrders = asyncHandler(async (req: Request, res: Response) => {
  * @access  Public
  */
 export const getOrderById = asyncHandler(async (req: Request, res: Response) => {
-  let order = await (LaundryOrder as any).findOne({ id: req.params.id });
-  if (!order) {
-    order = await (LaundryOrder as any).findById(req.params.id);
-  }
+  const order = await findOrderByIdOrCustomId(req.params.id);
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
   }
@@ -227,10 +263,7 @@ export const getOrderById = asyncHandler(async (req: Request, res: Response) => 
  */
 export const updateOrderStatus = asyncHandler(async (req: Request, res: Response) => {
   const { status, paymentStatus, weightConfirmStatus } = req.body;
-  let order = await (LaundryOrder as any).findOne({ id: req.params.id });
-  if (!order) {
-    order = await (LaundryOrder as any).findById(req.params.id);
-  }
+  const order = await findOrderByIdOrCustomId(req.params.id);
 
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
@@ -238,7 +271,12 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
 
   const updateFields: any = {};
   if (status) updateFields.status = status;
-  if (paymentStatus) updateFields.paymentStatus = paymentStatus;
+  if (paymentStatus) {
+    updateFields.paymentStatus = paymentStatus;
+    if (paymentStatus === "paid" && !order.paidAt) {
+      updateFields.paidAt = new Date().toISOString();
+    }
+  }
   if (weightConfirmStatus) updateFields.weightConfirmStatus = weightConfirmStatus;
   if (status === "completed") updateFields.completedAt = new Date().toISOString();
 
@@ -270,6 +308,8 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
     }
   }
 
+  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id);
+
   successResponse(res, updatedOrder, "Cập nhật trạng thái đơn hàng thành công");
 });
 
@@ -293,10 +333,7 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
     shipperPhone,
   } = req.body;
 
-  let order = await (LaundryOrder as any).findOne({ id: req.params.id });
-  if (!order) {
-    order = await (LaundryOrder as any).findById(req.params.id);
-  }
+  const order = await findOrderByIdOrCustomId(req.params.id);
 
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
@@ -330,7 +367,6 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
     actualSubtotal + productsTotal + deliveryFee + resolvedExtraFee - discountAmount
   );
 
-  // Sequence 3 discrepancy check: compare actualSubtotal + extraFee vs estimatedSubtotal
   const diffRatio =
     estimatedSubtotal > 0
       ? Math.abs(actualSubtotal - estimatedSubtotal) / estimatedSubtotal
@@ -377,11 +413,20 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
   if (shipperName !== undefined) payload.shipperName = shipperName;
   if (shipperPhone !== undefined) payload.shipperPhone = shipperPhone;
 
+  // Regenerate dynamic VietQR URL with updated totalPrice
+  const transferMemo = encodeURIComponent(`SACHSE ${order.id}`);
+  const accountName = encodeURIComponent("CONG TY GIAT LA SACH SE");
+  payload.vietQrUrl = `https://img.vietqr.io/image/MB-0988776655-compact2.png?amount=${Math.round(
+    totalPrice
+  )}&addInfo=${transferMemo}&accountName=${accountName}`;
+
   const updatedOrder = await (LaundryOrder as any).findByIdAndUpdate(
     order._id || order.id,
     payload,
     { new: true }
   );
+
+  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id);
 
   successResponse(
     res,
@@ -399,10 +444,7 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
  */
 export const confirmOrderWeight = asyncHandler(async (req: Request, res: Response) => {
   const { approved } = req.body;
-  let order = await (LaundryOrder as any).findOne({ id: req.params.id });
-  if (!order) {
-    order = await (LaundryOrder as any).findById(req.params.id);
-  }
+  const order = await findOrderByIdOrCustomId(req.params.id);
 
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
@@ -425,6 +467,8 @@ export const confirmOrderWeight = asyncHandler(async (req: Request, res: Respons
     { new: true }
   );
 
+  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id);
+
   successResponse(
     res,
     updatedOrder,
@@ -435,15 +479,318 @@ export const confirmOrderWeight = asyncHandler(async (req: Request, res: Respons
 });
 
 /**
+ * @desc    Lấy lịch sử tin nhắn Chat nội bộ theo mã đơn
+ * @route   GET /api/laundry-orders/:id/messages
+ * @access  Public
+ */
+export const getOrderMessages = asyncHandler(async (req: Request, res: Response) => {
+  const order = await findOrderByIdOrCustomId(req.params.id);
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+  const messages = Array.isArray(order.messages) ? order.messages : [];
+  successResponse(res, { orderId: order.id, messages }, "Lấy lịch sử chat đơn hàng thành công");
+});
+
+/**
+ * @desc    Gửi tin nhắn hoặc câu trả lời nhanh 1 chạm trong Kênh Chat Nội Bộ theo mã đơn
+ * @route   POST /api/laundry-orders/:id/messages
+ * @access  Public (Khách hàng / Tài xế / Chủ tiệm)
+ */
+export const sendOrderMessage = asyncHandler(async (req: Request, res: Response) => {
+  const { senderRole, senderName, text, isQuickReply } = req.body;
+  if (!text || !String(text).trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Nội dung tin nhắn không được để trống",
+    });
+  }
+
+  const order = await findOrderByIdOrCustomId(req.params.id);
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+
+  const resolvedRole: "customer" | "driver" | "store" | "system" =
+    senderRole === "driver" || senderRole === "store" || senderRole === "system"
+      ? senderRole
+      : "customer";
+
+  const defaultName =
+    resolvedRole === "driver"
+      ? order.shipperName || "Tài xế Sạch Sẽ"
+      : resolvedRole === "store"
+        ? order.storeName || "Chủ Tiệm Giặt Sạch Sẽ"
+        : order.customerName || "Khách hàng";
+
+  const newMessage = {
+    id: "msg-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
+    orderId: order.id,
+    senderRole: resolvedRole,
+    senderName: senderName || defaultName,
+    text: String(text).trim(),
+    isQuickReply: Boolean(isQuickReply),
+    createdAt: new Date().toISOString(),
+  };
+
+  const existingMessages = Array.isArray(order.messages) ? [...order.messages] : [];
+  existingMessages.push(newMessage);
+
+  const updatedOrder = await (LaundryOrder as any).findByIdAndUpdate(
+    order._id || order.id,
+    { messages: existingMessages },
+    { new: true }
+  );
+
+  realtimeHub.broadcast(
+    "ORDER_CHAT_MESSAGE",
+    {
+      orderId: order.id,
+      message: newMessage,
+      messages: existingMessages,
+    },
+    order.id
+  );
+
+  successResponse(
+    res,
+    {
+      orderId: order.id,
+      message: newMessage,
+      messages: existingMessages,
+      order: updatedOrder,
+    },
+    "Đã gửi tin nhắn vào đơn hàng",
+    201
+  );
+});
+
+/**
+ * @desc    Cập nhật tọa độ Live GPS của tài xế trực tiếp vào đơn hàng & phát SSE thời gian thực
+ * @route   POST /api/laundry-orders/:id/driver-location
+ * @access  Public / Driver
+ */
+export const updateOrderDriverLocation = asyncHandler(async (req: Request, res: Response) => {
+  const { lat, lng, heading, speedKmh, driverId, driverName } = req.body;
+  if (lat === undefined || lng === undefined) {
+    return res.status(400).json({
+      success: false,
+      message: "Cần cung cấp tọa độ lat và lng",
+    });
+  }
+
+  const order = await findOrderByIdOrCustomId(req.params.id);
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+
+  const liveLocation = {
+    lat: Number(Number(lat).toFixed(6)),
+    lng: Number(Number(lng).toFixed(6)),
+    heading: heading !== undefined ? Number(heading) : 0,
+    speedKmh: speedKmh !== undefined ? Number(speedKmh) : 28,
+    updatedAt: new Date().toISOString(),
+    driverId: driverId || order.shipperId || "drv-live",
+    driverName: driverName || order.shipperName || "Tài xế Sạch Sẽ",
+  };
+
+  const updatedOrder = await (LaundryOrder as any).findByIdAndUpdate(
+    order._id || order.id,
+    { driverLocation: liveLocation },
+    { new: true }
+  );
+
+  // Also sync to active DeliveryTask if any
+  try {
+    const DeliveryTask = (await import("../models/DeliveryTask")).default;
+    const tasks = await (DeliveryTask as any).find({ orderId: order.id });
+    if (Array.isArray(tasks)) {
+      for (const t of tasks) {
+        if (t.status !== "completed" && t.status !== "cancelled") {
+          await (DeliveryTask as any).findOneAndUpdate(
+            { id: t.id },
+            { driverLocation: liveLocation }
+          );
+        }
+      }
+    }
+  } catch {}
+
+  realtimeHub.broadcast(
+    "DRIVER_GPS_UPDATED",
+    {
+      orderId: order.id,
+      driverLocation: liveLocation,
+    },
+    order.id
+  );
+
+  successResponse(
+    res,
+    {
+      orderId: order.id,
+      driverLocation: liveLocation,
+      order: updatedOrder,
+    },
+    "Đã đồng bộ tọa độ Live GPS lên bản đồ thời gian thực"
+  );
+});
+
+/**
+ * @desc    Khởi tạo phiên Thanh toán Điện tử đa cổng (VietQR Napas247 / PayOS / VNPay) cho đơn giặt
+ * @route   POST /api/laundry-orders/:id/payment-link
+ * @access  Public
+ */
+export const createOrderPaymentLink = asyncHandler(async (req: Request, res: Response) => {
+  const { gateway = "vietqr" } = req.body;
+  const order = await findOrderByIdOrCustomId(req.params.id);
+
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+
+  const amount = Math.round(Number(order.totalPrice || 0));
+  const cleanOrderCode = String(order.id).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const transferContent = `SACHSE ${cleanOrderCode}`;
+  const bankId = gateway === "vnpay" ? "VCB" : gateway === "payos" ? "ACB" : "MB";
+  const bankName =
+    gateway === "vnpay"
+      ? "Vietcombank - Cổng VNPay QR"
+      : gateway === "payos"
+        ? "ACB - Cổng PayOS Tự Động Đối Soát"
+        : "MBBank - Cổng VietQR Napas 24/7";
+  const accountNo =
+    gateway === "vnpay"
+      ? "0011009988776"
+      : gateway === "payos"
+        ? "8899668899"
+        : "0988776655";
+  const accountName = "CONG TY GIAT LA SACH SE";
+
+  const qrImageUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(
+    transferContent
+  )}&accountName=${encodeURIComponent(accountName)}`;
+
+  await (LaundryOrder as any).findByIdAndUpdate(
+    order._id || order.id,
+    {
+      paymentMethod: gateway,
+      vietQrUrl: qrImageUrl,
+    },
+    { new: true }
+  );
+
+  successResponse(
+    res,
+    {
+      orderId: order.id,
+      gateway,
+      amount,
+      subtotal: Number(order.actualSubtotal ?? order.subtotal ?? 0),
+      extraFee: Number(order.extraFee ?? 0),
+      extraFeeReason: order.extraFeeReason || "",
+      deliveryFee: Number(order.deliveryFee ?? 25000),
+      discountAmount: Number(order.discountAmount ?? 0),
+      bankId,
+      bankName,
+      accountNo,
+      accountName,
+      transferContent,
+      qrImageUrl,
+      webhookEndpoint: `/api/laundry-orders/${order.id}/payment-webhook`,
+    },
+    "Khởi tạo cổng thanh toán điện tử thành công"
+  );
+});
+
+/**
+ * @desc    Webhook Tự động Đối soát Thanh toán Điện tử (VietQR / PayOS / VNPay)
+ * @route   POST /api/laundry-orders/:id/payment-webhook
+ * @access  Public / Payment Gateway Webhook
+ */
+export const reconcileOrderPaymentWebhook = asyncHandler(async (req: Request, res: Response) => {
+  const { gateway = "vietqr", transactionId, amount } = req.body;
+  const order = await findOrderByIdOrCustomId(req.params.id);
+
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+
+  const paidAmount = Math.round(Number(amount || order.totalPrice || 0));
+  const resolvedGateway = gateway || order.paymentMethod || "vietqr";
+  const gatewayPrefix = String(resolvedGateway).toUpperCase();
+  const resolvedTxId =
+    transactionId ||
+    `FT-${gatewayPrefix}-${new Date().getFullYear()}${Math.floor(
+      100000 + Math.random() * 900000
+    )}`;
+  const paidAt = new Date().toISOString();
+
+  // Append an automatic system reconciliation message into the order chat log
+  const existingMessages = Array.isArray(order.messages) ? [...order.messages] : [];
+  const systemMessage = {
+    id: "msg-pay-" + Date.now(),
+    orderId: order.id,
+    senderRole: "system" as const,
+    senderName: `Đối soát tự động (${gatewayPrefix})`,
+    text: `Hệ thống đã đối soát thanh toán thành công ${paidAmount.toLocaleString(
+      "vi-VN"
+    )}đ qua cổng ${gatewayPrefix}. Mã giao dịch: ${resolvedTxId}`,
+    isQuickReply: false,
+    createdAt: paidAt,
+  };
+  existingMessages.push(systemMessage);
+
+  const updatedOrder = await (LaundryOrder as any).findByIdAndUpdate(
+    order._id || order.id,
+    {
+      paymentStatus: "paid",
+      paymentMethod: resolvedGateway,
+      paymentTransactionId: resolvedTxId,
+      paidAt,
+      messages: existingMessages,
+    },
+    { new: true }
+  );
+
+  realtimeHub.broadcast(
+    "ORDER_PAYMENT_RECONCILED",
+    {
+      orderId: order.id,
+      paymentStatus: "paid",
+      paymentMethod: resolvedGateway,
+      paymentTransactionId: resolvedTxId,
+      amount: paidAmount,
+      paidAt,
+      order: updatedOrder,
+    },
+    order.id
+  );
+
+  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id);
+
+  successResponse(
+    res,
+    {
+      orderId: order.id,
+      paymentStatus: "paid",
+      paymentMethod: resolvedGateway,
+      paymentTransactionId: resolvedTxId,
+      amount: paidAmount,
+      paidAt,
+      order: updatedOrder,
+    },
+    `Đối soát tự động thành công ${paidAmount.toLocaleString("vi-VN")}đ (Mã GD: ${resolvedTxId})`
+  );
+});
+
+/**
  * @desc    Xóa đơn hàng
  * @route   DELETE /api/laundry-orders/:id
  * @access  Public
  */
 export const deleteOrder = asyncHandler(async (req: Request, res: Response) => {
-  let order = await (LaundryOrder as any).findOne({ id: req.params.id });
-  if (!order) {
-    order = await (LaundryOrder as any).findById(req.params.id);
-  }
+  const order = await findOrderByIdOrCustomId(req.params.id);
 
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
@@ -453,5 +800,8 @@ export const deleteOrder = asyncHandler(async (req: Request, res: Response) => {
     await (LaundryOrder as any).findByIdAndDelete(order._id || order.id);
   } catch (err) {}
 
+  realtimeHub.broadcast("ORDER_UPDATED", { id: order.id, deleted: true }, order.id);
+
   successResponse(res, null, "Xóa đơn hàng thành công");
 });
+

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   QrCode,
   Phone,
@@ -8,6 +8,8 @@ import {
   Clock,
   Star,
   MessageSquareReply,
+  MessageSquare,
+  Navigation,
   Bike,
   RotateCcw,
   XCircle,
@@ -16,6 +18,7 @@ import {
 } from "lucide-react";
 import { LaundryOrder, OrderReview, OrderStatus } from "../../../../types";
 import { ButtonCustom, ButtonOutLine } from "../../../../components/ButtonCustom";
+import { OrderLiveGpsMap } from "../../../../components/OrderLiveGpsMap";
 import {
   CUSTOMER_ORDER_STAGES,
   ORDER_STATUS_LABELS,
@@ -29,6 +32,7 @@ interface CustomerOrderCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onOpenQr: (order: LaundryOrder) => void;
+  onOpenChat: (order: LaundryOrder) => void;
   onOpenReview: (order: LaundryOrder) => void;
   onCancelPending: (orderId: string) => void;
   onNavigateWeightConfirm: () => void;
@@ -41,11 +45,19 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
   isExpanded,
   onToggleExpand,
   onOpenQr,
+  onOpenChat,
   onOpenReview,
   onCancelPending,
   onNavigateWeightConfirm,
   onReorder,
 }) => {
+  const isDriverOnRoad =
+    order.status === "picking_up" ||
+    order.status === "delivering" ||
+    order.status === "returning";
+
+  const [showLiveMap, setShowLiveMap] = useState<boolean>(isDriverOnRoad);
+
   const getStageIndex = (status: OrderStatus) => {
     if (status === "returning") return 3;
     const idx = ORDER_STAGES.findIndex((s) => s.key === status);
@@ -56,6 +68,9 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
   const isWaitingWeight =
     order.weightConfirmStatus === "waiting_customer" ||
     order.status === "waiting_confirm";
+  const messageCount = Array.isArray(order.messages)
+    ? order.messages.length
+    : 0;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3.5">
@@ -77,7 +92,11 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
               }`}
             >
               {order.paymentStatus === "paid"
-                ? "Đã thanh toán"
+                ? `Đã thanh toán${
+                    order.paymentTransactionId
+                      ? ` (${order.paymentTransactionId})`
+                      : ""
+                  }`
                 : "Chưa thanh toán"}
             </span>
           </div>
@@ -86,7 +105,7 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
           </h4>
         </div>
         <div className="text-right font-mono shrink-0">
-          <div className="text-sm font-black text-blue-600">
+          <div className="text-sm font-black text-blue-600 tabular-nums">
             {order.totalPrice.toLocaleString("vi-VN")}đ
           </div>
           <button
@@ -117,7 +136,7 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
           <span className="text-slate-700 font-semibold">
             Phụ phí yêu cầu ({order.extraFeeReason || "Xử lý theo yêu cầu riêng"}):
           </span>
-          <span className="font-mono font-black text-blue-700 shrink-0">
+          <span className="font-mono font-black text-blue-700 shrink-0 tabular-nums">
             +{Number(order.extraFee).toLocaleString("vi-VN")}đ
           </span>
         </div>
@@ -146,7 +165,7 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
                     </div>
                   )}
                 </div>
-                <span className="font-mono font-bold text-slate-900">
+                <span className="font-mono font-bold text-slate-900 tabular-nums">
                   {(qty * it.unitPrice).toLocaleString("vi-VN")}đ
                 </span>
               </div>
@@ -157,14 +176,14 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
               <span>
                 Phụ phí ({order.extraFeeReason || "Yêu cầu đặc biệt"}):
               </span>
-              <span className="font-mono">
+              <span className="font-mono tabular-nums">
                 +{Number(order.extraFee).toLocaleString("vi-VN")}đ
               </span>
             </div>
           )}
           <div className="pt-1 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-200">
             <span>Phí giao nhận 2 chiều:</span>
-            <span className="font-mono">
+            <span className="font-mono tabular-nums">
               {(order.deliveryFee || 20000).toLocaleString("vi-VN")}đ
             </span>
           </div>
@@ -235,6 +254,11 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
             </a>
           )}
         </div>
+      )}
+
+      {/* Live GPS Tracking Map Section */}
+      {showLiveMap && order.status !== "cancelled" && (
+        <OrderLiveGpsMap order={order} heightClassName="h-[230px]" compact />
       )}
 
       {/* Display Existing Review & Store Reply if already reviewed */}
@@ -313,11 +337,40 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
               type="button"
               onClick={() => onOpenQr(order)}
               iconStart={<QrCode className="w-4 h-4" />}
-              label="Thanh Toán Mã VietQR"
+              label="Thanh Toán & Đối Soát Tự Động"
               className="!w-auto !h-10 !text-xs"
               textClassName="!text-xs"
             />
           )}
+
+          {order.status !== "cancelled" && (
+            <button
+              type="button"
+              onClick={() => setShowLiveMap(!showLiveMap)}
+              className={`h-10 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                showLiveMap
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200"
+              }`}
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>{showLiveMap ? "Ẩn Live GPS" : "Live GPS Tài Xế"}</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onOpenChat(order)}
+            className="h-10 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-teal-600" />
+            <span>Chat đơn hàng</span>
+            {messageCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-md bg-teal-600 text-white font-mono text-[10px] font-black">
+                {messageCount}
+              </span>
+            )}
+          </button>
 
           {order.status === "pending" && (
             <ButtonOutLine

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Search, Plus, Users } from "lucide-react";
+import { Search, Plus, Users, X, Navigation } from "lucide-react";
 import { useStoreOwnerOrders } from "./hook";
 import { WeighAndInspectModal } from "./components/WeighAndInspectModal";
 import { CreatePosOrderModal } from "./components/CreatePosOrderModal";
@@ -12,6 +12,10 @@ import { ButtonCustom, ButtonOutLine } from "../../../components/ButtonCustom";
 import { InputText } from "../../../components/InputText";
 import { InputSelect } from "../../../components/InputSelect";
 import { DialogConfirm } from "../../../components/DialogConfirm";
+import { OrderChatDrawer } from "../../../components/OrderChatDrawer";
+import { OrderLiveGpsMap } from "../../../components/OrderLiveGpsMap";
+import { VietQrSheetModal } from "../../MobileCustomer/OrderTracking/components/VietQrSheetModal";
+import { laundryOrdersAPI } from "../../../services/api";
 import { useToast } from "../../../components/Toast";
 import {
   ORDER_STATUS_LABELS,
@@ -33,10 +37,17 @@ export const StoreOwnerOrders: React.FC = () => {
     setWeightFilter,
     weighingOrder,
     setWeighingOrder,
+    chatOrder,
+    setChatOrder,
+    gpsOrder,
+    setGpsOrder,
+    paymentOrder,
+    setPaymentOrder,
     isPosModalOpen,
     setIsPosModalOpen,
     orderToDelete,
     setOrderToDelete,
+    loadOrdersAndServices,
     handleSaveWeighOrder,
     handleBroadcastPickup,
     handleBroadcastDelivery,
@@ -45,6 +56,7 @@ export const StoreOwnerOrders: React.FC = () => {
     handleCreatePosOrder,
     handleDeleteOrder,
     handleReplyOrderReview,
+    handleMessagesChanged,
   } = useStoreOwnerOrders();
 
   const [showCustomerBook, setShowCustomerBook] = useState(false);
@@ -110,8 +122,8 @@ export const StoreOwnerOrders: React.FC = () => {
             Quản lý đơn giặt tại tiệm
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Theo dõi tiến độ giặt sấy, xem yêu cầu đặc biệt của khách, cân khối
-            lượng thực tế và tạo đơn tại quầy.
+            Theo dõi Live GPS tài xế, chat trực tiếp theo mã đơn, cân khối lượng
+            thực tế và đối soát thanh toán tự động.
           </p>
         </div>
 
@@ -224,6 +236,9 @@ export const StoreOwnerOrders: React.FC = () => {
         onPageChange={(page) => setCurrentPage(page)}
         onOpenPosModal={() => setIsPosModalOpen(true)}
         onWeighOrder={(ord) => setWeighingOrder(ord)}
+        onOpenChat={(ord) => setChatOrder(ord)}
+        onOpenGps={(ord) => setGpsOrder(ord)}
+        onOpenPayment={(ord) => setPaymentOrder(ord)}
         onDeleteOrder={(ord) => setOrderToDelete(ord)}
         onBroadcastPickup={handleBroadcastPickup}
         onBroadcastDelivery={handleBroadcastDelivery}
@@ -246,6 +261,73 @@ export const StoreOwnerOrders: React.FC = () => {
         services={services}
         onClose={() => setIsPosModalOpen(false)}
         onCreate={handleCreatePosOrder}
+      />
+
+      {/* In-App Order Chat Drawer for Store Owner */}
+      <OrderChatDrawer
+        orderId={chatOrder?.id || null}
+        isOpen={!!chatOrder}
+        onClose={() => setChatOrder(null)}
+        currentRole="store"
+        currentSenderName={chatOrder?.storeName || "Chủ Tiệm Giặt Sạch Sẽ"}
+        customerName={chatOrder?.customerName}
+        storeName={chatOrder?.storeName}
+        shipperName={chatOrder?.shipperName}
+        initialMessages={chatOrder?.messages || []}
+        onMessagesChanged={handleMessagesChanged}
+      />
+
+      {/* Live GPS Tracking Modal for Store Owner */}
+      {gpsOrder && (
+        <div className="fixed inset-0 z-[1200] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-2xl rounded-2xl border border-slate-200 p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                  <Navigation className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    Bản Đồ Live GPS Tài Xế · Đơn #{gpsOrder.id.toUpperCase()}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Khách hàng: {gpsOrder.customerName} ({gpsOrder.phoneNumber})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGpsOrder(null)}
+                className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <OrderLiveGpsMap
+              order={
+                orders.find((o) => o.id === gpsOrder.id) || gpsOrder
+              }
+              heightClassName="h-[340px]"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Electronic Payment & Auto-Reconciliation Modal */}
+      <VietQrSheetModal
+        order={paymentOrder}
+        processing={false}
+        onClose={() => setPaymentOrder(null)}
+        onConfirmPaid={async (orderId) => {
+          try {
+            await laundryOrdersAPI.updateStatus(orderId, {
+              paymentStatus: "paid",
+            });
+            setPaymentOrder(null);
+            await loadOrdersAndServices();
+          } catch {}
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -11,6 +11,9 @@ import {
   Star,
   Bike,
   MessageSquareReply,
+  MessageSquare,
+  Navigation,
+  QrCode,
   Scale,
   RotateCcw,
   CheckCircle2,
@@ -19,6 +22,9 @@ import {
 import { LaundryOrder, OrderStatus, OrderReview } from "../../../types";
 import { reviewsAPI, laundryOrdersAPI } from "../../../services/api";
 import { OrderReviewModal } from "../../../components/OrderReviewModal";
+import { OrderChatDrawer } from "../../../components/OrderChatDrawer";
+import { OrderLiveGpsMap } from "../../../components/OrderLiveGpsMap";
+import { VietQrSheetModal } from "../../MobileCustomer/OrderTracking/components/VietQrSheetModal";
 import { useToast } from "../../../components/Toast";
 import { Box, Button } from "@mui/material";
 
@@ -45,6 +51,9 @@ export const OrderDetailPanel = ({
   const { showToast } = useToast();
   const [orderReview, setOrderReview] = useState<OrderReview | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [showLiveGps, setShowLiveGps] = useState(true);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [weightLoading, setWeightLoading] = useState(false);
 
@@ -152,6 +161,44 @@ export const OrderDetailPanel = ({
         </Box>
 
         <Box className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsChatOpen(true)}
+            className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Chat đơn hàng</span>
+            {Array.isArray(selectedOrder.messages) &&
+              selectedOrder.messages.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded bg-white text-teal-800 font-mono text-[10px] font-black">
+                  {selectedOrder.messages.length}
+                </span>
+              )}
+          </button>
+
+          {selectedOrder.status !== "cancelled" && (
+            <button
+              type="button"
+              onClick={() => setShowLiveGps(!showLiveGps)}
+              className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>{showLiveGps ? "Ẩn Live GPS" : "Xem Live GPS Tài Xế"}</span>
+            </button>
+          )}
+
+          {selectedOrder.paymentStatus !== "paid" &&
+            selectedOrder.status !== "cancelled" && (
+              <button
+                type="button"
+                onClick={() => setIsPaymentOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Thanh Toán & Đối Soát Tự Động</span>
+              </button>
+            )}
+
           <Button
             onClick={handleReorderSimilar}
             variant="outlined"
@@ -628,6 +675,37 @@ export const OrderDetailPanel = ({
           )}
         </Box>
       </Box>
+
+      {/* Live GPS Map Section */}
+      {showLiveGps && selectedOrder.status !== "cancelled" && (
+        <OrderLiveGpsMap order={selectedOrder} heightClassName="h-[290px]" />
+      )}
+
+      <OrderChatDrawer
+        orderId={selectedOrder.id}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        currentRole="customer"
+        currentSenderName={selectedOrder.customerName || "Khách hàng"}
+        customerName={selectedOrder.customerName}
+        storeName={selectedOrder.storeName}
+        shipperName={selectedOrder.shipperName}
+        initialMessages={selectedOrder.messages || []}
+      />
+
+      <VietQrSheetModal
+        order={isPaymentOpen ? selectedOrder : null}
+        processing={false}
+        onClose={() => setIsPaymentOpen(false)}
+        onConfirmPaid={async (orderId) => {
+          try {
+            await laundryOrdersAPI.updateStatus(orderId, {
+              paymentStatus: "paid",
+            });
+            setIsPaymentOpen(false);
+          } catch {}
+        }}
+      />
 
       <OrderReviewModal
         order={isReviewModalOpen ? selectedOrder : null}

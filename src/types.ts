@@ -107,6 +107,26 @@ export interface LaundryEquipment {
   storeId?: string;
 }
 
+export interface DriverLiveLocation {
+  lat: number;
+  lng: number;
+  heading?: number;
+  speedKmh?: number;
+  updatedAt: string;
+  driverId?: string;
+  driverName?: string;
+}
+
+export interface OrderChatMessage {
+  id: string;
+  orderId: string;
+  senderRole: "customer" | "driver" | "store" | "system";
+  senderName: string;
+  text: string;
+  isQuickReply?: boolean;
+  createdAt: string;
+}
+
 export interface DeliveryTask {
   id: string;
   orderId: string;
@@ -126,6 +146,7 @@ export interface DeliveryTask {
   deliveryCoordinates: { lat: number; lng: number };
   customerCoordinates?: { lat: number; lng: number };
   storeCoordinates?: { lat: number; lng: number };
+  driverLocation?: DriverLiveLocation;
   customerToDriverKm?: number;
   storeToDriverKm?: number;
   driverToPickupKm?: number;
@@ -154,6 +175,9 @@ export interface LaundryOrder {
   shipperName?: string;
   shipperPhone?: string;
   customerCoordinates?: { lat: number; lng: number };
+  storeCoordinates?: { lat: number; lng: number };
+  driverLocation?: DriverLiveLocation;
+  messages?: OrderChatMessage[];
   customerName: string;
   phoneNumber: string;
   address: string;
@@ -190,6 +214,8 @@ export interface LaundryOrder {
   status: OrderStatus;
   paymentMethod?: "vietqr" | "vnpay" | "momo" | "payos" | "cod" | "cash";
   paymentStatus?: "pending" | "paid" | "refunded" | "failed";
+  paymentTransactionId?: string;
+  paidAt?: string;
   vietQrUrl?: string;
   createdAt: string;
 }

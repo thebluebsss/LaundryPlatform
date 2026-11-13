@@ -5,6 +5,7 @@ import { useMobileCustomerTracking } from "./hook";
 import { VietQrSheetModal } from "./components/VietQrSheetModal";
 import { CustomerOrderCard } from "./components/CustomerOrderCard";
 import { OrderReviewModal } from "../../../components/OrderReviewModal";
+import { OrderChatDrawer } from "../../../components/OrderChatDrawer";
 import { ButtonOutLine } from "../../../components/ButtonCustom";
 
 export const MobileCustomerTracking: React.FC = () => {
@@ -16,6 +17,8 @@ export const MobileCustomerTracking: React.FC = () => {
     loading,
     qrOrder,
     setQrOrder,
+    chatOrder,
+    setChatOrder,
     reviewingOrder,
     setReviewingOrder,
     processingPayment,
@@ -23,6 +26,7 @@ export const MobileCustomerTracking: React.FC = () => {
     handleConfirmPaid,
     handleCancelPendingOrder,
     handleReviewSaved,
+    handleMessagesChanged,
   } = useMobileCustomerTracking();
 
   return (
@@ -33,7 +37,7 @@ export const MobileCustomerTracking: React.FC = () => {
             Theo Dõi & Lịch Sử Đơn Giặt ({orders.length})
           </h2>
           <p className="text-xs text-slate-500">
-            Xem tiến độ giặt sấy, chi tiết hóa đơn & đánh giá cửa hàng, tài xế
+            Xem Live GPS tài xế, chat nội bộ theo mã đơn, thanh toán tự động & đánh giá
           </p>
         </div>
         <ButtonOutLine
@@ -59,6 +63,7 @@ export const MobileCustomerTracking: React.FC = () => {
               setExpandedOrderId(expandedOrderId === order.id ? null : order.id)
             }
             onOpenQr={(ord) => setQrOrder(ord)}
+            onOpenChat={(ord) => setChatOrder(ord)}
             onOpenReview={(ord) => setReviewingOrder(ord)}
             onCancelPending={handleCancelPendingOrder}
             onNavigateWeightConfirm={() =>
@@ -80,6 +85,19 @@ export const MobileCustomerTracking: React.FC = () => {
         processing={processingPayment}
         onClose={() => setQrOrder(null)}
         onConfirmPaid={handleConfirmPaid}
+      />
+
+      <OrderChatDrawer
+        orderId={chatOrder?.id || null}
+        isOpen={!!chatOrder}
+        onClose={() => setChatOrder(null)}
+        currentRole="customer"
+        currentSenderName={chatOrder?.customerName || "Khách hàng"}
+        customerName={chatOrder?.customerName}
+        storeName={chatOrder?.storeName}
+        shipperName={chatOrder?.shipperName}
+        initialMessages={chatOrder?.messages || []}
+        onMessagesChanged={handleMessagesChanged}
       />
 
       <OrderReviewModal

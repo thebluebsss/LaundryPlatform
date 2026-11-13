@@ -13,10 +13,12 @@ import {
   OrderStatus,
   WeightConfirmStatus,
   OrderReview,
+  OrderChatMessage,
 } from "../../../types";
 import { LAUNDRY_SERVICES } from "../../../data";
 import { useToast } from "../../../components/Toast";
 import { useLoading } from "../../../context/LoadingContext";
+import { useRealtimeOrders } from "../../../utils/realtimeClient";
 
 export const useStoreOwnerOrders = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,6 +35,9 @@ export const useStoreOwnerOrders = () => {
 
   // Modal states
   const [weighingOrder, setWeighingOrder] = useState<LaundryOrder | null>(null);
+  const [chatOrder, setChatOrder] = useState<LaundryOrder | null>(null);
+  const [gpsOrder, setGpsOrder] = useState<LaundryOrder | null>(null);
+  const [paymentOrder, setPaymentOrder] = useState<LaundryOrder | null>(null);
   const [isPosModalOpen, setIsPosModalOpen] = useState<boolean>(false);
   const [orderToDelete, setOrderToDelete] = useState<LaundryOrder | null>(null);
 
@@ -473,6 +478,54 @@ export const useStoreOwnerOrders = () => {
     }
   };
 
+  const handleMessagesChanged = useCallback(
+    (orderId: string, messages: OrderChatMessage[]) => {
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, messages } : o))
+      );
+    },
+    []
+  );
+
+  useRealtimeOrders(
+    useCallback((event) => {
+      if (event.type === "DRIVER_GPS_UPDATED" && event.data?.orderId) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === event.data.orderId
+              ? { ...o, driverLocation: event.data.driverLocation }
+              : o
+          )
+        );
+      } else if (event.type === "ORDER_CHAT_MESSAGE" && event.data?.orderId) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === event.data.orderId
+              ? { ...o, messages: event.data.messages }
+              : o
+          )
+        );
+      } else if (
+        event.type === "ORDER_PAYMENT_RECONCILED" &&
+        event.data?.order
+      ) {
+        const updated = event.data.order;
+        setOrders((prev) =>
+          prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+        );
+      } else if (event.type === "ORDER_UPDATED" && event.data?.id) {
+        const updated = event.data;
+        if (updated.deleted) {
+          setOrders((prev) => prev.filter((o) => o.id !== updated.id));
+        } else {
+          setOrders((prev) =>
+            prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+          );
+        }
+      }
+    }, [])
+  );
+
   return {
     orders: filteredOrders,
     reviewsMap,
@@ -487,6 +540,12 @@ export const useStoreOwnerOrders = () => {
     setWeightFilter,
     weighingOrder,
     setWeighingOrder,
+    chatOrder,
+    setChatOrder,
+    gpsOrder,
+    setGpsOrder,
+    paymentOrder,
+    setPaymentOrder,
     isPosModalOpen,
     setIsPosModalOpen,
     orderToDelete,
@@ -500,5 +559,6 @@ export const useStoreOwnerOrders = () => {
     handleCreatePosOrder,
     handleDeleteOrder,
     handleReplyOrderReview,
+    handleMessagesChanged,
   };
 };

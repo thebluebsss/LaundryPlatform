@@ -62,6 +62,33 @@ const laundryOrderSchema = new mongoose.Schema(
       lat: { type: Number, default: 21.0285 },
       lng: { type: Number, default: 105.8542 },
     },
+    storeCoordinates: {
+      lat: { type: Number, default: 21.0325 },
+      lng: { type: Number, default: 105.8582 },
+    },
+    driverLocation: {
+      lat: { type: Number },
+      lng: { type: Number },
+      heading: { type: Number },
+      speedKmh: { type: Number },
+      updatedAt: { type: String },
+      driverId: { type: String },
+      driverName: { type: String },
+    },
+    messages: {
+      type: [
+        {
+          id: { type: String },
+          orderId: { type: String },
+          senderRole: { type: String },
+          senderName: { type: String },
+          text: { type: String },
+          isQuickReply: { type: Boolean, default: false },
+          createdAt: { type: String },
+        },
+      ],
+      default: [],
+    },
     paymentMethod: {
       type: String,
       enum: ["vietqr", "vnpay", "momo", "payos", "cod", "cash"],
@@ -72,6 +99,8 @@ const laundryOrderSchema = new mongoose.Schema(
       enum: ["pending", "paid", "refunded", "failed"],
       default: "pending",
     },
+    paymentTransactionId: { type: String, default: "" },
+    paidAt: { type: String, default: "" },
     vietQrUrl: { type: String, default: "" },
   },
   {
@@ -80,8 +109,11 @@ const laundryOrderSchema = new mongoose.Schema(
   }
 );
 
-const MongoLaundryOrder =
-  mongoose.models.LaundryOrder || mongoose.model("LaundryOrder", laundryOrderSchema);
+if (mongoose.models.LaundryOrder) {
+  delete mongoose.models.LaundryOrder;
+}
+
+const MongoLaundryOrder = mongoose.model("LaundryOrder", laundryOrderSchema);
 
 import { createModelFallback } from "../utils/dbFallback";
 
