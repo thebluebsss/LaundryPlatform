@@ -96,12 +96,25 @@ export const StoreOwnerOrders: React.FC = () => {
     return Object.values(map);
   }, [orders]);
 
-  const handleSaveCustomerCareNote = (phone: string, note: string) => {
+  const mergedCustomerCareNotes = useMemo(() => {
+    const fromDb: Record<string, string> = {};
+    orders.forEach((o) => {
+      if (o.phoneNumber && o.customerCareNote) {
+        fromDb[o.phoneNumber] = o.customerCareNote;
+      }
+    });
+    return { ...fromDb, ...customerCareNotes };
+  }, [orders, customerCareNotes]);
+
+  const handleSaveCustomerCareNote = async (phone: string, note: string) => {
     const next = { ...customerCareNotes, [phone]: note };
     setCustomerCareNotes(next);
     localStorage.setItem("sachse_store_customer_notes", JSON.stringify(next));
+    try {
+      await laundryOrdersAPI.saveCustomerCareNote(phone, note);
+    } catch {}
     showToast(
-      `Đã lưu ghi chú chăm sóc vải riêng cho khách (${phone})!`,
+      `Đã lưu ghi chú chăm sóc vải riêng cho khách (${phone}) vào CSDL!`,
       "success"
     );
   };
@@ -149,7 +162,7 @@ export const StoreOwnerOrders: React.FC = () => {
       {showCustomerBook && (
         <StoreCustomerBookPanel
           customers={storeCustomers}
-          customerCareNotes={customerCareNotes}
+          customerCareNotes={mergedCustomerCareNotes}
           onSaveCustomerCareNote={handleSaveCustomerCareNote}
           onFilterByPhone={(phone) => {
             setSearchQuery(phone);

@@ -4,6 +4,7 @@ import { LaundryOrder, OrderStatus } from "../../types";
 import { useToast } from "../../components/Toast";
 import { useLoading } from "../../context/LoadingContext";
 import { bookingsAPI, laundryOrdersAPI } from "../../services/api";
+import { useRealtimeOrders } from "../../utils/realtimeClient";
 
 export const useTracking = () => {
   const { showToast } = useToast();
@@ -95,10 +96,15 @@ export const useTracking = () => {
             paymentStatus: b.paymentStatus || "unpaid",
             paymentMethod: b.paymentMethod || "vietqr",
             weightConfirmStatus: b.weightConfirmStatus || "not_weighed",
+            pickedUpAt: b.pickedUpAt || "",
             actualWeighedAt: b.actualWeighedAt,
             shipperId: b.shipperId,
             shipperName: b.shipperName,
             shipperPhone: b.shipperPhone,
+            customerCoordinates: b.customerCoordinates,
+            storeCoordinates: b.storeCoordinates,
+            driverLocation: b.driverLocation,
+            messages: b.messages || [],
             createdAt: b.createdAt || new Date().toISOString(),
             completedAt: b.completedAt,
             notes: b.notes || "",
@@ -187,13 +193,64 @@ export const useTracking = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [fetchMyOrders, location.pathname]);
 
+  useRealtimeOrders(
+    useCallback((event) => {
+      if (event.type === "DRIVER_GPS_UPDATED" && event.data?.orderId) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === event.data.orderId
+              ? { ...o, driverLocation: event.data.driverLocation }
+              : o
+          )
+        );
+        setSelectedOrder((prev) =>
+          prev && prev.id === event.data.orderId
+            ? { ...prev, driverLocation: event.data.driverLocation }
+            : prev
+        );
+      } else if (event.type === "ORDER_CHAT_MESSAGE" && event.data?.orderId) {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === event.data.orderId
+              ? { ...o, messages: event.data.messages }
+              : o
+          )
+        );
+        setSelectedOrder((prev) =>
+          prev && prev.id === event.data.orderId
+            ? { ...prev, messages: event.data.messages }
+            : prev
+        );
+      } else if (
+        event.type === "ORDER_PAYMENT_RECONCILED" &&
+        event.data?.order
+      ) {
+        const updated = event.data.order;
+        setOrders((prev) =>
+          prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+        );
+        setSelectedOrder((prev) =>
+          prev && prev.id === updated.id ? { ...prev, ...updated } : prev
+        );
+      } else if (event.type === "ORDER_UPDATED" && event.data?.id) {
+        const updated = event.data;
+        setOrders((prev) =>
+          prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+        );
+        setSelectedOrder((prev) =>
+          prev && prev.id === updated.id ? { ...prev, ...updated } : prev
+        );
+      }
+    }, [])
+  );
+
   const handleCancelOrder = async (orderId: string) => {
     setLoading(true);
     try {
-      await Promise.allSettled([
-        laundryOrdersAPI.updateStatus(orderId, { status: "cancelled" }),
-        bookingsAPI.cancel(orderId),
-      ]);
+      await laundryOrdersAPI.updateStatus(orderId, { status: "cancelled" });
+      try {
+        await bookingsAPI.cancel(orderId);
+      } catch {}
       const updated = orders.map((o) =>
         o.id === orderId ? { ...o, status: "cancelled" as OrderStatus } : o
       );

@@ -339,7 +339,14 @@ export const rejectTask = async (req: Request, res: Response) => {
  */
 export const acceptTask = async (req: Request, res: Response) => {
   try {
-    const { taskId, driverId, driverName, driverPhone } = req.body;
+    const {
+      taskId,
+      driverId,
+      driverName,
+      driverPhone,
+      vehicleType,
+      vehiclePlate,
+    } = req.body;
 
     if (!taskId) {
       return res.status(400).json({
@@ -372,6 +379,8 @@ export const acceptTask = async (req: Request, res: Response) => {
           driverId: assignedDriverId,
           driverName: assignedDriverName,
           driverPhone: assignedDriverPhone,
+          ...(vehicleType ? { vehicleType } : {}),
+          ...(vehiclePlate ? { vehiclePlate } : {}),
           acceptedAt: new Date().toISOString(),
         },
         { new: true }
@@ -389,7 +398,7 @@ export const acceptTask = async (req: Request, res: Response) => {
             if (ob.id !== task.id) {
               await DeliveryTask.findOneAndUpdate(
                 { id: ob.id },
-                { status: "cancelled" }
+                { status: "cancelled", cancelledAt: new Date().toISOString() }
               );
             }
           }
@@ -475,12 +484,45 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       });
     }
 
+    const nowIso = new Date().toISOString();
+    const isPickupTask = task.taskType !== "deliver_to_customer";
     const updatePayload: any = { status };
     if (notes) updatePayload.notes = notes;
-    if (status === "picked_up")
-      updatePayload.pickedUpAt = new Date().toISOString();
-    if (status === "completed")
-      updatePayload.completedAt = new Date().toISOString();
+    if (codCollected !== undefined) {
+      updatePayload.codCollected = Boolean(codCollected);
+    }
+    if (status === "arrived_pickup") {
+      updatePayload.arrivedPickupAt = task.arrivedPickupAt || nowIso;
+    }
+    if (
+      status === "picked_up" ||
+      (isPickupTask && status === "in_transit")
+    ) {
+      updatePayload.pickedUpAt = task.pickedUpAt || nowIso;
+    }
+    if (status === "cancelled") {
+      updatePayload.cancelledAt = task.cancelledAt || nowIso;
+    }
+    if (status === "completed") {
+      updatePayload.completedAt = nowIso;
+      if (isPickupTask && !task.pickedUpAt) {
+        updatePayload.pickedUpAt = nowIso;
+      }
+      // Increment driver's completedOrders & totalEarnings on User
+      if (task.driverId) {
+        try {
+          const driverUser: any = await User.findById(task.driverId);
+          if (driverUser) {
+            const fee =
+              Number(task.shippingFee || 25000) + Number(task.tipAmount || 0);
+            await User.findByIdAndUpdate(task.driverId, {
+              completedOrders: Number(driverUser.completedOrders || 0) + 1,
+              totalEarnings: Number(driverUser.totalEarnings || 0) + fee,
+            });
+          }
+        } catch {}
+      }
+    }
 
     const updatedTask = await DeliveryTask.findOneAndUpdate(
       { id: task.id || taskId },
@@ -499,25 +541,25 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
         for (const lt of lingering || []) {
           await DeliveryTask.findOneAndUpdate(
             { id: lt.id },
-            { status: "cancelled" }
+            { status: "cancelled", cancelledAt: nowIso }
           );
         }
       } catch (e) {}
     }
 
     if (task.orderId) {
-      const isPickupTask = task.taskType !== "deliver_to_customer";
       const orderUpdate: any = {};
 
       if (isPickupTask) {
-        if (
-          status === "arrived_pickup" ||
-          status === "picked_up" ||
-          status === "in_transit"
-        ) {
+        if (status === "arrived_pickup") {
           orderUpdate.status = "picking_up";
+        } else if (status === "picked_up" || status === "in_transit") {
+          orderUpdate.status = "picking_up";
+          orderUpdate.pickedUpAt = updatePayload.pickedUpAt || nowIso;
         } else if (status === "completed") {
           orderUpdate.status = "sorting";
+          orderUpdate.pickedUpAt =
+            updatePayload.pickedUpAt || task.pickedUpAt || nowIso;
         }
       } else {
         if (

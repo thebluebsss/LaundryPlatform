@@ -117,12 +117,15 @@ export const useMobileCustomerTracking = () => {
     try {
       await laundryOrdersAPI.updateStatus(orderId, { status: "cancelled" });
       showToast(
-        `Đã hủy đơn hàng #${orderId} & thu hồi sóng gọi Shipper thành công!`,
+        `Đã hủy đơn hàng #${orderId} & thu hồi chuyến giao nhận thành công!`,
         "info"
       );
       await fetchOrders();
-    } catch {
-      showToast("Không thể hủy đơn hàng lúc này", "error");
+    } catch (err: any) {
+      showToast(
+        err?.response?.data?.message || "Không thể hủy đơn hàng lúc này",
+        "error"
+      );
     }
   };
 

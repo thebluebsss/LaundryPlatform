@@ -245,9 +245,29 @@ export const OrderDetailPanel = ({
             Đặt lại đơn tương tự
           </Button>
 
-          {selectedOrder.status !== "completed" &&
-            selectedOrder.status !== "cancelled" &&
-            (confirmingCancel ? (
+          {(() => {
+            const hasDriverPickedUp =
+              Boolean(
+                selectedOrder.pickedUpAt &&
+                  String(selectedOrder.pickedUpAt).trim()
+              ) ||
+              [
+                "sorting",
+                "waiting_confirm",
+                "washing",
+                "ironing",
+                "delivering",
+                "returning",
+                "completed",
+              ].includes(selectedOrder.status);
+            const canCustomerCancel =
+              (selectedOrder.status === "pending" ||
+                selectedOrder.status === "picking_up") &&
+              !hasDriverPickedUp;
+
+            if (!canCustomerCancel) return null;
+
+            return confirmingCancel ? (
               <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl">
                 <span className="text-[11px] font-bold text-rose-700">
                   Xác nhận hủy?
@@ -293,7 +313,8 @@ export const OrderDetailPanel = ({
               >
                 Hủy đặt lịch này
               </Button>
-            ))}
+            );
+          })()}
         </Box>
       </Box>
 

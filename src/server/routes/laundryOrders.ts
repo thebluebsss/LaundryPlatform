@@ -9,6 +9,7 @@ router.get("/stream", realtimeHub.subscribe);
 
 router.post("/", laundryOrderController.createOrder);
 router.get("/", laundryOrderController.getOrders);
+router.patch("/customer-care-note", laundryOrderController.updateCustomerCareNote);
 router.get("/:id", laundryOrderController.getOrderById);
 router.patch("/:id/status", laundryOrderController.updateOrderStatus);
 router.patch("/:id/weigh", laundryOrderController.weighAndInspectOrder);

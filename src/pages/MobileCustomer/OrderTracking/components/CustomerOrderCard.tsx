@@ -77,6 +77,20 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
   const messageCount = Array.isArray(order.messages)
     ? order.messages.length
     : 0;
+  const hasDriverPickedUp =
+    Boolean(order.pickedUpAt && String(order.pickedUpAt).trim()) ||
+    [
+      "sorting",
+      "waiting_confirm",
+      "washing",
+      "ironing",
+      "delivering",
+      "returning",
+      "completed",
+    ].includes(order.status);
+  const canCustomerCancel =
+    (order.status === "pending" || order.status === "picking_up") &&
+    !hasDriverPickedUp;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3.5">
@@ -210,9 +224,11 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
                     : "text-blue-600"
                 }
               >
-                {ORDER_STATUS_LABELS[order.status] ||
-                  ORDER_STAGES[currentStepIdx]?.label ||
-                  order.status}
+                {order.status === "picking_up" && hasDriverPickedUp
+                  ? "Tài xế đã lấy đồ · Đang mang về tiệm"
+                  : ORDER_STATUS_LABELS[order.status] ||
+                    ORDER_STAGES[currentStepIdx]?.label ||
+                    order.status}
               </strong>
             </span>
           </span>
@@ -396,7 +412,7 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
             )}
           </button>
 
-          {order.status === "pending" && (
+          {canCustomerCancel && (
             <ButtonOutLine
               type="button"
               onClick={() => onCancelPending(order.id)}

@@ -19,6 +19,17 @@ const orderDetailItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const orderProductItemSchema = new mongoose.Schema(
+  {
+    productId: { type: String, required: true },
+    productName: { type: String, required: true },
+    quantity: { type: Number, required: true, default: 1 },
+    unitPrice: { type: Number, required: true, default: 0 },
+    unit: { type: String, default: "Sản phẩm" },
+  },
+  { _id: false }
+);
+
 const laundryOrderSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
@@ -30,21 +41,27 @@ const laundryOrderSchema = new mongoose.Schema(
     orderDate: { type: Date, default: Date.now },
     description: { type: String, default: "" },
     items: { type: [orderDetailItemSchema], required: true },
+    products: { type: [orderProductItemSchema], default: [] },
     pickupDate: { type: String, required: true },
     pickupTime: { type: String, required: true },
     deliveryDate: { type: String, required: true },
     deliveryTime: { type: String, required: true },
+    pickedUpAt: { type: String, default: "" },
     actualWeighedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
+    cancelledAt: { type: String, default: "" },
+    cancelReason: { type: String, default: "" },
     notes: { type: String, default: "" },
     customerSpecialRequest: { type: String, default: "" },
+    customerCareNote: { type: String, default: "" },
     extraFee: { type: Number, default: 0 },
     extraFeeReason: { type: String, default: "" },
-    promoCode: { type: String },
+    promoCode: { type: String, default: "" },
     discountAmount: { type: Number, default: 0 },
     subtotal: { type: Number, required: true },
     estimatedSubtotal: { type: Number },
     actualSubtotal: { type: Number, default: null },
+    productsTotal: { type: Number, default: 0 },
     deliveryFee: { type: Number, default: 0 },
     totalPrice: { type: Number, required: true },
     weightConfirmStatus: {
@@ -55,6 +72,8 @@ const laundryOrderSchema = new mongoose.Schema(
     status: { type: String, default: "pending" },
     storeId: { type: String, default: "store-hn-hoankiem" },
     storeName: { type: String, default: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm" },
+    assignedMachineId: { type: String, default: "" },
+    assignedMachineName: { type: String, default: "" },
     shipperId: { type: String, default: "" },
     shipperName: { type: String, default: "" },
     shipperPhone: { type: String, default: "" },

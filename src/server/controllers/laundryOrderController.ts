@@ -250,11 +250,52 @@ export const getOrderById = asyncHandler(async (req: Request, res: Response) => 
  * @access  Public
  */
 export const updateOrderStatus = asyncHandler(async (req: Request, res: Response) => {
-  const { status, paymentStatus, weightConfirmStatus } = req.body;
+  const { status, paymentStatus, weightConfirmStatus, byRole } = req.body;
   const order = await findOrderByIdOrCustomId(req.params.id);
 
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+
+  // Kiểm tra điều kiện hủy đơn: Khách hàng chỉ được hủy đơn trước khi tài xế lấy đơn thành công
+  if (status === "cancelled" && byRole !== "store" && byRole !== "admin") {
+    const postPickupStatuses = [
+      "sorting",
+      "waiting_confirm",
+      "washing",
+      "ironing",
+      "delivering",
+      "returning",
+      "completed",
+    ];
+    let hasDriverPickedUp =
+      Boolean(order.pickedUpAt && String(order.pickedUpAt).trim()) ||
+      postPickupStatuses.includes(String(order.status));
+
+    if (!hasDriverPickedUp) {
+      try {
+        const DeliveryTask = (await import("../models/DeliveryTask")).default;
+        const relatedTasks = await (DeliveryTask as any).find({
+          orderId: order.id,
+        });
+        if (Array.isArray(relatedTasks)) {
+          hasDriverPickedUp = relatedTasks.some(
+            (t: any) =>
+              t.taskType !== "deliver_to_customer" &&
+              (["picked_up", "in_transit", "completed"].includes(t.status) ||
+                Boolean(t.pickedUpAt))
+          );
+        }
+      } catch {}
+    }
+
+    if (hasDriverPickedUp) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Tài xế đã lấy đơn thành công nên không thể hủy đơn hàng này",
+      });
+    }
   }
 
   const updateFields: any = {};
@@ -267,6 +308,18 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
   }
   if (weightConfirmStatus) updateFields.weightConfirmStatus = weightConfirmStatus;
   if (status === "completed") updateFields.completedAt = new Date().toISOString();
+  if (status === "cancelled") {
+    updateFields.cancelledAt = new Date().toISOString();
+    if (req.body.cancelReason) {
+      updateFields.cancelReason = String(req.body.cancelReason);
+    }
+  }
+  if (req.body.assignedMachineId !== undefined) {
+    updateFields.assignedMachineId = String(req.body.assignedMachineId);
+  }
+  if (req.body.assignedMachineName !== undefined) {
+    updateFields.assignedMachineName = String(req.body.assignedMachineName);
+  }
 
   const updatedOrder = await (LaundryOrder as any).findByIdAndUpdate(
     order._id || order.id,
@@ -274,7 +327,7 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
     { new: true }
   );
 
-  // If customer or store cancels the order while it is broadcasting to drivers, immediately cancel its DeliveryTasks
+  // Khi khách hàng hoặc cửa hàng hủy đơn trước khi tài xế lấy đồ thành công -> Hủy toàn bộ chuyến giao nhận đang phát sóng hoặc tài xế đang đi lấy
   if (status === "cancelled") {
     try {
       const DeliveryTask = (await import("../models/DeliveryTask")).default;
@@ -283,10 +336,20 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
       });
       if (Array.isArray(tasksToCancel)) {
         for (const t of tasksToCancel) {
-          if (t.status === "broadcasting" || t.status === "accepted") {
+          if (
+            [
+              "broadcasting",
+              "accepted",
+              "picking_up",
+              "arrived_pickup",
+            ].includes(t.status)
+          ) {
             await (DeliveryTask as any).findOneAndUpdate(
               { id: t.id },
-              { status: "cancelled" }
+              {
+                status: "cancelled",
+                cancelledAt: new Date().toISOString(),
+              }
             );
           }
         }
@@ -804,4 +867,53 @@ export const deleteOrder = asyncHandler(async (req: Request, res: Response) => {
 
   successResponse(res, null, "Xóa đơn hàng thành công");
 });
+
+/**
+ * @desc    Lưu ghi chú chăm sóc vải riêng của khách quen vào CSDL (LaundryOrder & User)
+ * @route   PATCH /api/laundry-orders/customer-care-note
+ * @access  Public / Store Owner
+ */
+export const updateCustomerCareNote = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { phone, note } = req.body;
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng cung cấp số điện thoại khách hàng",
+      });
+    }
+
+    const cleanPhone = String(phone).trim();
+    const cleanNote = String(note || "").trim();
+
+    // Update all orders matching this customer's phone number
+    const matchingOrders =
+      (await (LaundryOrder as any).find({ phoneNumber: cleanPhone })) || [];
+    for (const ord of matchingOrders) {
+      await (LaundryOrder as any).findByIdAndUpdate(ord._id || ord.id, {
+        customerCareNote: cleanNote,
+      });
+    }
+
+    // Also update User profile if registered with this phone
+    try {
+      const User = (await import("../models/User")).default;
+      await (User as any).findOneAndUpdate(
+        { phone: cleanPhone },
+        { fabricCareNote: cleanNote }
+      );
+    } catch {}
+
+    successResponse(
+      res,
+      {
+        phone: cleanPhone,
+        customerCareNote: cleanNote,
+        updatedOrdersCount: matchingOrders.length,
+      },
+      "Đã lưu ghi chú chăm sóc vải riêng của khách hàng vào CSDL"
+    );
+  }
+);
+
 

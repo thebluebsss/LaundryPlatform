@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { deliveryAPI } from "../../../services/api";
 import { DeliveryTask } from "../../../types";
 import { useToast } from "../../../components/Toast";
+import { useRealtimeOrders } from "../../../utils/realtimeClient";
 
 export const useMobileDriverActiveTask = () => {
   const { showToast } = useToast();
@@ -33,6 +34,37 @@ export const useMobileDriverActiveTask = () => {
       );
     };
   }, [fetchActiveTasks]);
+
+  useRealtimeOrders(
+    useCallback(
+      (event) => {
+        if (event.type === "ORDER_UPDATED" && event.data?.id) {
+          if (event.data.status === "cancelled") {
+            setTasks((prev) => {
+              const hadActiveForOrder = prev.some(
+                (t) =>
+                  t.orderId === event.data.id &&
+                  t.status !== "completed" &&
+                  t.status !== "cancelled"
+              );
+              if (hadActiveForOrder) {
+                showToast(
+                  `Khách hàng vừa hủy đơn #${event.data.id} trước khi lấy đồ`,
+                  "info"
+                );
+              }
+              return prev.map((t) =>
+                t.orderId === event.data.id ? { ...t, status: "cancelled" } : t
+              );
+            });
+          } else {
+            fetchActiveTasks();
+          }
+        }
+      },
+      [fetchActiveTasks, showToast]
+    )
+  );
 
   const handleAdvanceStatus = async (
     task: DeliveryTask,

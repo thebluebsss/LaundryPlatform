@@ -26,15 +26,35 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    storeId: {
+      type: String,
+      default: "store-hn-hoankiem",
+    },
+    storeName: {
+      type: String,
+      default: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
+    },
     district: {
       type: String,
       default: "",
+    },
+    customerCoordinates: {
+      lat: { type: Number },
+      lng: { type: Number },
+    },
+    storeCoordinates: {
+      lat: { type: Number },
+      lng: { type: Number },
     },
     pickupTime: {
       type: String,
       default: "",
     },
     deliveryTime: {
+      type: String,
+      default: "",
+    },
+    pickedUpAt: {
       type: String,
       default: "",
     },
@@ -50,6 +70,14 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    estimatedSubtotal: {
+      type: Number,
+      default: 0,
+    },
+    actualSubtotal: {
+      type: Number,
+      default: null,
+    },
     productsTotal: {
       type: Number,
       default: 0,
@@ -57,6 +85,14 @@ const bookingSchema = new mongoose.Schema(
     deliveryFee: {
       type: Number,
       default: 0,
+    },
+    extraFee: {
+      type: Number,
+      default: 0,
+    },
+    extraFeeReason: {
+      type: String,
+      default: "",
     },
     totalPrice: {
       type: Number,
@@ -66,11 +102,18 @@ const bookingSchema = new mongoose.Schema(
       {
         serviceId: String,
         serviceName: String,
+        fabricType: String,
+        garmentDescription: String,
+        careInstructions: String,
         quantity: Number,
+        estimatedQuantity: Number,
+        actualQuantity: Number,
         unitPrice: Number,
         pricingType: String,
         unitName: String,
-      }
+        estimatedLineTotal: Number,
+        actualLineTotal: Number,
+      },
     ],
     products: [
       {
@@ -79,7 +122,7 @@ const bookingSchema = new mongoose.Schema(
         quantity: Number,
         unitPrice: Number,
         unit: String,
-      }
+      },
     ],
     pickupDate: {
       type: Date,
@@ -112,14 +155,44 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    customerSpecialRequest: {
+      type: String,
+      default: "",
+    },
     estimatedWeight: {
       type: Number,
       required: false,
       min: 0,
     },
+    weightConfirmStatus: {
+      type: String,
+      enum: ["not_weighed", "waiting_customer", "accepted", "rejected_return"],
+      default: "not_weighed",
+    },
+    shipperId: {
+      type: String,
+      default: "",
+    },
+    shipperName: {
+      type: String,
+      default: "",
+    },
+    shipperPhone: {
+      type: String,
+      default: "",
+    },
     paymentMethod: {
       type: String,
-      enum: ["cod", "card", "bank_transfer", "vnpay", "momo"],
+      enum: [
+        "cod",
+        "cash",
+        "vietqr",
+        "payos",
+        "card",
+        "bank_transfer",
+        "vnpay",
+        "momo",
+      ],
       default: "cod",
     },
     paymentStatus: {
@@ -144,12 +217,26 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "processing", "completed", "cancelled"],
+      enum: [
+        "pending",
+        "confirmed",
+        "picking_up",
+        "sorting",
+        "waiting_confirm",
+        "washing",
+        "ironing",
+        "delivering",
+        "returning",
+        "processing",
+        "completed",
+        "cancelled",
+      ],
       default: "pending",
     },
   },
   {
     timestamps: true,
+    strict: false,
   },
 );
 

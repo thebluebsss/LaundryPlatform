@@ -182,6 +182,8 @@ export const laundryOrdersAPI = {
       amount?: number;
     }
   ) => api.post(`/laundry-orders/${id}/payment-webhook`, payload || {}),
+  saveCustomerCareNote: (phone: string, note: string) =>
+    api.patch("/laundry-orders/customer-care-note", { phone, note }),
   delete: (id: string) => api.delete(`/laundry-orders/${id}`),
 };
 
@@ -206,8 +208,14 @@ export const deliveryAPI = {
     }),
   createTask: (data: any) => api.post("/delivery/create-task", data),
   broadcastTask: (data: any) => api.post("/delivery/broadcast", data),
-  acceptTask: (data: { taskId: string; driverId?: string; driverName?: string; driverPhone?: string }) =>
-    api.post("/delivery/accept-task", data),
+  acceptTask: (data: {
+    taskId: string;
+    driverId?: string;
+    driverName?: string;
+    driverPhone?: string;
+    vehicleType?: string;
+    vehiclePlate?: string;
+  }) => api.post("/delivery/accept-task", data),
   rejectTask: (data: { taskId: string; orderId?: string; driverId: string; reason?: string }) =>
     api.post("/delivery/reject-task", data),
   updateTaskStatus: (data: { taskId: string; status: string; notes?: string; codCollected?: boolean }) =>
@@ -261,6 +269,17 @@ export const reviewsAPI = {
     api.patch(`/reviews/${idOrOrderId}/reply`, { storeReply }),
   toggleVisibility: (id: string, isHidden?: boolean) =>
     api.patch(`/reviews/${id}/visibility`, { isHidden }),
+};
+
+// Contact Inquiries API (Customer Special Laundry Inquiries & Support Messages)
+export const contactAPI = {
+  create: (data: {
+    name: string;
+    phone: string;
+    email?: string;
+    message: string;
+  }) => api.post("/contact", data),
+  getAll: () => api.get("/contact"),
 };
 
 export default api;

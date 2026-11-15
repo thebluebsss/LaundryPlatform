@@ -169,7 +169,10 @@ export const useStoreOwnerEquipment = () => {
     batchOrderNote: string
   ) => {
     try {
-      await equipmentAPI.update(item.id, { notes: batchOrderNote });
+      await equipmentAPI.update(item.id, {
+        notes: batchOrderNote,
+        currentOrderId: batchOrderNote,
+      });
       setEquipment((prev) =>
         prev.map((e) => (e.id === item.id ? { ...e, notes: batchOrderNote } : e))
       );

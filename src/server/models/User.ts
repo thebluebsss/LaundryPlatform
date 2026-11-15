@@ -55,6 +55,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    vehiclePlate: {
+      type: String,
+      default: "",
+    },
     idCardNumber: {
       type: String,
       default: "",
@@ -110,6 +114,16 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    completedOrders: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalEarnings: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     rating: {
       type: Number,
       default: 5.0,
@@ -133,6 +147,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    district: {
+      type: String,
+      default: "",
+    },
+    fabricCareNote: {
+      type: String,
+      default: "",
+    },
     lastLogin: {
       type: Date,
     },
@@ -145,6 +167,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    strict: false,
   },
 );
 

@@ -120,6 +120,7 @@ function readDb() {
             products: getDefaultProducts(),
             equipment: [],
             payments: [],
+            contact_inquiries: [],
           },
           null,
           2
@@ -179,6 +180,10 @@ function readDb() {
       db.reviews = [];
       needUpdate = true;
     }
+    if (!Array.isArray(db.contact_inquiries)) {
+      db.contact_inquiries = [];
+      needUpdate = true;
+    }
     if (needUpdate) {
       writeDb(db);
     }
@@ -197,6 +202,7 @@ function readDb() {
       laundry_orders: [],
       delivery_tasks: [],
       reviews: [],
+      contact_inquiries: [],
     };
   }
 }

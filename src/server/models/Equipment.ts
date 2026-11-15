@@ -7,10 +7,14 @@ const equipmentSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    code: {
+      type: String,
+      default: "",
+    },
     type: {
       type: String,
       required: true,
-      enum: ["washing-machine", "dryer", "iron", "other"],
+      enum: ["washing-machine", "dryer", "iron", "washer", "steamer", "other"],
     },
     model: {
       type: String,
@@ -21,12 +25,40 @@ const equipmentSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    storeId: {
+      type: String,
+      default: "store-hn-hoankiem",
+    },
+    storeName: {
+      type: String,
+      default: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
+    },
+    capacityKg: {
+      type: Number,
+      default: 15,
+    },
+    currentOrderId: {
+      type: String,
+      default: "",
+    },
+    remainingMinutes: {
+      type: Number,
+      default: 0,
+    },
+    temperatureCelsius: {
+      type: Number,
+      default: 40,
+    },
+    cycleCount: {
+      type: Number,
+      default: 0,
+    },
     purchaseDate: {
       type: Date,
     },
     status: {
       type: String,
-      enum: ["working", "maintenance", "broken"],
+      enum: ["working", "running", "idle", "maintenance", "broken"],
       default: "working",
     },
     location: {
@@ -40,6 +72,7 @@ const equipmentSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    strict: false,
   },
 );
 

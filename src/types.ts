@@ -136,6 +136,8 @@ export interface DeliveryTask {
   driverId?: string;
   driverName?: string;
   driverPhone?: string;
+  vehicleType?: "bike" | "van";
+  vehiclePlate?: string;
   customerName: string;
   customerPhone: string;
   customerAddress: string;
@@ -158,12 +160,15 @@ export interface DeliveryTask {
   distanceKm: number;
   shippingFee: number;
   tipAmount?: number;
+  codCollected?: boolean;
   status: "broadcasting" | "accepted" | "picking_up" | "arrived_pickup" | "picked_up" | "in_transit" | "completed" | "cancelled";
   notes?: string;
   createdAt?: string;
   acceptedAt?: string;
+  arrivedPickupAt?: string;
   pickedUpAt?: string;
   completedAt?: string;
+  cancelledAt?: string;
 }
 
 export interface LaundryOrder {
@@ -196,10 +201,16 @@ export interface LaundryOrder {
   deliveryTime: string;
   orderDate?: string;
   description?: string;
+  pickedUpAt?: string;
   actualWeighedAt?: string;
   completedAt?: string;
+  cancelledAt?: string;
+  cancelReason?: string;
   notes: string;
   customerSpecialRequest?: string;
+  customerCareNote?: string;
+  assignedMachineId?: string;
+  assignedMachineName?: string;
   extraFee?: number;
   extraFeeReason?: string;
   promoCode?: string;

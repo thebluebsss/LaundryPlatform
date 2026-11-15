@@ -13,6 +13,9 @@ import {
   Code2,
   LayoutGrid,
   LayoutList,
+  Database,
+  Table2,
+  Sparkles,
 } from "lucide-react";
 
 export interface SubUseCaseItem {
@@ -109,7 +112,11 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
         actorName: "Khách hàng",
         children: [
           { id: "kh-5-1", name: "Thanh toán tiền mặt khi nhận đồ (COD)", rel: "extend" },
-          { id: "kh-5-2", name: "Thanh toán trực tuyến (Chuyển khoản / QR)", rel: "extend" },
+          {
+            id: "kh-5-2",
+            name: "Thanh toán điện tử đa cổng (VietQR / PayOS / VNPay) và tự động đối soát",
+            rel: "extend",
+          },
         ],
       },
       {
@@ -117,8 +124,8 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
         parentUseCase: "Theo dõi tiến độ đơn hàng cá nhân",
         actorName: "Khách hàng",
         children: [
-          { id: "kh-6-1", name: "Xem trạng thái xử lý giặt sấy", rel: "include" },
-          { id: "kh-6-2", name: "Theo dõi lộ trình Shipper giao nhận", rel: "include" },
+          { id: "kh-6-1", name: "Xem trạng thái xử lý giặt sấy và chat nội bộ theo mã đơn", rel: "include" },
+          { id: "kh-6-2", name: "Theo dõi lộ trình Live GPS Shipper giao nhận thời gian thực", rel: "include" },
           {
             id: "kh-6-3",
             name: "Xác nhận khối lượng và chi phí thực tế sau khi tiệm cân",
@@ -126,7 +133,7 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
           },
           {
             id: "kh-6-4",
-            name: "Hủy đơn hàng (Khi đơn đang chờ xác nhận)",
+            name: "Hủy đơn hàng (Trước khi tài xế đến lấy đơn thành công)",
             rel: "extend",
           },
         ],
@@ -177,7 +184,7 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
           },
           {
             id: "sp-2-2",
-            name: "Cập nhật vị trí định vị GPS thời gian thực",
+            name: "Stream tọa độ Live GPS (lat, lng, tốc độ, góc hướng) thời gian thực",
             rel: "include",
           },
         ],
@@ -189,7 +196,7 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
         children: [
           {
             id: "sp-3-1",
-            name: "Xem danh sách chuyến phát sóng gần đây",
+            name: "Xem danh sách chuyến phát sóng bán kính 1km gần đây",
             rel: "include",
           },
           {
@@ -198,7 +205,7 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
             rel: "include",
           },
           { id: "sp-3-3", name: "Xác nhận nhận chuyến giao nhận", rel: "extend" },
-          { id: "sp-3-4", name: "Từ chối hoặc bỏ qua chuyến phát sóng", rel: "extend" },
+          { id: "sp-3-4", name: "Từ chối hoặc bỏ qua chuyến phát sóng (20s)", rel: "extend" },
         ],
       },
       {
@@ -212,7 +219,11 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
             name: "Xem bản đồ điều hướng đến điểm lấy hoặc giao đồ",
             rel: "include",
           },
-          { id: "sp-4-3", name: "Liên hệ khách hàng hoặc chủ tiệm giặt", rel: "extend" },
+          {
+            id: "sp-4-3",
+            name: "Chat nội bộ hoặc gửi câu trả lời nhanh 1 chạm với khách và chủ tiệm",
+            rel: "extend",
+          },
           {
             id: "sp-4-4",
             name: "Xem lịch sử chuyến giao nhận và ví thu nhập",
@@ -281,7 +292,7 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
           },
           {
             id: "sm-2-2",
-            name: "Cân khối lượng thực tế cho từng dòng đồ giặt",
+            name: "Cân khối lượng thực tế từng dòng đồ giặt và ghi nhận phụ phí yêu cầu đặc biệt",
             rel: "include",
           },
           {
@@ -291,7 +302,7 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
           },
           {
             id: "sm-2-4",
-            name: "Cập nhật tiến độ xử lý giặt, sấy, gấp gọn",
+            name: "Cập nhật tiến độ xử lý giặt, sấy, gấp gọn và chat nội bộ theo mã đơn",
             rel: "include",
           },
         ],
@@ -313,7 +324,7 @@ export const ACTOR_GROUPS: ActorUseCaseGroup[] = [
           },
           {
             id: "sm-3-3",
-            name: "Ghi chú lưu ý chăm sóc vải riêng cho khách quen",
+            name: "Lưu ghi chú chăm sóc vải riêng cho khách quen vào CSDL",
             rel: "extend",
           },
         ],
@@ -1191,9 +1202,378 @@ const UseCaseEllipse: React.FC<{
   );
 };
 
+export interface DbFieldSpec {
+  name: string;
+  type: string;
+  key?: "PK" | "FK" | "UK" | "EMBED";
+  description: string;
+  frontendOrigin: string;
+  isNewlySynced?: boolean;
+}
+
+export interface DbEntitySpec {
+  tableName: string;
+  modelName: string;
+  titleVi: string;
+  description: string;
+  fields: DbFieldSpec[];
+}
+
+export const DATABASE_SCHEMA_SPECS: DbEntitySpec[] = [
+  {
+    tableName: "laundry_orders",
+    modelName: "LaundryOrder (Đồng bộ Booking)",
+    titleVi: "1. Bảng Đơn Giặt Sấy Thông Minh (laundry_orders)",
+    description:
+      "Lưu trữ toàn bộ vòng đời đơn hàng: tọa độ Google Maps khách & tiệm, danh sách từng dòng đồ giặt đa chất liệu (items), sản phẩm bán kèm (products), lịch sử cân thực tế, Live GPS tài xế, kênh Chat nội bộ theo mã đơn và đối soát thanh toán tự động.",
+    fields: [
+      { name: "id", type: "String (Unique)", key: "PK", description: "Mã đơn giặt chuẩn (VD: ORD-8821)", frontendOrigin: "BookingForm / OrderTracking" },
+      { name: "userId", type: "String", key: "FK", description: "Tham chiếu tài khoản khách đặt đơn (users._id)", frontendOrigin: "AuthContext / MobileCustomer" },
+      { name: "storeId / storeName", type: "String", key: "FK", description: "Mã chi nhánh và tên cửa hàng giặt sấy tiếp nhận", frontendOrigin: "StoreLocator / BookingForm" },
+      { name: "shipperId / shipperName / shipperPhone", type: "String", key: "FK", description: "Thông tin tài xế nhận chuyến giao nhận", frontendOrigin: "MobileDriver / StoreOrdersTable" },
+      { name: "customerName / phoneNumber / address / district", type: "String", description: "Thông tin liên hệ và địa chỉ lấy/giao đồ của khách", frontendOrigin: "BookingForm / CreatePosOrderModal" },
+      { name: "customerCoordinates / storeCoordinates", type: "Object {lat, lng}", key: "EMBED", description: "Tọa độ GPS thực tế của khách và cửa hàng dùng tính bán kính 1km", frontendOrigin: "BookingForm / GoogleMaps" },
+      { name: "driverLocation", type: "Object {lat, lng, heading, speedKmh, updatedAt}", key: "EMBED", description: "Tọa độ Live GPS thời gian thực của tài xế đang di chuyển", frontendOrigin: "MobileDriver ActiveTask -> OrderLiveGpsMap", isNewlySynced: true },
+      { name: "items[]", type: "Array<OrderItem>", key: "EMBED", description: "Chi tiết từng dòng dịch vụ: serviceId, fabricType, garmentDescription, careInstructions, estimatedQuantity, actualQuantity, unitPrice", frontendOrigin: "BookingForm / WeighAndInspectModal" },
+      { name: "products[] / productsTotal", type: "Array<OrderProductItem> / Number", key: "EMBED", description: "Danh sách sản phẩm chăm sóc vải mua kèm trong đơn (productId, productName, quantity, unitPrice, unit) và tổng tiền SP", frontendOrigin: "BookingForm / Shop Add-ons", isNewlySynced: true },
+      { name: "messages[]", type: "Array<OrderChatMessage>", key: "EMBED", description: "Lịch sử tin nhắn Kênh Chat nội bộ 3 bên (customer/driver/store/system) và câu trả lời nhanh 1 chạm (chỉ mở khi đã có tài xế nhận chuyến)", frontendOrigin: "OrderChatDrawer", isNewlySynced: true },
+      { name: "pickupDate / pickupTime / deliveryDate / deliveryTime", type: "String", description: "Khung ngày giờ hẹn lấy đồ bẩn và giao trả đồ sạch", frontendOrigin: "BookingForm" },
+      { name: "pickedUpAt", type: "String (ISO Date)", description: "Mốc thời gian tài xế lấy đơn thành công từ khách (Khách chỉ được hủy đơn khi pickedUpAt == null)", frontendOrigin: "MobileDriver ActiveTask / CustomerOrderCard", isNewlySynced: true },
+      { name: "actualWeighedAt / completedAt / cancelledAt", type: "String (ISO Date)", description: "Mốc thời gian tiệm cân đồ thực tế, hoàn thành đơn hoặc hủy đơn", frontendOrigin: "WeighAndInspectModal / OrderTracking", isNewlySynced: true },
+      { name: "cancelReason", type: "String", description: "Lý do hủy đơn hàng (trước khi tài xế lấy đồ thành công)", frontendOrigin: "OrderTracking / StoreOrdersTable", isNewlySynced: true },
+      { name: "customerSpecialRequest / notes", type: "String", description: "Yêu cầu giặt riêng của khách (giặt tay, nước ấm...) và ghi chú giao nhận", frontendOrigin: "BookingForm / WeighAndInspectModal" },
+      { name: "customerCareNote", type: "String", description: "Ghi chú lưu ý chăm sóc vải riêng của tiệm cho khách quen VIP", frontendOrigin: "StoreCustomerBookPanel", isNewlySynced: true },
+      { name: "assignedMachineId / assignedMachineName", type: "String", key: "FK", description: "Mã và tên máy giặt/máy sấy được gán xử lý mẻ giặt của đơn", frontendOrigin: "StoreOwner Equipment", isNewlySynced: true },
+      { name: "estimatedSubtotal / actualSubtotal / extraFee / extraFeeReason", type: "Number / String", description: "Tạm tính ban đầu, thành tiền sau khi cân thực tế, phụ phí xử lý đặc biệt và lý do phụ phí", frontendOrigin: "WeighAndInspectModal" },
+      { name: "weightConfirmStatus", type: "Enum", description: "not_weighed | waiting_customer | accepted | rejected_return", frontendOrigin: "WeighAndInspectModal / CustomerOrderCard" },
+      { name: "promoCode / discountAmount / deliveryFee / totalPrice", type: "String / Number", description: "Mã giảm giá, số tiền giảm, phí ship và tổng thanh toán cuối cùng", frontendOrigin: "BookingForm / VietQrSheetModal" },
+      { name: "paymentMethod / paymentStatus / paymentTransactionId / paidAt / vietQrUrl", type: "Enum / String", description: "Cổng thanh toán (vietqr | payos | vnpay | cod | cash), trạng thái, mã GD ngân hàng tự động đối soát Webhook và ảnh QR động", frontendOrigin: "VietQrSheetModal / PaymentWebhook", isNewlySynced: true },
+      { name: "status", type: "Enum", description: "pending | picking_up | sorting | waiting_confirm | washing | ironing | delivering | returning | completed | cancelled", frontendOrigin: "Toàn hệ thống (4 Actor)" },
+    ],
+  },
+  {
+    tableName: "delivery_tasks",
+    modelName: "DeliveryTask",
+    titleVi: "2. Bảng Điều Phối Giao Nhận & Phát Sóng 1km (delivery_tasks)",
+    description:
+      "Lưu trữ các chuyến đi lấy đồ bẩn (pickup_from_customer) và giao trả đồ sạch (deliver_to_customer), khoảng cách Haversine 1km, danh sách tài xế đã từ chối/timeout 20s và trạng thái thu hộ COD.",
+    fields: [
+      { name: "id", type: "String (Unique)", key: "PK", description: "Mã chuyến giao nhận (VD: task-ORD-8821)", frontendOrigin: "MobileDriver / StoreOrdersTable" },
+      { name: "orderId", type: "String", key: "FK", description: "Tham chiếu mã đơn giặt gốc (laundry_orders.id)", frontendOrigin: "MobileDriver / StoreOwner" },
+      { name: "taskType", type: "Enum", description: "pickup_from_customer (Lấy đồ bẩn) | deliver_to_customer (Giao trả đồ sạch)", frontendOrigin: "StoreOrdersTable / MobileDriver" },
+      { name: "storeId / storeName / storeAddress", type: "String", key: "FK", description: "Thông tin chi nhánh cửa hàng phát sóng chuyến", frontendOrigin: "StoreOwner" },
+      { name: "driverId / driverName / driverPhone", type: "String", key: "FK", description: "Thông tin tài xế nhận chuyến", frontendOrigin: "MobileDriver" },
+      { name: "vehicleType / vehiclePlate", type: "String", description: "Loại phương tiện (bike | van) và biển kiểm soát xe của tài xế nhận chuyến", frontendOrigin: "MobileDriver Profile & ActiveTask", isNewlySynced: true },
+      { name: "customerCoordinates / storeCoordinates / pickupCoordinates / deliveryCoordinates", type: "Object {lat, lng}", key: "EMBED", description: "Tọa độ điểm lấy và điểm giao phục vụ dẫn đường Google Maps", frontendOrigin: "MobileDriver ActiveTask" },
+      { name: "driverLocation", type: "Object {lat, lng, heading, speedKmh}", key: "EMBED", description: "Vị trí Live GPS hiện tại của tài xế trên chuyến đi", frontendOrigin: "MobileDriver ActiveTask", isNewlySynced: true },
+      { name: "broadcastRadiusKm / distanceKm / customerToDriverKm / storeToDriverKm / driverToPickupKm", type: "Number", description: "Bán kính phát sóng (1.0km), quãng đường chuyến và khoảng cách thực tế từ tài xế tới điểm lấy", frontendOrigin: "MobileDriver BroadcastModal", isNewlySynced: true },
+      { name: "shippingFee / tipAmount / paymentMethod / codCollected", type: "Number / Enum / Boolean", description: "Cước phí giao nhận, tiền tip, phương thức thanh toán và cờ xác nhận đã thu tiền mặt COD", frontendOrigin: "MobileDriver ActiveTask / EarningsWallet", isNewlySynced: true },
+      { name: "rejectedDriverIds[]", type: "Array<String>", description: "Danh sách mã tài xế đã bấm từ chối (X) hoặc hết 20s đếm ngược không nhận chuyến", frontendOrigin: "MobileDriver 20s Popup" },
+      { name: "acceptedAt / arrivedPickupAt / pickedUpAt / completedAt / cancelledAt", type: "String (ISO Date)", description: "Các mốc thời gian chi tiết của chuyến giao nhận", frontendOrigin: "MobileDriver ActiveTask", isNewlySynced: true },
+      { name: "status", type: "Enum", description: "broadcasting | accepted | picking_up | arrived_pickup | picked_up | in_transit | completed | cancelled", frontendOrigin: "MobileDriver" },
+    ],
+  },
+  {
+    tableName: "users",
+    modelName: "User",
+    titleVi: "3. Bảng Tài Khoản Người Dùng Đa Vai Trò (users)",
+    description:
+      "Quản lý thông tin đăng nhập, phân quyền RBAC (Khách hàng, Tài xế Shipper, Chủ tiệm giặt, Quản trị viên), thông tin phương tiện tài xế, ví thu nhập và ghi chú chăm sóc vải riêng của khách hàng.",
+    fields: [
+      { name: "_id", type: "ObjectId / String", key: "PK", description: "Khóa chính định danh người dùng", frontendOrigin: "Auth / AdminUsers" },
+      { name: "username / email / password", type: "String", key: "UK", description: "Tên đăng nhập, email và mật khẩu mã hóa Bcrypt", frontendOrigin: "Login / Register" },
+      { name: "fullName / phone / address / district / avatar", type: "String", description: "Họ tên, số điện thoại, địa chỉ, quận/huyện mặc định và ảnh đại diện", frontendOrigin: "CustomerProfile / DriverProfile", isNewlySynced: true },
+      { name: "role", type: "Enum", description: "user (Khách) | driver (Tài xế) | store_owner (Chủ tiệm) | staff | admin", frontendOrigin: "AdminUsers / Auth" },
+      { name: "storeId", type: "String", key: "FK", description: "Chi nhánh cửa hàng quản lý (dành cho Chủ tiệm / Nhân viên)", frontendOrigin: "AdminStores / StoreSettings" },
+      { name: "vehicleType / licensePlate / vehiclePlate", type: "String", description: "Loại xe (bike | van) và biển số xe đăng ký của Shipper", frontendOrigin: "MobileDriver Profile", isNewlySynced: true },
+      { name: "isAvailable / currentLocation / rating / completedOrders / totalEarnings", type: "Boolean / Object / Number", description: "Trạng thái bật/tắt nhận chuyến, tọa độ GPS hiện tại, điểm sao, tổng chuyến hoàn thành và tổng thu nhập tích lũy của Shipper", frontendOrigin: "MobileDriver Dashboard & Wallet", isNewlySynced: true },
+      { name: "fabricCareNote", type: "String", description: "Ghi chú chăm sóc vải mặc định của khách hàng (hương nước xả, chế độ giặt riêng)", frontendOrigin: "StoreCustomerBookPanel", isNewlySynced: true },
+      { name: "isActive / lastLogin", type: "Boolean / Date", description: "Trạng thái khóa/mở khóa tài khoản và lần đăng nhập cuối", frontendOrigin: "AdminUsers" },
+    ],
+  },
+  {
+    tableName: "stores",
+    modelName: "Store",
+    titleVi: "4. Bảng Chuỗi Cửa Hàng Giặt Sấy (stores)",
+    description:
+      "Lưu trữ thông tin chi nhánh cửa hàng trên bản đồ Hà Nội & TP.HCM, tọa độ GPS, khung giờ mở cửa, công suất máy giặt và số lượng tài xế hoạt động.",
+    fields: [
+      { name: "customId / id", type: "String (Unique)", key: "PK", description: "Mã định danh cửa hàng (VD: store-hn-hoankiem)", frontendOrigin: "AdminStores / StoreLocator" },
+      { name: "name / code", type: "String", description: "Tên chi nhánh và mã viết tắt (VD: SS-HK01)", frontendOrigin: "AdminStores / StoreSettings" },
+      { name: "address / district / city / phone", type: "String", description: "Địa chỉ chi tiết, Quận/Huyện, Thành phố (hanoi | hcm) và hotline tiệm", frontendOrigin: "StoreLocator / StoreSettings" },
+      { name: "lat / lng", type: "Number", description: "Tọa độ vĩ độ & kinh độ trên bản đồ Google Maps", frontendOrigin: "StoreLocator / AdminStores" },
+      { name: "status / openHours / priceRange", type: "Enum / String", description: "Trạng thái tiệm (open | busy | closed), khung giờ mở cửa và khoảng giá", frontendOrigin: "StoreSettings / StoreLocator" },
+      { name: "features[] / image", type: "Array<String> / String", description: "Danh sách tiện ích nổi bật tại tiệm và ảnh đại diện cửa hàng", frontendOrigin: "StoreSettings / StoreLocator" },
+      { name: "managerName / managerPhone", type: "String", description: "Họ tên và SĐT Chủ tiệm phụ trách chi nhánh", frontendOrigin: "AdminStores / StoreSettings" },
+      { name: "rating / reviewCount / activeShippersCount / activeMachinesCount", type: "Number", description: "Điểm đánh giá trung bình, tổng lượt đánh giá, số Shipper và số máy giặt tại tiệm", frontendOrigin: "StoreLocator / StoreDashboard" },
+    ],
+  },
+  {
+    tableName: "laundryservices",
+    modelName: "LaundryService",
+    titleVi: "5. Bảng Danh Mục Gói Dịch Vụ Giặt Sấy (laundryservices)",
+    description:
+      "Lưu trữ bảng giá chuẩn theo kg (per_kg) hoặc theo món (per_item), thời gian xử lý dự kiến và trạng thái bật/tắt nhận khách.",
+    fields: [
+      { name: "customId / _id", type: "String", key: "PK", description: "Mã gói dịch vụ giặt sấy (VD: srv-wash-dry)", frontendOrigin: "Services / AdminServices" },
+      { name: "name / description / iconName", type: "String", description: "Tên dịch vụ, mô tả quy trình giặt và tên icon hiển thị", frontendOrigin: "Services / StoreServices" },
+      { name: "category", type: "Enum", description: "wash_fold | dry_clean | heavy_items | special_care", frontendOrigin: "Services / BookingForm" },
+      { name: "pricingType / unitPrice / unitName", type: "Enum / Number / String", description: "Cách tính giá (per_kg | per_item), đơn giá (VNĐ) và đơn vị tính (kg, chiếc, bộ, đôi)", frontendOrigin: "BookingForm / WeighAndInspectModal" },
+      { name: "durationDays / featured / isActive", type: "Number / Boolean", description: "Số ngày xử lý tiêu chuẩn, cờ dịch vụ nổi bật và trạng thái đang nhận khách", frontendOrigin: "StoreServices / AdminServices" },
+    ],
+  },
+  {
+    tableName: "products",
+    modelName: "Product",
+    titleVi: "6. Bảng Sản Phẩm Chăm Sóc Quần Áo Bán Kèm (products)",
+    description:
+      "Quản lý các sản phẩm nước giặt sinh học, nước xả vải cao cấp, túi giặt lưới, viên giặt thơm bán lẻ hoặc mua kèm đơn giặt.",
+    fields: [
+      { name: "id / _id", type: "String", key: "PK", description: "Mã sản phẩm bán kèm (VD: prod-detergent-01)", frontendOrigin: "Shop / AdminProducts" },
+      { name: "name / description / imageUrl", type: "String", description: "Tên sản phẩm, mô tả công dụng và ảnh minh họa", frontendOrigin: "Shop / AdminProducts" },
+      { name: "category", type: "Enum", description: "detergent | softener | bleach | bag | accessory", frontendOrigin: "Shop / AdminProducts" },
+      { name: "price / unit / stock / isActive", type: "Number / String / Boolean", description: "Giá bán (VNĐ), đơn vị (Chai, Túi, Hộp), tồn kho và trạng thái kinh doanh", frontendOrigin: "Shop / BookingForm / AdminProducts" },
+      { name: "recommendedFor[]", type: "Array<String>", description: "Gợi ý mua kèm theo loại dịch vụ giặt", frontendOrigin: "BookingForm / Shop" },
+    ],
+  },
+  {
+    tableName: "equipment",
+    modelName: "Equipment",
+    titleVi: "7. Bảng Máy Móc Thiết Bị Tại Tiệm (equipment)",
+    description:
+      "Quản lý máy giặt lồng ngang, máy sấy công nghiệp, bàn là hơi nước tại tiệm, theo dõi mẻ giặt đang gán và lịch bảo trì.",
+    fields: [
+      { name: "_id / code", type: "String", key: "PK", description: "Mã thiết bị và mã máy nội bộ tại tiệm (VD: W-01, D-02)", frontendOrigin: "StoreOwner Equipment", isNewlySynced: true },
+      { name: "storeId / storeName", type: "String", key: "FK", description: "Chi nhánh cửa hàng sở hữu thiết bị", frontendOrigin: "StoreOwner Equipment", isNewlySynced: true },
+      { name: "name / type / model / serialNumber", type: "String / Enum", description: "Tên máy, phân loại (washing-machine | dryer | iron | steamer), model và số serial", frontendOrigin: "StoreOwner Equipment" },
+      { name: "capacityKg / temperatureCelsius / remainingMinutes / cycleCount", type: "Number", description: "Công suất lồng giặt (kg), nhiệt độ vận hành, số phút còn lại của mẻ và số chu kỳ đã chạy", frontendOrigin: "StoreOwner Equipment", isNewlySynced: true },
+      { name: "currentOrderId / notes", type: "String", key: "FK", description: "Mã đơn hàng / mẻ giặt đang được gán chạy trong máy và ghi chú kỹ thuật", frontendOrigin: "StoreOwner Equipment", isNewlySynced: true },
+      { name: "status / location / purchaseDate / lastMaintenance / nextMaintenance", type: "Enum / String / Date", description: "Trạng thái (idle | running | working | maintenance | broken), khu vực đặt máy và lịch bảo trì", frontendOrigin: "StoreOwner Equipment" },
+    ],
+  },
+  {
+    tableName: "reviews",
+    modelName: "Review",
+    titleVi: "8. Bảng Đánh Giá Cửa Hàng & Tài Xế (reviews)",
+    description:
+      "Lưu trữ đánh giá kép (chấm sao & nhận xét cho cả Cửa hàng và Shipper) sau khi đơn hoàn thành, cùng phản hồi của Chủ tiệm.",
+    fields: [
+      { name: "id", type: "String (Unique)", key: "PK", description: "Mã đánh giá (VD: REV-8821)", frontendOrigin: "OrderReviewModal" },
+      { name: "orderId / userId / storeId / shipperId", type: "String", key: "FK", description: "Liên kết tới đơn hàng, khách hàng, cửa hàng và tài xế được đánh giá", frontendOrigin: "OrderTracking / StoreReviews" },
+      { name: "customerName / customerPhone / storeName / shipperName", type: "String", description: "Thông tin định danh hiển thị trên thẻ đánh giá", frontendOrigin: "OrderReviewModal" },
+      { name: "storeRating / storeComment", type: "Number (1-5) / String", description: "Điểm sao (1-5) và nhận xét chất lượng giặt sấy của cửa hàng", frontendOrigin: "OrderReviewModal / StoreOrdersTable" },
+      { name: "shipperRating / shipperComment", type: "Number (1-5) / String", description: "Điểm sao (1-5) và nhận xét thái độ giao nhận của Shipper", frontendOrigin: "OrderReviewModal / DriverDashboard" },
+      { name: "storeReply / repliedAt / isHidden", type: "String / Date / Boolean", description: "Nội dung phản hồi của Chủ tiệm, thời gian phản hồi và cờ ẩn/hiện kiểm duyệt", frontendOrigin: "StoreOrdersTable / Admin" },
+    ],
+  },
+  {
+    tableName: "contact_inquiries",
+    modelName: "ContactInquiry",
+    titleVi: "9. Bảng Liên Hệ & Yêu Cầu Tư Vấn Dịch Vụ Đặc Biệt (contact_inquiries)",
+    description:
+      "Lưu trữ các yêu cầu tư vấn giặt đồ hiệu, hợp đồng giặt ủi khách sạn/spa và phản hồi hỗ trợ từ trang Liên Hệ trên Frontend.",
+    fields: [
+      { name: "id", type: "String (Unique)", key: "PK", description: "Mã yêu cầu liên hệ (VD: INQ-58291)", frontendOrigin: "Contact Page (/contact)", isNewlySynced: true },
+      { name: "name / phone / email", type: "String", description: "Họ tên, số điện thoại và email khách hàng gửi yêu cầu tư vấn", frontendOrigin: "Contact Page (/contact)", isNewlySynced: true },
+      { name: "message", type: "String", description: "Nội dung yêu cầu giặt sấy đặc biệt hoặc góp ý dịch vụ", frontendOrigin: "Contact Page (/contact)", isNewlySynced: true },
+      { name: "status / storeReply / createdAt", type: "Enum / String / Date", description: "Trạng thái xử lý (new | in_progress | resolved) và nội dung phản hồi", frontendOrigin: "Contact Page -> Backend API", isNewlySynced: true },
+    ],
+  },
+];
+
+export function generateDatabaseDbmlCode(): string {
+  return `// Sơ đồ Cơ Sở Dữ Liệu (ERD - DBML) Hệ Thống Giặt Sấy Thông Minh Sạch Sẽ
+// Dùng trực tiếp trên https://dbdiagram.io
+
+Table users {
+  _id varchar [pk]
+  username varchar [unique, not null]
+  email varchar [unique, not null]
+  password varchar [not null]
+  fullName varchar [not null]
+  phone varchar
+  address varchar
+  district varchar
+  role varchar [note: 'user | driver | store_owner | staff | admin']
+  storeId varchar [ref: > stores.customId]
+  vehicleType varchar [note: 'bike | van']
+  licensePlate varchar
+  vehiclePlate varchar
+  isAvailable boolean
+  rating float
+  completedOrders int
+  totalEarnings float
+  fabricCareNote text [note: 'Ghi chú chăm sóc vải riêng cho khách quen']
+  isActive boolean
+  createdAt timestamp
+}
+
+Table stores {
+  customId varchar [pk]
+  name varchar [not null]
+  code varchar [not null]
+  address varchar [not null]
+  district varchar [not null]
+  city varchar [note: 'hanoi | hcm']
+  phone varchar
+  lat float
+  lng float
+  rating float
+  reviewCount int
+  status varchar [note: 'open | busy | closed']
+  openHours varchar
+  priceRange varchar
+  managerName varchar
+  managerPhone varchar
+  activeShippersCount int
+  activeMachinesCount int
+}
+
+Table laundry_services {
+  customId varchar [pk]
+  name varchar [not null]
+  category varchar [note: 'wash_fold | dry_clean | heavy_items | special_care']
+  pricingType varchar [note: 'per_kg | per_item']
+  unitPrice float [not null]
+  unitName varchar [not null]
+  durationDays int
+  featured boolean
+  isActive boolean
+}
+
+Table products {
+  id varchar [pk]
+  name varchar [not null]
+  category varchar [note: 'detergent | softener | bleach | bag | accessory']
+  price float [not null]
+  unit varchar
+  stock int
+  isActive boolean
+}
+
+Table laundry_orders {
+  id varchar [pk]
+  userId varchar [ref: > users._id]
+  storeId varchar [ref: > stores.customId]
+  storeName varchar
+  shipperId varchar [ref: > users._id]
+  shipperName varchar
+  shipperPhone varchar
+  customerName varchar [not null]
+  phoneNumber varchar [not null]
+  address varchar [not null]
+  district varchar [not null]
+  customerCoordinates json [note: '{lat, lng}']
+  storeCoordinates json [note: '{lat, lng}']
+  driverLocation json [note: 'Live GPS {lat, lng, heading, speedKmh, updatedAt}']
+  items json [note: 'Mảng dòng đồ giặt đa chất liệu & cân thực tế']
+  products json [note: 'Mảng sản phẩm chăm sóc vải mua kèm']
+  messages json [note: 'Lịch sử Chat nội bộ 3 bên theo mã đơn']
+  pickupDate varchar
+  pickupTime varchar
+  deliveryDate varchar
+  deliveryTime varchar
+  pickedUpAt varchar [note: 'Mốc tài xế lấy đồ thành công - chặn hủy đơn sau mốc này']
+  actualWeighedAt varchar
+  completedAt varchar
+  cancelledAt varchar
+  cancelReason text
+  customerSpecialRequest text
+  customerCareNote text
+  assignedMachineId varchar [ref: > equipment._id]
+  assignedMachineName varchar
+  estimatedSubtotal float
+  actualSubtotal float
+  productsTotal float
+  extraFee float
+  extraFeeReason varchar
+  weightConfirmStatus varchar [note: 'not_weighed | waiting_customer | accepted | rejected_return']
+  deliveryFee float
+  discountAmount float
+  totalPrice float [not null]
+  paymentMethod varchar [note: 'vietqr | payos | vnpay | cod | cash']
+  paymentStatus varchar [note: 'pending | paid | refunded | failed']
+  paymentTransactionId varchar
+  paidAt varchar
+  vietQrUrl text
+  status varchar [note: 'pending | picking_up | sorting | waiting_confirm | washing | ironing | delivering | returning | completed | cancelled']
+  createdAt timestamp
+}
+
+Table delivery_tasks {
+  id varchar [pk]
+  orderId varchar [ref: > laundry_orders.id]
+  taskType varchar [note: 'pickup_from_customer | deliver_to_customer']
+  storeId varchar [ref: > stores.customId]
+  driverId varchar [ref: > users._id]
+  driverName varchar
+  driverPhone varchar
+  vehicleType varchar
+  vehiclePlate varchar
+  customerCoordinates json
+  storeCoordinates json
+  driverLocation json
+  broadcastRadiusKm float
+  distanceKm float
+  customerToDriverKm float
+  storeToDriverKm float
+  driverToPickupKm float
+  shippingFee float
+  tipAmount float
+  codCollected boolean
+  rejectedDriverIds json
+  status varchar [note: 'broadcasting | accepted | picking_up | arrived_pickup | picked_up | in_transit | completed | cancelled']
+  acceptedAt varchar
+  arrivedPickupAt varchar
+  pickedUpAt varchar
+  completedAt varchar
+  cancelledAt varchar
+}
+
+Table equipment {
+  _id varchar [pk]
+  code varchar
+  storeId varchar [ref: > stores.customId]
+  name varchar [not null]
+  type varchar [note: 'washing-machine | dryer | iron | steamer']
+  model varchar
+  serialNumber varchar [unique]
+  capacityKg float
+  currentOrderId varchar
+  status varchar [note: 'idle | running | working | maintenance | broken']
+  location varchar
+  notes text
+}
+
+Table reviews {
+  id varchar [pk]
+  orderId varchar [ref: - laundry_orders.id]
+  userId varchar [ref: > users._id]
+  storeId varchar [ref: > stores.customId]
+  shipperId varchar [ref: > users._id]
+  storeRating int
+  storeComment text
+  shipperRating int
+  shipperComment text
+  storeReply text
+  repliedAt varchar
+}
+
+Table contact_inquiries {
+  id varchar [pk]
+  name varchar [not null]
+  phone varchar [not null]
+  email varchar
+  message text [not null]
+  status varchar [note: 'new | in_progress | resolved']
+  storeReply text
+  createdAt timestamp
+}`;
+}
+
 export const SystemDesignPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    "general" | "customer" | "shipper" | "store" | "admin" | "mapping"
+    "general" | "customer" | "shipper" | "store" | "admin" | "mapping" | "database"
   >("customer");
   const [darkCanvas, setDarkCanvas] = useState<boolean>(true);
   const [decomposedViewMode, setDecomposedViewMode] = useState<
@@ -1389,6 +1769,17 @@ export const SystemDesignPage: React.FC = () => {
         >
           <FileCode2 className="w-3.5 h-3.5" />
           6. Bảng Đối Chiếu Đồng Nhất Tên
+        </button>
+        <button
+          onClick={() => setActiveTab("database")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === "database"
+              ? "bg-teal-600 text-white"
+              : "text-slate-600 hover:bg-slate-100"
+          }`}
+        >
+          <Database className="w-3.5 h-3.5" />
+          7. Thiết Kế CSDL &amp; Đồng Bộ Trường Frontend - Backend (9 Bảng)
         </button>
       </div>
 
@@ -2297,6 +2688,179 @@ export const SystemDesignPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* TAB 7: DATABASE SCHEMA & FRONTEND-BACKEND FIELD SYNCHRONIZATION */}
+      {activeTab === "database" && (
+        <div className="space-y-6">
+          {/* Overview & DBML Copy Card */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-extrabold border border-teal-200">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Đã Đồng Bộ 100% Trường Dữ Liệu Giữa Giao Diện (Frontend) &amp; CSDL (Backend Models)</span>
+              </div>
+              <h2 className="text-lg md:text-xl font-black text-slate-900">
+                Đặc Tả Cơ Sở Dữ Liệu (9 Bảng Thực Thể) &amp; Ánh Xạ Trường Frontend → Backend
+              </h2>
+              <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
+                Toàn bộ các trường thu thập trên Frontend (Mobile Khách Hàng, Mobile Shipper, Cổng Chủ Tiệm, Cổng Admin và Trang Liên Hệ) đều được ánh xạ đầy đủ vào 9 Schema Mongoose / JSON Database cùng API lưu trữ thời gian thực.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                onClick={() =>
+                  handleCopyText(generateDatabaseDbmlCode(), "dbml-code")
+                }
+                className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
+              >
+                {copiedKey === "dbml-code" ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Đã Copy Code Sơ Đồ ERD (DBML)
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy Code ERD (dbdiagram.io)
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Detailed 9 Database Tables */}
+          <div className="space-y-5">
+            {DATABASE_SCHEMA_SPECS.map((entity) => (
+              <div
+                key={entity.tableName}
+                className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs"
+              >
+                <div className="px-6 py-4 bg-slate-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <Table2 className="w-4 h-4 text-teal-400" />
+                      <h3 className="text-sm md:text-base font-black">
+                        {entity.titleVi}
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-md bg-teal-500/20 border border-teal-400/30 text-teal-300 font-mono text-[11px] font-bold">
+                        Model: {entity.modelName}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-1">
+                      {entity.description}
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 rounded-lg bg-white/10 text-xs font-bold text-slate-200 shrink-0">
+                    {entity.fields.length} nhóm trường dữ liệu
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
+                        <th className="p-3 font-extrabold w-64 border-r border-slate-200">
+                          Tên Trường (Field Name)
+                        </th>
+                        <th className="p-3 font-extrabold w-44 border-r border-slate-200">
+                          Kiểu Dữ Liệu &amp; Khóa
+                        </th>
+                        <th className="p-3 font-extrabold border-r border-slate-200">
+                          Ý Nghĩa Nghiệp Vụ Trong Hệ Thống
+                        </th>
+                        <th className="p-3 font-extrabold w-60">
+                          Màn Hình Frontend Thu Thập / Hiển Thị
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {entity.fields.map((f) => (
+                        <tr key={f.name} className="hover:bg-slate-50/80">
+                          <td className="p-3 font-mono font-bold text-slate-900 border-r border-slate-200 align-top">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span>{f.name}</span>
+                              {f.isNewlySynced && (
+                                <span className="px-1.5 py-0.5 rounded bg-teal-100 text-teal-800 border border-teal-300 font-sans text-[9px] font-black uppercase">
+                                  Mới đồng bộ
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 border-r border-slate-200 align-top">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {f.key && (
+                                <span
+                                  className={`px-1.5 py-0.5 rounded font-mono text-[10px] font-black ${
+                                    f.key === "PK"
+                                      ? "bg-amber-100 text-amber-800 border border-amber-300"
+                                      : f.key === "FK"
+                                      ? "bg-blue-100 text-blue-800 border border-blue-300"
+                                      : f.key === "EMBED"
+                                      ? "bg-purple-100 text-purple-800 border border-purple-300"
+                                      : "bg-slate-200 text-slate-800"
+                                  }`}
+                                >
+                                  {f.key}
+                                </span>
+                              )}
+                              <span className="font-mono text-slate-600 font-semibold">
+                                {f.type}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-3 text-slate-700 leading-relaxed border-r border-slate-200 align-top">
+                            {f.description}
+                          </td>
+                          <td className="p-3 font-semibold text-blue-800 align-top">
+                            {f.frontendOrigin}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DBML Source Code Preview */}
+          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h3 className="text-sm font-black">
+                  Mã Nguồn Sơ Đồ Quan Hệ Thực Thể (ERD — Chuẩn DBML / dbdiagram.io)
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Dán trực tiếp đoạn mã này vào dbdiagram.io để xuất hình ảnh sơ đồ ERD chuẩn cho chương Phân Tích Thiết Kế Cơ Sở Dữ Liệu.
+                </p>
+              </div>
+              <button
+                onClick={() =>
+                  handleCopyText(generateDatabaseDbmlCode(), "dbml-code-bottom")
+                }
+                className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+              >
+                {copiedKey === "dbml-code-bottom" ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Đã Sao Chép DBML
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Sao Chép Mã DBML
+                  </>
+                )}
+              </button>
+            </div>
+            <pre className="p-5 text-xs font-mono bg-slate-950 text-slate-100 overflow-x-auto leading-relaxed max-h-[480px]">
+              {generateDatabaseDbmlCode()}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
