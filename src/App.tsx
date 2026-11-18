@@ -71,7 +71,10 @@ import {
   useMobileDriverRadar,
 } from "./pages/MobileDriver/BroadcastRadar/hook";
 import { DriverIncomingOrderModal } from "./components/DriverIncomingOrderModal";
-import { ChatMessageNotificationBar } from "./components/ChatMessageNotificationBar";
+import {
+  ChatMessageNotificationBar,
+  NotificationBellButton,
+} from "./components/ChatMessageNotificationBar";
 import { MobileNav } from "./components/MobileNav";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { PersonalProfileModal } from "./components/PersonalProfileModal";
@@ -499,18 +502,21 @@ const AppContent = () => {
                 </div>
               </NavLink>
 
-              <button
-                type="button"
-                onClick={() => navigate("/mobile-customer/profile")}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors"
-              >
-                <CircleUser className="w-4 h-4 text-blue-600" />
-                <span className="max-w-[90px] truncate">
-                  {customerProfile?.fullName ||
-                    customerProfile?.username ||
-                    "Tài khoản"}
-                </span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <NotificationBellButton role="customer" />
+                <button
+                  type="button"
+                  onClick={() => navigate("/mobile-customer/profile")}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors"
+                >
+                  <CircleUser className="w-4 h-4 text-blue-600" />
+                  <span className="max-w-[90px] truncate">
+                    {customerProfile?.fullName ||
+                      customerProfile?.username ||
+                      "Tài khoản"}
+                  </span>
+                </button>
+              </div>
             </header>
           )}
 
@@ -536,20 +542,23 @@ const AppContent = () => {
                 </div>
               </NavLink>
 
-              <button
-                type="button"
-                onClick={handleToggleDriverOnline}
-                className={`px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors ${
-                  isDriverOnline
-                    ? "bg-emerald-600 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                <Power className="w-3.5 h-3.5" />
-                <span>
-                  {isDriverOnline ? "Đang nhận chuyến" : "Mở nhận chuyến"}
-                </span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <NotificationBellButton role="driver" />
+                <button
+                  type="button"
+                  onClick={handleToggleDriverOnline}
+                  className={`px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors ${
+                    isDriverOnline
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  <Power className="w-3.5 h-3.5" />
+                  <span>
+                    {isDriverOnline ? "Đang nhận chuyến" : "Mở nhận chuyến"}
+                  </span>
+                </button>
+              </div>
             </header>
           )}
 
@@ -642,6 +651,7 @@ const AppContent = () => {
             </nav>
 
             <div className="flex items-center gap-2.5 shrink-0">
+              <NotificationBellButton role="store" />
               <button
                 type="button"
                 onClick={() => setIsProfileModalOpen(true)}
@@ -776,6 +786,8 @@ const AppContent = () => {
                   <ShieldCheck className="w-4 h-4" />
                   Web Quản Trị Admin
                 </NavLink>
+
+                <NotificationBellButton role="customer" />
               </div>
             </header>
           )}

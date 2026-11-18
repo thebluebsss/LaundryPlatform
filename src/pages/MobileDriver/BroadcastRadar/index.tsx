@@ -18,6 +18,7 @@ import {
 import { useMobileDriverRadar } from "./hook";
 import { BroadcastTaskCard } from "./components/BroadcastTaskCard";
 import { GoogleMapCanvas } from "../../../components/GoogleMapCanvas";
+import { NotificationBellButton } from "../../../components/ChatMessageNotificationBar";
 
 export const MobileDriverRadar: React.FC = () => {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export const MobileDriverRadar: React.FC = () => {
         />
       </div>
 
-      {/* TOP FLOATING CONTROLS BAR (Left Hamburger Menu, Center Driver Revenue Pill, Right Star Rating Circle) */}
+      {/* TOP FLOATING CONTROLS BAR (Left Hamburger Menu, Center Driver Revenue Pill, Right Bell + Star Rating Circle) */}
       <div className="absolute top-3.5 left-3.5 right-3.5 z-20 flex items-center justify-between gap-2 pointer-events-none">
         {/* Top-Left: Hamburger Menu Circle Button */}
         <button
@@ -101,23 +102,26 @@ export const MobileDriverRadar: React.FC = () => {
           </div>
         </button>
 
-        {/* Top-Right: Average Star Rating Circle Badge */}
-        <button
-          type="button"
-          onClick={() => navigate("/mobile-driver/profile")}
-          title={`Điểm đánh giá trung bình (${reviewCount} đánh giá)`}
-          className="pointer-events-auto w-12 h-12 shrink-0 rounded-full bg-white/95 backdrop-blur-md shadow-[0_6px_20px_rgba(15,23,42,0.16)] border-2 border-slate-100 flex flex-col items-center justify-center hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
-        >
-          <div className="flex items-center gap-0.5">
-            <span className="text-[11px] font-black text-slate-900">
-              {avgRating.toFixed(1)}
+        {/* Top-Right: Notification Bell Circle + Average Star Rating Circle Badge */}
+        <div className="flex items-center gap-2 shrink-0">
+          <NotificationBellButton role="driver" variant="radarCircle" />
+          <button
+            type="button"
+            onClick={() => navigate("/mobile-driver/profile")}
+            title={`Điểm đánh giá trung bình (${reviewCount} đánh giá)`}
+            className="pointer-events-auto w-12 h-12 shrink-0 rounded-full bg-white/95 backdrop-blur-md shadow-[0_6px_20px_rgba(15,23,42,0.16)] border-2 border-slate-100 flex flex-col items-center justify-center hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+          >
+            <div className="flex items-center gap-0.5">
+              <span className="text-[11px] font-black text-slate-900">
+                {avgRating.toFixed(1)}
+              </span>
+              <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+            </div>
+            <span className="text-[9px] font-bold text-slate-400 leading-none mt-0.5">
+              {completedCount}/8
             </span>
-            <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-          </div>
-          <span className="text-[9px] font-bold text-slate-400 leading-none mt-0.5">
-            {completedCount}/8
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* ACTIVE ONGOING TASK FLOATING BANNER (Positioned cleanly below top bar so it never collides with bottom controls) */}
