@@ -24,7 +24,7 @@ export const HeroSection: React.FC = () => {
       <div className="max-w-3xl relative z-10 space-y-5">
         <span className="bg-blue-500/25 border border-blue-400/30 text-blue-200 text-[10px] md:text-xs font-black uppercase px-3 py-1 rounded-full inline-flex items-center gap-1.5 backdrop-blur-sm">
           <Award className="w-3.5 h-3.5 text-blue-400" />
-          CỔNG THÔNG TIN HỆ THỐNG GIẶT SẤY HÀ NỘI · 2 APP DI ĐỘNG & 2 WEB QUẢN TRỊ
+          CỔNG THÔNG TIN HỆ THỐNG GIẶT SẤY HÀ NỘI
         </span>
         <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight leading-tight">
           Đặt Giặt Sấy & Chụp Ảnh Đồ Qua{" "}
@@ -76,20 +76,7 @@ export const HeroSection: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-white/10">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            2 App Mobile có Intro Splash 3.5s riêng
-          </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-            <Zap className="w-4 h-4 text-blue-400 flex-shrink-0" />
-            Phiên đăng nhập tách biệt từng Actor
-          </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-            <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            100% chi nhánh & GPS tại TP. Hà Nội
-          </div>
-        </div>
+        
       </div>
     </section>
   );

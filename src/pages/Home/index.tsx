@@ -150,10 +150,7 @@ export const Home: React.FC = () => {
                     {item.desc}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 pt-2 border-t border-slate-200/60">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Đồng bộ Web & Mobile App</span>
-                </div>
+                
               </div>
             );
           })}
