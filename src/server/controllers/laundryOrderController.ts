@@ -611,6 +611,13 @@ export const sendOrderMessage = asyncHandler(async (req: Request, res: Response)
       orderId: order.id,
       message: newMessage,
       messages: existingMessages,
+      customerName: order.customerName || "Khách hàng",
+      storeName: order.storeName || "Tiệm Giặt Sạch Sẽ",
+      shipperName: order.shipperName || "Tài xế Sạch Sẽ",
+      userId: order.userId || "",
+      phoneNumber: order.phoneNumber || "",
+      storeId: order.storeId || "",
+      shipperId: order.shipperId || "",
     },
     order.id
   );

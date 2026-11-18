@@ -71,6 +71,7 @@ import {
   useMobileDriverRadar,
 } from "./pages/MobileDriver/BroadcastRadar/hook";
 import { DriverIncomingOrderModal } from "./components/DriverIncomingOrderModal";
+import { ChatMessageNotificationBar } from "./components/ChatMessageNotificationBar";
 import { MobileNav } from "./components/MobileNav";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { PersonalProfileModal } from "./components/PersonalProfileModal";
@@ -1353,6 +1354,9 @@ const AppContent = () => {
 
       {/* Global Incoming Order Dispatch Popup for Shipper across ALL Driver App pages */}
       <DriverIncomingOrderModal />
+
+      {/* Global Incoming Chat Message Notification Bar for Customer, Shipper, and Store Owner */}
+      <ChatMessageNotificationBar />
 
       {/* App Install / Electron Modal */}
       <InstallAppModal

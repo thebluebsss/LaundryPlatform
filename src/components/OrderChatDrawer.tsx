@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { OrderChatMessage } from "../types";
 import { laundryOrdersAPI } from "../services/api";
-import { useRealtimeOrders } from "../utils/realtimeClient";
+import { realtimeClient, useRealtimeOrders } from "../utils/realtimeClient";
 import { useToast } from "./Toast";
 
 export interface OrderChatDrawerProps {
@@ -192,9 +192,35 @@ export const OrderChatDrawer: React.FC<OrderChatDrawerProps> = ({
       });
       const updatedList: OrderChatMessage[] =
         res.data?.data?.messages || [];
+      const createdMsg: OrderChatMessage | undefined =
+        res.data?.data?.message || updatedList[updatedList.length - 1];
       setMessages(updatedList);
       if (onMessagesChanged) {
         onMessagesChanged(orderId, updatedList);
+      }
+      if (createdMsg) {
+        const chatEventPayload = {
+          orderId,
+          message: createdMsg,
+          messages: updatedList,
+          customerName: customerName || "Khách hàng",
+          storeName: storeName || "Tiệm Giặt Sạch Sẽ",
+          shipperName: shipperName || "Tài xế Sạch Sẽ",
+          savedAt: Date.now(),
+          seenByRoles: [currentRole],
+        };
+        try {
+          localStorage.setItem(
+            "sachse_latest_chat_event",
+            JSON.stringify(chatEventPayload)
+          );
+        } catch {}
+        realtimeClient.publishCrossTab({
+          type: "ORDER_CHAT_MESSAGE",
+          orderId,
+          data: chatEventPayload,
+          timestamp: new Date().toISOString(),
+        });
       }
       if (!isQuickReply) {
         setInputText("");
