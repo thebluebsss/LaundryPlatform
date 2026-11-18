@@ -282,6 +282,18 @@ export const contactAPI = {
   getAll: () => api.get("/contact"),
 };
 
+// AI Q&A Chatbot Assistant API (Customer & Shipper Grounded Assistant)
+export const assistantAPI = {
+  chat: (data: {
+    role: "customer" | "driver";
+    message: string;
+    history?: Array<{ sender: "user" | "bot"; text: string }>;
+    userId?: string;
+    phone?: string;
+    userName?: string;
+  }) => api.post("/assistant/chat", data),
+};
+
 export default api;
 
 

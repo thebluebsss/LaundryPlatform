@@ -75,6 +75,7 @@ import {
   ChatMessageNotificationBar,
   NotificationBellButton,
 } from "./components/ChatMessageNotificationBar";
+import { RoleChatbotWidget } from "./components/RoleChatbotWidget";
 import { MobileNav } from "./components/MobileNav";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { PersonalProfileModal } from "./components/PersonalProfileModal";
@@ -1369,6 +1370,9 @@ const AppContent = () => {
 
       {/* Global Incoming Chat Message Notification Bar for Customer, Shipper, and Store Owner */}
       <ChatMessageNotificationBar />
+
+      {/* Global Floating Q&A Chatbot Widget for Customer and Shipper */}
+      <RoleChatbotWidget />
 
       {/* App Install / Electron Modal */}
       <InstallAppModal

@@ -12,6 +12,7 @@ import storeRoutes from "./stores";
 import deliveryRoutes from "./delivery";
 import reviewRoutes from "./reviews";
 import contactRoutes from "./contact";
+import assistantRoutes from "./assistant";
 
 const router = express.Router();
 
@@ -47,6 +48,7 @@ router.use("/stores", storeRoutes);
 router.use("/delivery", deliveryRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/contact", contactRoutes);
+router.use("/assistant", assistantRoutes);
 
 // Alias routes for backward compatibility with old frontend
 import * as userController from "../controllers/userController";
