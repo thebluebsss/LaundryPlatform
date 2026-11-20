@@ -21,22 +21,38 @@ app.use(cors());
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
-// Debug middleware - log all requests
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`, {
-    body: req.body,
-    query: req.query,
-    headers: {
-      "content-type": req.headers["content-type"],
-      authorization: req.headers["authorization"] ? "Bearer ***" : undefined,
-    },
-  });
-  next();
-});
+const SENSITIVE_KEYS = new Set([
+  "password",
+  "newPassword",
+  "oldPassword",
+  "confirmPassword",
+  "token",
+  "resetToken",
+  "secret",
+  "apiKey",
+]);
 
-// Request logging
+const redactBody = (body: unknown): unknown => {
+  if (!body || typeof body !== "object") return body;
+  if (Array.isArray(body)) return body.map(redactBody);
+  const safe: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
+    safe[k] = SENSITIVE_KEYS.has(k) ? "[REDACTED]" : v;
+  }
+  return safe;
+};
+
+// Request logging (redacts sensitive fields like passwords & tokens)
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`);
+  if (req.path.startsWith("/api")) {
+    logger.info(`${req.method} ${req.path}`, {
+      query: Object.keys(req.query || {}).length > 0 ? req.query : undefined,
+      body:
+        req.method !== "GET" && req.body && Object.keys(req.body).length > 0
+          ? redactBody(req.body)
+          : undefined,
+    });
+  }
   next();
 });
 
@@ -105,7 +121,7 @@ app.get("/api/root", (req, res) => {
   });
 });
 
-// Error Handler
-app.use(errorHandler);
+// API Error Handler (mounted only for /api routes; global 404 + errorHandler mounted in server.ts after Vite)
+app.use("/api", errorHandler);
 
 export default app;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Scale,
@@ -176,8 +177,8 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
   );
   const diffAmount = actualSubtotal + normalizedExtraFee - estimatedSubtotal;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[1300] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-4xl p-6 md:p-8 my-8 space-y-6 animate-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-4 gap-4">
@@ -561,6 +562,7 @@ export const WeighAndInspectModal: React.FC<WeighAndInspectModalProps> = ({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

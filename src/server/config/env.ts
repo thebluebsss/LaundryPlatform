@@ -2,8 +2,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const DEFAULT_GMAIL_APP_PASSWORD = "impr bhqr uokb lxyw".replace(/\s+/g, "");
-
 export const config = {
   port: 3000,
   nodeEnv: process.env.NODE_ENV || "development",
@@ -12,13 +10,16 @@ export const config = {
   mongodbUri: process.env.MONGODB_URI || "mongodb://localhost:27017/prolaundry",
 
   // JWT
-  jwtSecret: process.env.JWT_SECRET || "default_jwt_secret_key_123",
+  jwtSecret:
+    process.env.JWT_SECRET ||
+    process.env.SESSION_SECRET ||
+    "sachse_dev_only_jwt_secret_change_in_prod",
   jwtExpiry: "7d",
 
-  // Email credentials (prioritizes 16-char Google App Password from Secret or configured App Password)
+  // Email credentials (loaded strictly from environment variables / Secrets)
   email: {
     get user() {
-      return (process.env.EMAIL_USER || "thebluebsss@gmail.com").trim();
+      return (process.env.EMAIL_USER || "").trim();
     },
     get pass() {
       const secretPass = (
@@ -27,10 +28,10 @@ export const config = {
         process.env.GMAIL_APP_PASSWORD ||
         ""
       ).replace(/\s+/g, "");
-      if (secretPass.length === 16 && !secretPass.includes("your-")) {
+      if (secretPass && !secretPass.includes("your-")) {
         return secretPass;
       }
-      return DEFAULT_GMAIL_APP_PASSWORD;
+      return "";
     },
   },
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Send,
@@ -237,11 +238,17 @@ export const OrderChatDrawer: React.FC<OrderChatDrawerProps> = ({
 
   const quickReplies = QUICK_REPLIES_BY_ROLE[currentRole] || [];
 
-  return (
-    <div className="fixed inset-0 z-[1200] bg-slate-900/60 backdrop-blur-xs flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-lg rounded-t-3xl md:rounded-2xl border border-slate-200 shadow-2xl flex flex-col max-h-[88vh] overflow-hidden">
+  const drawerContent = (
+    <div
+      className="fixed inset-0 z-[1300] bg-slate-900/60 backdrop-blur-xs flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-lg rounded-t-3xl md:rounded-2xl border border-slate-200 shadow-2xl flex flex-col h-[78dvh] max-h-[82dvh] md:h-auto md:max-h-[85vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between gap-3">
+        <div className="px-4 py-3.5 bg-slate-900 text-white flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-400/30 flex items-center justify-center shrink-0">
               <MessageSquare className="w-5 h-5 text-teal-400" />
@@ -271,7 +278,7 @@ export const OrderChatDrawer: React.FC<OrderChatDrawerProps> = ({
         </div>
 
         {/* Participant Bar */}
-        <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 text-[11px] text-slate-600 flex-wrap">
+        <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 text-[11px] text-slate-600 flex-wrap shrink-0">
           <div className="flex items-center gap-3 flex-wrap">
             <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
               <User className="w-3.5 h-3.5 text-blue-600" />
@@ -303,7 +310,7 @@ export const OrderChatDrawer: React.FC<OrderChatDrawerProps> = ({
         </div>
 
         {/* Message List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 min-h-[260px] max-h-[420px]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-3 bg-slate-50/50">
           {!hasDriverAssigned ? (
             <div className="py-10 px-4 text-center space-y-2.5 bg-amber-50/70 border border-amber-200 rounded-2xl">
               <Bike className="w-8 h-8 text-amber-500 mx-auto" />
@@ -400,7 +407,7 @@ export const OrderChatDrawer: React.FC<OrderChatDrawerProps> = ({
 
         {/* 1-Tap Quick Reply Chips */}
         {hasDriverAssigned && (
-          <div className="px-4 py-2.5 bg-white border-t border-slate-100 space-y-1.5">
+          <div className="px-4 py-2 bg-white border-t border-slate-100 space-y-1.5 shrink-0">
             <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
               <Zap className="w-3 h-3 text-amber-500" />
               <span>
@@ -429,7 +436,7 @@ export const OrderChatDrawer: React.FC<OrderChatDrawerProps> = ({
             e.preventDefault();
             handleSend(inputText, false);
           }}
-          className="p-3.5 bg-white border-t border-slate-200 flex items-center gap-2"
+          className="p-3 pb-4 md:p-3.5 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0"
         >
           <input
             type="text"
@@ -441,7 +448,7 @@ export const OrderChatDrawer: React.FC<OrderChatDrawerProps> = ({
                 ? `Nhắn tin với tư cách ${resolvedSenderName}...`
                 : "Chưa có tài xế nhận chuyến — Chưa thể nhắn tin..."
             }
-            className="flex-1 h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:border-teal-600 focus:bg-white"
+            className="flex-1 h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:border-teal-600 focus:bg-white"
           />
           <button
             type="submit"
@@ -455,4 +462,9 @@ export const OrderChatDrawer: React.FC<OrderChatDrawerProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined") {
+    return createPortal(drawerContent, document.body);
+  }
+  return drawerContent;
 };

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Plus, Trash2, Store } from "lucide-react";
 import { LaundryService } from "../../../../types";
 import { ButtonCustom, ButtonOutLine } from "../../../../components/ButtonCustom";
@@ -145,8 +146,8 @@ export const CreatePosOrderModal: React.FC<CreatePosOrderModalProps> = ({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[1300] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
       <form
         onSubmit={handleSubmit}
         className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-3xl p-6 md:p-8 my-8 space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
@@ -311,6 +312,7 @@ export const CreatePosOrderModal: React.FC<CreatePosOrderModalProps> = ({
           />
         </div>
       </form>
-    </div>
+    </div>,
+    document.body
   );
 };

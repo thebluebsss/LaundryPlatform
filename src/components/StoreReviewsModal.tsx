@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Star, Store, Bike, X, MessageSquareReply, CheckCircle2 } from "lucide-react";
 import { LaundryStore, OrderReview } from "../types";
 import { reviewsAPI } from "../services/api";
@@ -35,9 +36,15 @@ export const StoreReviewsModal: React.FC<StoreReviewsModalProps> = ({
 
   if (!store) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl w-full max-w-xl border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[1300] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl w-full max-w-xl border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[88dvh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-[11px] text-amber-400 font-bold">
@@ -164,4 +171,9 @@ export const StoreReviewsModal: React.FC<StoreReviewsModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined") {
+    return createPortal(modalContent, document.body);
+  }
+  return modalContent;
 };

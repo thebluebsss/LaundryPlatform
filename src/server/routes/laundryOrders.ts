@@ -1,6 +1,7 @@
 import express from "express";
 import * as laundryOrderController from "../controllers/laundryOrderController";
 import { realtimeHub } from "../services/realtimeHub";
+import { authenticateToken, requireRoles } from "../middleware/auth";
 
 const router = express.Router();
 
@@ -9,7 +10,12 @@ router.get("/stream", realtimeHub.subscribe);
 
 router.post("/", laundryOrderController.createOrder);
 router.get("/", laundryOrderController.getOrders);
-router.patch("/customer-care-note", laundryOrderController.updateCustomerCareNote);
+router.patch(
+  "/customer-care-note",
+  authenticateToken as any,
+  requireRoles("admin", "store_owner", "store_manager") as any,
+  laundryOrderController.updateCustomerCareNote
+);
 router.get("/:id", laundryOrderController.getOrderById);
 router.patch("/:id/status", laundryOrderController.updateOrderStatus);
 router.patch("/:id/weigh", laundryOrderController.weighAndInspectOrder);
@@ -27,6 +33,11 @@ router.post("/:id/driver-location", laundryOrderController.updateOrderDriverLoca
 router.post("/:id/payment-link", laundryOrderController.createOrderPaymentLink);
 router.post("/:id/payment-webhook", laundryOrderController.reconcileOrderPaymentWebhook);
 
-router.delete("/:id", laundryOrderController.deleteOrder);
+router.delete(
+  "/:id",
+  authenticateToken as any,
+  requireRoles("admin", "store_owner", "store_manager") as any,
+  laundryOrderController.deleteOrder
+);
 
 export default router;

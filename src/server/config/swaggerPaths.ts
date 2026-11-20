@@ -1345,70 +1345,408 @@ export const swaggerPaths = {
   },
 
   // ==========================================
-  // AI VISION (NHẬN DIỆN VẢI & NHÃN MÁC)
+  // LAUNDRY ORDERS (ĐƠN GIẶT SẤY, LIVE GPS, CHAT 3 BÊN & VIETQR/PAYOS/VNPAY)
   // ==========================================
-  "/api/ai/inspect-garment": {
-    post: {
-      tags: ["AI Vision"],
-      summary: "AI Computer Vision nhận diện chất liệu vải & phát hiện gian lận giá",
-      description: "Tải lên ảnh mác áo hoặc ảnh trang phục để AI phân tích chất liệu vải, chế độ giặt tối ưu và kiểm tra xem khách chọn đúng gói dịch vụ hay chưa.",
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["image"],
-              properties: {
-                image: {
-                  type: "string",
-                  description: "Ảnh Base64 data URI hoặc URL của ảnh trang phục / mác áo",
-                  example: "data:image/jpeg;base64,...",
-                },
-                declaredService: {
-                  type: "string",
-                  description: "Gói giặt khách tự chọn (wash_fold, dry_clean, special_care, heavy_items)",
-                  example: "wash_fold",
-                },
-                itemName: {
-                  type: "string",
-                  description: "Tên đồ giặt (tùy chọn)",
-                  example: "Áo lụa tơ tằm",
-                },
-              },
-            },
-          },
-        },
-      },
+  "/api/laundry-orders/stream": {
+    get: {
+      tags: ["Laundry Orders"],
+      summary: "Luồng Server-Sent Events (SSE) đồng bộ thời gian thực",
+      description:
+        "Phát trực tiếp sự kiện DRIVER_GPS_UPDATED, ORDER_CHAT_MESSAGE, ORDER_PAYMENT_RECONCILED và ORDER_UPDATED tới Khách hàng, Shipper và Chủ tiệm.",
       responses: {
-        200: {
-          description: "Kết quả AI phân tích chất liệu, nhiệt độ giặt và phát hiện cảnh báo rủi ro",
-        },
+        200: { description: "Kết nối text/event-stream thành công" },
       },
     },
   },
 
-  "/api/ai/verify-cloth": {
+  "/api/laundry-orders": {
+    get: {
+      tags: ["Laundry Orders"],
+      summary: "Lấy danh sách đơn giặt sấy",
+      parameters: [
+        { name: "userId", in: "query", schema: { type: "string" } },
+        { name: "phone", in: "query", schema: { type: "string" } },
+        { name: "storeId", in: "query", schema: { type: "string" } },
+        { name: "status", in: "query", schema: { type: "string" } },
+      ],
+      responses: { 200: { description: "Danh sách đơn giặt sấy" } },
+    },
     post: {
-      tags: ["AI Vision"],
-      summary: "Xác thực chất lượng vải qua camera nhận diện",
+      tags: ["Laundry Orders"],
+      summary: "Tạo đơn giặt sấy mới & tự động phát sóng tìm Shipper bán kính 1km",
       requestBody: {
         required: true,
         content: {
           "application/json": {
             schema: {
               type: "object",
-              required: ["image"],
+              required: ["customerName", "phoneNumber", "address"],
               properties: {
-                image: { type: "string", example: "data:image/jpeg;base64,..." },
+                customerName: { type: "string", example: "Nguyễn Minh Anh" },
+                phoneNumber: { type: "string", example: "0988123456" },
+                address: { type: "string", example: "24 Phố Hàng Bài, Hoàn Kiếm, Hà Nội" },
+                storeId: { type: "string", example: "store-hn-hoankiem" },
+                estimatedWeight: { type: "number", example: 4.5 },
+                paymentMethod: { type: "string", example: "vietqr" },
+                notes: { type: "string", example: "Giặt kỹ cổ áo sơ mi trắng" },
               },
             },
           },
         },
       },
-      responses: {
-        200: { description: "Kết quả phân tích ảnh" },
+      responses: { 201: { description: "Tạo đơn giặt sấy thành công" } },
+    },
+  },
+
+  "/api/laundry-orders/{id}": {
+    get: {
+      tags: ["Laundry Orders"],
+      summary: "Xem chi tiết đơn giặt sấy",
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Chi tiết đơn hàng" }, 404: { description: "Không tìm thấy" } },
+    },
+    delete: {
+      tags: ["Laundry Orders"],
+      summary: "Xóa đơn giặt sấy (Chủ tiệm / Admin)",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Đã xóa đơn hàng" }, 401: { description: "Chưa xác thực" } },
+    },
+  },
+
+  "/api/laundry-orders/{id}/status": {
+    patch: {
+      tags: ["Laundry Orders"],
+      summary: "Cập nhật trạng thái đơn giặt hoặc hủy đơn (khách chỉ hủy trước khi tài xế lấy đồ)",
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                status: { type: "string", example: "cancelled" },
+                paymentStatus: { type: "string", example: "paid" },
+                byRole: { type: "string", example: "customer" },
+              },
+            },
+          },
+        },
       },
+      responses: { 200: { description: "Cập nhật trạng thái thành công" } },
+    },
+  },
+
+  "/api/laundry-orders/{id}/weigh": {
+    patch: {
+      tags: ["Laundry Orders"],
+      summary: "Chủ tiệm cân đồ thực tế, nhập phụ phí vết bẩn và ảnh minh chứng",
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                actualWeightKg: { type: "number", example: 5.2 },
+                extraFee: { type: "number", example: 15000 },
+                extraFeeReason: { type: "string", example: "Tẩy vết mực cổ áo" },
+                evidencePhotoUrl: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+      responses: { 200: { description: "Đã cập nhật cân nặng & gửi yêu cầu khách duyệt" } },
+    },
+  },
+
+  "/api/laundry-orders/{id}/confirm-weight": {
+    post: {
+      tags: ["Laundry Orders"],
+      summary: "Khách hàng đồng ý hoặc từ chối cân nặng/giá mới",
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["decision"],
+              properties: {
+                decision: { type: "string", enum: ["approved", "rejected"], example: "approved" },
+              },
+            },
+          },
+        },
+      },
+      responses: { 200: { description: "Đã xác nhận quyết định cân đồ" } },
+    },
+  },
+
+  "/api/laundry-orders/{id}/messages": {
+    get: {
+      tags: ["Laundry Orders"],
+      summary: "Lấy lịch sử Kênh Chat Nội Bộ 3 bên của đơn hàng",
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Danh sách tin nhắn đơn hàng" } },
+    },
+    post: {
+      tags: ["Laundry Orders"],
+      summary: "Gửi tin nhắn hoặc câu trả lời nhanh 1 chạm (yêu cầu đã có tài xế nhận chuyến)",
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["senderRole", "text"],
+              properties: {
+                senderRole: { type: "string", enum: ["customer", "driver", "store"], example: "driver" },
+                senderName: { type: "string", example: "Nguyễn Văn Hùng" },
+                text: { type: "string", example: "Tôi đang đứng dưới sảnh chờ nhận đồ" },
+                isQuickReply: { type: "boolean", example: true },
+              },
+            },
+          },
+        },
+      },
+      responses: { 201: { description: "Đã gửi tin nhắn & phát SSE realtime" } },
+    },
+  },
+
+  "/api/laundry-orders/{id}/driver-location": {
+    post: {
+      tags: ["Laundry Orders"],
+      summary: "Stream tọa độ Live GPS của tài xế lên bản đồ Khách hàng & Chủ tiệm",
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["lat", "lng"],
+              properties: {
+                lat: { type: "number", example: 21.028511 },
+                lng: { type: "number", example: 105.854165 },
+                heading: { type: "number", example: 90 },
+                speedKmh: { type: "number", example: 28 },
+              },
+            },
+          },
+        },
+      },
+      responses: { 200: { description: "Đã đồng bộ Live GPS thành công" } },
+    },
+  },
+
+  "/api/laundry-orders/{id}/payment-link": {
+    post: {
+      tags: ["Laundry Orders"],
+      summary: "Khởi tạo mã QR thanh toán đa cổng (VietQR / PayOS / VNPay) cho đơn giặt",
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                gateway: { type: "string", enum: ["vietqr", "payos", "vnpay"], example: "vietqr" },
+              },
+            },
+          },
+        },
+      },
+      responses: { 200: { description: "Trả về ảnh VietQR và thông tin chuyển khoản" } },
+    },
+  },
+
+  "/api/laundry-orders/{id}/payment-webhook": {
+    post: {
+      tags: ["Laundry Orders"],
+      summary: "Webhook tự động đối soát thanh toán điện tử (VietQR / PayOS / VNPay)",
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                gateway: { type: "string", example: "payos" },
+                transactionId: { type: "string", example: "FT-PAYOS-20269988" },
+                amount: { type: "number", example: 120000 },
+              },
+            },
+          },
+        },
+      },
+      responses: { 200: { description: "Đã đối soát tự động & phát SSE ORDER_PAYMENT_RECONCILED" } },
+    },
+  },
+
+  "/api/laundry-orders/customer-care-note": {
+    patch: {
+      tags: ["Laundry Orders"],
+      summary: "Lưu ghi chú chăm sóc vải riêng cho khách quen (Chủ tiệm / Admin)",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["phone", "note"],
+              properties: {
+                phone: { type: "string", example: "0988123456" },
+                note: { type: "string", example: "Khách dị ứng nước xả mùi nồng, chỉ dùng nước xả dịu nhẹ" },
+              },
+            },
+          },
+        },
+      },
+      responses: { 200: { description: "Đã lưu ghi chú chăm sóc vải" } },
+    },
+  },
+
+  // ==========================================
+  // AI CHATBOT ASSISTANT (KHÁCH HÀNG & SHIPPER)
+  // ==========================================
+  "/api/assistant/chat": {
+    post: {
+      tags: ["AI Assistant"],
+      summary: "Trợ lý Chatbot Hỏi Đáp AI Gemini đồng bộ dữ liệu thực tế (Khách hàng & Shipper)",
+      description:
+        "Kết hợp mô hình gemini-4-hydrogen với dữ liệu thực tế từ hệ thống (bảng giá, chi nhánh Hà Nội, đơn giặt, quy trình 4 bước Shipper, ví thu nhập và tuyến đường).",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["role", "message"],
+              properties: {
+                role: { type: "string", enum: ["customer", "driver"], example: "customer" },
+                message: { type: "string", example: "Bảng giá dịch vụ giặt sấy hiện tại bao nhiêu?" },
+                userName: { type: "string", example: "Nguyễn Minh Anh" },
+                phone: { type: "string", example: "0988123456" },
+              },
+            },
+          },
+        },
+      },
+      responses: { 200: { description: "Phản hồi của Trợ lý AI kèm số liệu tóm tắt trực tuyến" } },
+    },
+  },
+
+  // ==========================================
+  // REVIEWS (ĐÁNH GIÁ 2 CHIỀU TIỆM & TÀI XẾ)
+  // ==========================================
+  "/api/reviews": {
+    get: {
+      tags: ["Reviews"],
+      summary: "Lấy danh sách đánh giá tiệm giặt & tài xế",
+      parameters: [
+        { name: "storeId", in: "query", schema: { type: "string" } },
+        { name: "shipperId", in: "query", schema: { type: "string" } },
+        { name: "orderId", in: "query", schema: { type: "string" } },
+      ],
+      responses: { 200: { description: "Danh sách đánh giá" } },
+    },
+    post: {
+      tags: ["Reviews"],
+      summary: "Khách hàng gửi đánh giá 2 chiều (Cửa hàng & Shipper)",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["orderId", "storeId", "storeRating", "shipperRating"],
+              properties: {
+                orderId: { type: "string", example: "ORD-4766" },
+                storeId: { type: "string", example: "store-hn-hoankiem" },
+                storeRating: { type: "number", example: 5 },
+                storeComment: { type: "string", example: "Quần áo thơm sạch, giao đúng hẹn" },
+                shipperRating: { type: "number", example: 5 },
+                shipperComment: { type: "string", example: "Tài xế thân thiện" },
+              },
+            },
+          },
+        },
+      },
+      responses: { 201: { description: "Lưu đánh giá thành công" } },
+    },
+  },
+
+  "/api/reviews/{id}/reply": {
+    patch: {
+      tags: ["Reviews"],
+      summary: "Chủ tiệm phản hồi đánh giá khách hàng",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["storeReply"],
+              properties: {
+                storeReply: { type: "string", example: "Cảm ơn quý khách đã tin tưởng tiệm!" },
+              },
+            },
+          },
+        },
+      },
+      responses: { 200: { description: "Đã lưu phản hồi chủ tiệm" } },
+    },
+  },
+
+  "/api/reviews/{id}/visibility": {
+    patch: {
+      tags: ["Reviews"],
+      summary: "Admin ẩn/hiện đánh giá vi phạm tiêu chuẩn cộng đồng",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Đã cập nhật trạng thái hiển thị đánh giá" } },
+    },
+  },
+
+  // ==========================================
+  // CONTACT INQUIRIES (LIÊN HỆ & ĐỐI TÁC)
+  // ==========================================
+  "/api/contact": {
+    post: {
+      tags: ["Contact"],
+      summary: "Khách hàng / đối tác gửi biểu mẫu liên hệ tư vấn",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["name", "phone", "message"],
+              properties: {
+                name: { type: "string", example: "Trần Thu Hà" },
+                phone: { type: "string", example: "0912345678" },
+                email: { type: "string", example: "ha@example.com" },
+                message: { type: "string", example: "Tư vấn giặt rèm cửa và hợp tác mở chi nhánh" },
+              },
+            },
+          },
+        },
+      },
+      responses: { 201: { description: "Tiếp nhận yêu cầu thành công" } },
+    },
+    get: {
+      tags: ["Contact"],
+      summary: "Lấy danh sách yêu cầu liên hệ (Admin)",
+      security: [{ bearerAuth: [] }],
+      responses: { 200: { description: "Danh sách liên hệ từ khách hàng/đối tác" } },
     },
   },
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   QrCode,
@@ -163,9 +164,15 @@ export const VietQrSheetModal: React.FC<VietQrSheetModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[1200] bg-slate-900/60 backdrop-blur-xs flex items-end md:items-center justify-center p-0 md:p-4">
-      <div className="bg-white w-full max-w-md rounded-t-3xl md:rounded-2xl border border-slate-200 p-5 space-y-4 animate-in slide-in-from-bottom duration-200 max-h-[92vh] overflow-y-auto">
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[1300] bg-slate-900/60 backdrop-blur-xs flex items-end md:items-center justify-center p-0 md:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-md rounded-t-3xl md:rounded-2xl border border-slate-200 p-5 pb-6 space-y-4 animate-in slide-in-from-bottom duration-200 max-h-[86dvh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
@@ -366,4 +373,9 @@ export const VietQrSheetModal: React.FC<VietQrSheetModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined") {
+    return createPortal(modalContent, document.body);
+  }
+  return modalContent;
 };

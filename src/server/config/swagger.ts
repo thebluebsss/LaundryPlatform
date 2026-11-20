@@ -6,12 +6,13 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "ProLaundry API Documentation",
-      version: "1.0.0",
-      description: "Hệ thống API RESTful toàn diện cho nền tảng giặt là công nghệ cao ProLaundry. Hỗ trợ đầy đủ xác thực JWT, quản lý đơn giặt, sản phẩm phụ trợ, cổng thanh toán (VNPay, MoMo, PayOS, VietQR), điều phối giao nhận shipper và AI Vision.",
+      title: "Giặt Là Sạch Sẽ — API Documentation",
+      version: "2.0.0",
+      description:
+        "Hệ thống API RESTful & Real-time SSE cho nền tảng Giặt Là Sạch Sẽ (Khách hàng · Shipper · Chủ tiệm · Admin). Hỗ trợ JWT RBAC, đơn giặt cân thực tế, Live GPS Tracking, Kênh Chat nội bộ 3 bên, Thanh toán & Đối soát tự động (VietQR / PayOS / VNPay), Đánh giá 2 chiều và Trợ lý Chatbot AI Gemini.",
       contact: {
-        name: "ProLaundry Support",
-        email: "support@prolaundry.com",
+        name: "Giặt Là Sạch Sẽ Support",
+        email: "support@giatlasachse.vn",
       },
     },
     servers: [
@@ -72,8 +73,44 @@ const options = {
         description: "Xác thực người dùng, đăng ký, đăng nhập và lấy JWT token",
       },
       {
+        name: "Laundry Orders",
+        description: "Đơn giặt sấy chuẩn (đặt lịch, cân thực tế, duyệt giá, Live GPS, Chat 3 bên, VietQR/PayOS/VNPay & SSE)",
+      },
+      {
+        name: "Delivery",
+        description: "Điều phối giao nhận shipper, phát sóng bán kính 1km, nhận đơn và định vị GPS",
+      },
+      {
+        name: "AI Assistant",
+        description: "Trợ lý Chatbot Hỏi Đáp AI Gemini đồng bộ dữ liệu hệ thống cho Khách hàng và Shipper",
+      },
+      {
+        name: "Reviews",
+        description: "Đánh giá 2 chiều (Cửa hàng & Tài xế), phản hồi của Chủ tiệm và kiểm duyệt Admin",
+      },
+      {
+        name: "Contact",
+        description: "Tiếp nhận yêu cầu tư vấn giặt đặc biệt và đăng ký đối tác",
+      },
+      {
+        name: "Stores",
+        description: "Tìm kiếm chi nhánh tiệm giặt gần nhất và danh sách tài xế",
+      },
+      {
+        name: "Services",
+        description: "Bảng giá niêm yết các gói dịch vụ giặt sấy, là ủi, hấp cao cấp",
+      },
+      {
+        name: "Equipment",
+        description: "Quản lý tình trạng hoạt động và bảo trì máy giặt, máy sấy",
+      },
+      {
+        name: "Payments",
+        description: "Tích hợp thanh toán VNPay, MoMo, PayOS, VietQR Napas 24/7",
+      },
+      {
         name: "Bookings",
-        description: "Quản lý đơn giặt là, đặt lịch, tra cứu theo SĐT và cập nhật trạng thái giặt",
+        description: "API đặt lịch truyền thống & thống kê",
       },
       {
         name: "Orders",
@@ -84,32 +121,8 @@ const options = {
         description: "Danh mục sản phẩm bán lẻ và gợi ý thông minh",
       },
       {
-        name: "Services",
-        description: "Bảng giá niêm yết các gói dịch vụ giặt sấy, là ủi, hấp cao cấp",
-      },
-      {
-        name: "Stores",
-        description: "Tìm kiếm chi nhánh tiệm giặt gần nhất và danh sách tài xế",
-      },
-      {
-        name: "Delivery",
-        description: "Điều phối giao nhận shipper, nhận đơn và cập nhật định vị",
-      },
-      {
-        name: "Payments",
-        description: "Tích hợp thanh toán VNPay, MoMo, PayOS, VietQR Napas 24/7",
-      },
-      {
-        name: "Equipment",
-        description: "Quản lý tình trạng hoạt động và bảo trì máy giặt, máy sấy",
-      },
-      {
         name: "Users",
-        description: "Quản lý tài khoản khách hàng và nhân viên (Admin)",
-      },
-      {
-        name: "AI Vision",
-        description: "AI nhận diện chất liệu vải, mác quần áo và cảnh báo sai lệch giá",
+        description: "Quản lý tài khoản khách hàng, tài xế, chủ tiệm và admin",
       },
       {
         name: "System",

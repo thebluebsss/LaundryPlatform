@@ -245,29 +245,29 @@ export const RoleChatbotWidget: React.FC = () => {
 
   return (
     <>
-      {/* FLOATING BUBBLE BUTTON (Bottom-Right Corner of Customer App & Shipper App) */}
+      {/* FLOATING SIDE-DOCK BUTTON (Mid-Right Edge — Clear of Shipper 'Đang nhận chuyến', GPS & Bottom Nav) */}
       {!isOpen && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
           aria-label="Mở Trợ lý Chatbot Hỏi Đáp"
-          className={`fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[1150] min-h-[52px] px-4 py-3 rounded-full shadow-[0_10px_28px_rgba(15,23,42,0.25)] border text-white flex items-center gap-2.5 cursor-pointer active:scale-95 transition-transform duration-150 ${
+          title={
             isDriverMode
-              ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-400/40"
-              : "bg-blue-600 hover:bg-blue-700 border-blue-400/40"
+              ? "Mở Trợ lý Hỏi Đáp Shipper (AI Gemini)"
+              : "Mở Trợ lý Hỏi Đáp Khách hàng (AI Gemini)"
+          }
+          className={`fixed right-0 top-[46%] -translate-y-1/2 z-[1150] min-w-[50px] min-h-[60px] pl-3 pr-2.5 py-2.5 rounded-l-2xl shadow-[0_8px_24px_rgba(15,23,42,0.22)] border border-r-0 text-white flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition-transform duration-150 ${
+            isDriverMode
+              ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-400/50"
+              : "bg-blue-600 hover:bg-blue-700 border-blue-400/50"
           }`}
         >
-          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-            <MessageCircleQuestion className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <MessageCircleQuestion className="w-4.5 h-4.5 text-white" />
           </div>
-          <div className="text-left pr-1">
-            <span className="text-xs font-extrabold block leading-none whitespace-nowrap">
-              {isDriverMode ? "Trợ lý Shipper" : "Trợ lý Khách hàng"}
-            </span>
-            <span className="text-[10px] text-white/85 font-medium block leading-tight mt-0.5 whitespace-nowrap">
-              Hỏi đáp AI · Bảng giá & Lộ trình
-            </span>
-          </div>
+          <span className="text-[10px] font-extrabold leading-none tracking-tight whitespace-nowrap">
+            Hỏi AI
+          </span>
         </button>
       )}
 

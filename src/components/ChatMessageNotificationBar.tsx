@@ -58,7 +58,7 @@ interface IncomingChatBanner {
   receivedAt: number;
 }
 
-const STORAGE_KEY_PREFIX = "sachse_bell_notifications_v2_";
+const STORAGE_KEY_PREFIX = "sachse_bell_notifications_v3_";
 const BELL_SYNC_EVENT = "sachse_bell_notifications_updated";
 const OPEN_BELL_DRAWER_EVENT = "sachse_open_bell_drawer";
 
@@ -108,135 +108,24 @@ const RECEIVER_ROLE_LABELS: Record<ActorRole, string> = {
   store: "Chủ tiệm giặt (Owner)",
 };
 
-const getDefaultSeedNotifications = (
-  role: ActorRole
-): StoredNotificationItem[] => {
-  const now = Date.now();
-  if (role === "customer") {
-    return [
-      {
-        id: "seed-cust-1",
-        orderId: "ord-hn-101",
-        targetRole: "customer",
-        senderRole: "driver",
-        senderName: "Tài xế Nguyễn Văn Hùng",
-        text: "Tôi đang đứng dưới sảnh chờ nhận đồ của bạn nhé!",
-        isQuickReply: true,
-        createdAt: new Date(now - 4 * 60 * 1000).toISOString(),
-        receivedAt: now - 4 * 60 * 1000,
-        isRead: false,
-        customerName: "Khách hàng",
-        storeName: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
-        shipperName: "Nguyễn Văn Hùng",
-        messages: [],
-      },
-      {
-        id: "seed-cust-2",
-        orderId: "ord-hn-101",
-        targetRole: "customer",
-        senderRole: "store",
-        senderName: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
-        text: "Tiệm đã nhận yêu cầu lấy gấp của quý khách và điều phối tài xế gần nhất.",
-        isQuickReply: true,
-        createdAt: new Date(now - 25 * 60 * 1000).toISOString(),
-        receivedAt: now - 25 * 60 * 1000,
-        isRead: true,
-        customerName: "Khách hàng",
-        storeName: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
-        shipperName: "Nguyễn Văn Hùng",
-        messages: [],
-      },
-    ];
-  }
-  if (role === "driver") {
-    return [
-      {
-        id: "seed-drv-1",
-        orderId: "ord-hn-101",
-        targetRole: "driver",
-        senderRole: "customer",
-        senderName: "Chị Minh Anh",
-        text: "Khi nào tới nơi tài xế gọi điện giúp tôi nhé, tôi gửi túi đồ ở sảnh.",
-        isQuickReply: true,
-        createdAt: new Date(now - 5 * 60 * 1000).toISOString(),
-        receivedAt: now - 5 * 60 * 1000,
-        isRead: false,
-        customerName: "Chị Minh Anh",
-        storeName: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
-        shipperName: "Tài xế Sạch Sẽ",
-        messages: [],
-      },
-      {
-        id: "seed-drv-2",
-        orderId: "ord-hn-101",
-        targetRole: "driver",
-        senderRole: "store",
-        senderName: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
-        text: "Đồ giặt đơn #ORD-HN-101 đã sấy thơm và đóng gói xong, nhờ tài xế qua nhận đi giao.",
-        isQuickReply: false,
-        createdAt: new Date(now - 40 * 60 * 1000).toISOString(),
-        receivedAt: now - 40 * 60 * 1000,
-        isRead: true,
-        customerName: "Chị Minh Anh",
-        storeName: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
-        shipperName: "Tài xế Sạch Sẽ",
-        messages: [],
-      },
-    ];
-  }
-  return [
-    {
-      id: "seed-store-1",
-      orderId: "ord-hn-101",
-      targetRole: "store",
-      senderRole: "customer",
-      senderName: "Chị Minh Anh",
-      text: "Nhờ tiệm giặt kỹ cổ áo sơ mi trắng và giao đúng giờ hẹn giúp tôi nhé!",
-      isQuickReply: true,
-      createdAt: new Date(now - 6 * 60 * 1000).toISOString(),
-      receivedAt: now - 6 * 60 * 1000,
-      isRead: false,
-      customerName: "Chị Minh Anh",
-      storeName: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
-      shipperName: "Nguyễn Văn Hùng",
-      messages: [],
-    },
-    {
-      id: "seed-store-2",
-      orderId: "ord-hn-101",
-      targetRole: "store",
-      senderRole: "driver",
-      senderName: "Tài xế Nguyễn Văn Hùng",
-      text: "Tôi đã nhận túi đồ của khách và đang chạy về tiệm giặt.",
-      isQuickReply: true,
-      createdAt: new Date(now - 35 * 60 * 1000).toISOString(),
-      receivedAt: now - 35 * 60 * 1000,
-      isRead: true,
-      customerName: "Chị Minh Anh",
-      storeName: "Tiệm Giặt Sạch Sẽ Hoàn Kiếm",
-      shipperName: "Nguyễn Văn Hùng",
-      messages: [],
-    },
-  ];
-};
-
 export const loadStoredNotifications = (
   role: ActorRole
 ): StoredNotificationItem[] => {
   try {
+    // Clean up legacy v2 storage that contained fake seed notifications
+    localStorage.removeItem(`sachse_bell_notifications_v2_${role}`);
     const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${role}`);
     if (!raw) {
-      const seeds = getDefaultSeedNotifications(role);
-      localStorage.setItem(
-        `${STORAGE_KEY_PREFIX}${role}`,
-        JSON.stringify(seeds)
-      );
-      return seeds;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed)) {
+      return parsed.filter(
+        (item) => item && typeof item.id === "string" && !item.id.startsWith("seed-")
+      );
+    }
   } catch {}
-  return getDefaultSeedNotifications(role);
+  return [];
 };
 
 export const saveStoredNotifications = (

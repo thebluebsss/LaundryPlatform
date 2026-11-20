@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { ButtonCustom, ButtonOutLine } from './ButtonCustom';
 
@@ -30,8 +31,8 @@ export const DialogConfirm = ({
 }: DialogConfirmType) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  const dialogContent = (
+    <div className="fixed inset-0 z-[1350] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
         onClick={isIconClose ? onClose : undefined}
@@ -92,4 +93,9 @@ export const DialogConfirm = ({
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined") {
+    return createPortal(dialogContent, document.body);
+  }
+  return dialogContent;
 };

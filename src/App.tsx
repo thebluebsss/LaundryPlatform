@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import {
   HashRouter as Router,
   Routes,
@@ -31,41 +31,7 @@ import {
   Power,
 } from "lucide-react";
 
-import {
-  Home,
-  PriceInfo,
-  StoresMapPage,
-  Contact,
-} from "./pages/CustomerWeb/index";
-import { AdminLogin } from "./pages/Login/index";
-import { AdminDashboard } from "./pages/Admin/Dashboard/index";
-import { AdminOrders } from "./pages/Admin/Orders/index";
-import { AdminUsers } from "./pages/Admin/Users/index";
-import { AdminProducts } from "./pages/Admin/Products/index";
-import { AdminServices } from "./pages/Admin/Services/index";
-import { AdminStoresPage } from "./pages/Admin/Stores/index";
-import { StoreOwnerDashboard } from "./pages/StoreOwner/Dashboard/index";
-import { StoreOwnerOrders } from "./pages/StoreOwner/Orders/index";
-import { StoreOwnerEquipment } from "./pages/StoreOwner/Equipment/index";
-import { StoreOwnerDeliveries } from "./pages/StoreOwner/Deliveries/index";
-import { StoreOwnerSettings } from "./pages/StoreOwner/Settings/index";
-import { StoreOwnerMobilePlan } from "./pages/StoreOwner/MobilePlan/index";
-import { StoreOwnerLogin } from "./pages/StoreOwner/Login/index";
-import {
-  MobileCustomerHome,
-  MobileCustomerCreateOrder,
-  MobileCustomerWeightConfirm,
-  MobileCustomerTracking,
-  MobileCustomerAuth,
-  MobileCustomerProfile,
-} from "./pages/MobileCustomer/index";
-import {
-  MobileDriverRadar,
-  MobileDriverActiveTask,
-  MobileDriverWallet,
-  MobileDriverAuth,
-  MobileDriverProfile,
-} from "./pages/MobileDriver/index";
+import { Home } from "./pages/Home/index";
 import {
   DriverRadarProvider,
   useMobileDriverRadar,
@@ -80,9 +46,153 @@ import { MobileNav } from "./components/MobileNav";
 import { InstallAppModal } from "./components/InstallAppModal";
 import { PersonalProfileModal } from "./components/PersonalProfileModal";
 import { MobileAppSplash } from "./components/MobileAppSplash";
-import { SystemDesignPage } from "./pages/SystemDesign/index";
 import { ToastProvider, useToast } from "./components/Toast";
 import { LoadingProvider } from "./context/LoadingContext";
+
+// Route-level code splitting for faster initial page load
+const PriceInfo = lazy(() =>
+  import("./pages/PriceInfo/index").then((m) => ({
+    default: m.PriceInfo,
+  }))
+);
+const StoresMapPage = lazy(() =>
+  import("./pages/StoresMap/index").then((m) => ({
+    default: m.StoresMapPage,
+  }))
+);
+const Contact = lazy(() =>
+  import("./pages/Contact/index").then((m) => ({
+    default: m.Contact,
+  }))
+);
+const SystemDesignPage = lazy(() =>
+  import("./pages/SystemDesign/index").then((m) => ({
+    default: m.SystemDesignPage,
+  }))
+);
+
+const AdminLogin = lazy(() =>
+  import("./pages/Login/index").then((m) => ({ default: m.AdminLogin }))
+);
+const AdminDashboard = lazy(() =>
+  import("./pages/Admin/Dashboard/index").then((m) => ({
+    default: m.AdminDashboard,
+  }))
+);
+const AdminOrders = lazy(() =>
+  import("./pages/Admin/Orders/index").then((m) => ({ default: m.AdminOrders }))
+);
+const AdminUsers = lazy(() =>
+  import("./pages/Admin/Users/index").then((m) => ({ default: m.AdminUsers }))
+);
+const AdminProducts = lazy(() =>
+  import("./pages/Admin/Products/index").then((m) => ({
+    default: m.AdminProducts,
+  }))
+);
+const AdminServices = lazy(() =>
+  import("./pages/Admin/Services/index").then((m) => ({
+    default: m.AdminServices,
+  }))
+);
+const AdminStoresPage = lazy(() =>
+  import("./pages/Admin/Stores/index").then((m) => ({
+    default: m.AdminStoresPage,
+  }))
+);
+
+const StoreOwnerLogin = lazy(() =>
+  import("./pages/StoreOwner/Login/index").then((m) => ({
+    default: m.StoreOwnerLogin,
+  }))
+);
+const StoreOwnerDashboard = lazy(() =>
+  import("./pages/StoreOwner/Dashboard/index").then((m) => ({
+    default: m.StoreOwnerDashboard,
+  }))
+);
+const StoreOwnerOrders = lazy(() =>
+  import("./pages/StoreOwner/Orders/index").then((m) => ({
+    default: m.StoreOwnerOrders,
+  }))
+);
+const StoreOwnerEquipment = lazy(() =>
+  import("./pages/StoreOwner/Equipment/index").then((m) => ({
+    default: m.StoreOwnerEquipment,
+  }))
+);
+const StoreOwnerDeliveries = lazy(() =>
+  import("./pages/StoreOwner/Deliveries/index").then((m) => ({
+    default: m.StoreOwnerDeliveries,
+  }))
+);
+const StoreOwnerSettings = lazy(() =>
+  import("./pages/StoreOwner/Settings/index").then((m) => ({
+    default: m.StoreOwnerSettings,
+  }))
+);
+const StoreOwnerMobilePlan = lazy(() =>
+  import("./pages/StoreOwner/MobilePlan/index").then((m) => ({
+    default: m.StoreOwnerMobilePlan,
+  }))
+);
+
+const MobileCustomerHome = lazy(() =>
+  import("./pages/MobileCustomer/HomeMap/index").then((m) => ({
+    default: m.MobileCustomerHome,
+  }))
+);
+const MobileCustomerCreateOrder = lazy(() =>
+  import("./pages/MobileCustomer/CreateOrder/index").then((m) => ({
+    default: m.MobileCustomerCreateOrder,
+  }))
+);
+const MobileCustomerWeightConfirm = lazy(() =>
+  import("./pages/MobileCustomer/WeightConfirm/index").then((m) => ({
+    default: m.MobileCustomerWeightConfirm,
+  }))
+);
+const MobileCustomerTracking = lazy(() =>
+  import("./pages/MobileCustomer/OrderTracking/index").then((m) => ({
+    default: m.MobileCustomerTracking,
+  }))
+);
+const MobileCustomerAuth = lazy(() =>
+  import("./pages/MobileCustomer/Auth/index").then((m) => ({
+    default: m.MobileCustomerAuth,
+  }))
+);
+const MobileCustomerProfile = lazy(() =>
+  import("./pages/MobileCustomer/Profile/index").then((m) => ({
+    default: m.MobileCustomerProfile,
+  }))
+);
+
+const MobileDriverRadar = lazy(() =>
+  import("./pages/MobileDriver/BroadcastRadar/index").then((m) => ({
+    default: m.MobileDriverRadar,
+  }))
+);
+const MobileDriverActiveTask = lazy(() =>
+  import("./pages/MobileDriver/ActiveTask/index").then((m) => ({
+    default: m.MobileDriverActiveTask,
+  }))
+);
+const MobileDriverWallet = lazy(() =>
+  import("./pages/MobileDriver/DriverWallet/index").then((m) => ({
+    default: m.MobileDriverWallet,
+  }))
+);
+const MobileDriverAuth = lazy(() =>
+  import("./pages/MobileDriver/Auth/index").then((m) => ({
+    default: m.MobileDriverAuth,
+  }))
+);
+const MobileDriverProfile = lazy(() =>
+  import("./pages/MobileDriver/Profile/index").then((m) => ({
+    default: m.MobileDriverProfile,
+  }))
+);
 import {
   getScopedToken,
   getScopedProfile,
@@ -861,6 +971,16 @@ const AppContent = () => {
               : "overflow-x-hidden"
           }`}
         >
+        <Suspense
+            fallback={
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500">
+                <div className="w-8 h-8 rounded-full border-3 border-blue-600/20 border-t-blue-600 animate-spin" />
+                <span className="text-xs font-bold tracking-wide">
+                  Đang tải giao diện...
+                </span>
+              </div>
+            }
+          >
           <Routes>
             <Route path="/" element={<Home />} />
 
@@ -1098,6 +1218,7 @@ const AppContent = () => {
             {/* Catch-all - redirect to home for unknown routes */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+        </Suspense>
         </main>
 
         {/* Quick bottom cards for additional values on user dashboard context */}
