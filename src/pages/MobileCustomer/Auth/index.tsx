@@ -58,18 +58,18 @@ export const MobileCustomerAuth: React.FC = () => {
               <Droplets className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
-                vn.sachse.customer · Hà Nội
+              <span className="text-[11px] font-semibold bg-white/15 px-2.5 py-0.5 rounded-full">
+                Giặt Là Sạch Sẽ · Hà Nội
               </span>
-              <h1 className="text-lg font-black mt-1">
-                Sạch Sẽ — App Khách Hàng
+              <h1 className="text-lg font-bold mt-1">
+                Đăng nhập tài khoản
               </h1>
             </div>
           </div>
         </div>
         <p className="text-xs text-blue-100 mt-3 leading-relaxed">
-          Đặt lịch thu gom tận nhà, theo dõi tiến độ giặt sấy và duyệt cân thực
-          tế minh bạch tại TP. Hà Nội.
+          Đặt lịch lấy đồ tận nhà, theo dõi tiến độ giặt sấy và xác nhận cân
+          nặng minh bạch.
         </p>
       </div>
 
@@ -79,24 +79,24 @@ export const MobileCustomerAuth: React.FC = () => {
           <button
             type="button"
             onClick={() => setMode("login")}
-            className={`py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
               mode === "login"
                 ? "bg-white text-blue-600 shadow-sm"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            Đăng Nhập
+            Đăng nhập
           </button>
           <button
             type="button"
             onClick={() => setMode("register")}
-            className={`py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
               mode === "register"
                 ? "bg-white text-blue-600 shadow-sm"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            Đăng Ký
+            Đăng ký
           </button>
           <button
             type="button"
@@ -104,13 +104,13 @@ export const MobileCustomerAuth: React.FC = () => {
               setMode("forgot");
               setForgotStep(1);
             }}
-            className={`py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
               mode === "forgot"
                 ? "bg-white text-blue-600 shadow-sm"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            Quên Mật Khẩu
+            Quên mật khẩu
           </button>
         </div>
 

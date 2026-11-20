@@ -32,7 +32,7 @@ export const CreatePosOrderModal: React.FC<CreatePosOrderModalProps> = ({
   const [address, setAddress] = useState(
     ownerProfile?.address
       ? `Tại quầy POS · ${ownerProfile.address}`
-      : "Khách gửi trực tiếp tại quầy (Walk-in POS)"
+      : "Khách gửi trực tiếp tại quầy"
   );
   const [district, setDistrict] = useState(resolvedDefaultDistrict);
   const [paymentMethod, setPaymentMethod] = useState("vietqr");
@@ -177,11 +177,11 @@ export const CreatePosOrderModal: React.FC<CreatePosOrderModalProps> = ({
               <Store className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-slate-900">
-                Tạo Đơn Giặt Trực Tiếp Tại Quầy (Walk-in POS)
+              <h3 className="text-lg font-bold text-slate-900">
+                Tạo đơn giặt tại quầy
               </h3>
               <p className="text-xs text-slate-500">
-                Cân trực tiếp trước mặt khách · Tự động chốt khối lượng thực tế (accepted)
+                Cân trực tiếp trước mặt khách · Tự động xác nhận khối lượng thực tế
               </p>
             </div>
           </div>

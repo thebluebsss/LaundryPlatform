@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Box, Typography, Button, Stack, Chip } from "@mui/material";
-import { User, Lock, Eye, EyeOff, ShieldAlert, ArrowLeft } from "lucide-react";
+import { Box, Typography, Button, Stack } from "@mui/material";
+import { User, Lock, Eye, EyeOff, ShieldCheck, ArrowLeft } from "lucide-react";
 import { InputText } from "../../../components/InputText";
 import { useNavigate } from "react-router-dom";
 
@@ -28,31 +28,28 @@ export const LoginFormCard = ({
   };
 
   return (
-    <Box className="w-full max-w-md bg-white border border-slate-100 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
-      {/* Decorative gradient corner */}
-      <Box className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl pointer-events-none bg-indigo-505/10" />
-
+    <Box className="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-lg relative overflow-hidden">
       <Stack spacing={4}>
         <Box className="text-center space-y-2">
-          <Box className="inline-flex w-12 h-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-4 ring-indigo-50">
-            <ShieldAlert className="w-6 h-6 animate-pulse" />
+          <Box className="inline-flex w-12 h-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+            <ShieldCheck className="w-6 h-6" />
           </Box>
           <Typography
             variant="h5"
-            sx={{ fontWeight: "800", color: "indigo.950" }}
+            sx={{ fontWeight: "700", color: "#0f172a", fontSize: "1.35rem" }}
           >
-            Quản Trị Viên Đăng Nhập
+            Đăng nhập quản trị
           </Typography>
           <Typography variant="caption" className="text-slate-500 block">
-            Vui lòng điền thông tin cấp quyền để truy cập trang điều phối vận đơn,
-            doanh thu và quản lý khách hàng
+            Dành cho quản trị viên theo dõi đơn hàng, chi nhánh và tài khoản hệ
+            thống
           </Typography>
         </Box>
 
         {error && (
           <Box className="bg-rose-50 border border-rose-200 p-3 rounded-xl">
             <Typography variant="caption" className="text-rose-600 font-semibold block">
-              ⚠ {error}
+              {error}
             </Typography>
           </Box>
         )}
@@ -60,9 +57,9 @@ export const LoginFormCard = ({
         <form onSubmit={handleSubmit}>
           <Stack spacing={3}>
             <InputText
-              title="Tên đăng nhập quản trị"
+              title="Tên đăng nhập"
               required
-              placeholder="Nhập username"
+              placeholder="Nhập tên đăng nhập"
               startAdornment={<User className="w-4 h-4 text-slate-400" />}
               inputProps={{
                 value: username,
@@ -71,9 +68,9 @@ export const LoginFormCard = ({
             />
 
             <InputText
-              title="Mật khẩu bảo mật"
+              title="Mật khẩu"
               required
-              placeholder="Nhập password"
+              placeholder="Nhập mật khẩu"
               startAdornment={<Lock className="w-4 h-4 text-slate-400" />}
               endAdornment={
                 <Button
@@ -81,7 +78,7 @@ export const LoginFormCard = ({
                   sx={{
                     p: 0,
                     minWidth: "auto",
-                    color: "slate-400",
+                    color: "#94a3b8",
                     "&:hover": { bgcolor: "transparent" },
                   }}
                 >
@@ -105,43 +102,43 @@ export const LoginFormCard = ({
               fullWidth
               variant="contained"
               sx={{
-                py: 1.5,
+                py: 1.4,
                 borderRadius: "12px",
-                fontWeight: "bold",
+                fontWeight: "600",
                 textTransform: "none",
-                bgcolor: "indigo.600",
-                "&:hover": { bgcolor: "indigo.700" },
-                boxShadow: "0 10px 15px -3px rgba(79, 70, 229, 0.2)",
+                bgcolor: "#4f46e5",
+                "&:hover": { bgcolor: "#4338ca" },
+                boxShadow: "none",
               }}
             >
-              {loading ? "Đang xác thực..." : "Yêu Cầu Truy Cập Hệ Thống"}
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </Button>
 
             <Button
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/")}
               fullWidth
               variant="text"
               startIcon={<ArrowLeft className="w-4 h-4" />}
               sx={{
                 py: 1,
                 fontSize: "12px",
-                fontWeight: "700",
+                fontWeight: "600",
                 textTransform: "none",
-                color: "slate.500",
+                color: "#64748b",
                 "&:hover": {
-                  color: "indigo.600",
+                  color: "#4f46e5",
                   bgcolor: "transparent"
                 }
               }}
             >
-              Quay lại đăng nhập thành viên (Khách hàng)
+              Về trang chủ
             </Button>
           </Stack>
         </form>
 
         <Box className="border-t border-slate-100 pt-4 flex flex-col items-center gap-2">
           <Typography variant="caption" className="text-slate-400">
-            Hệ thống quản lý nội bộ Giặt Là Sạch Sẽ
+            Hệ thống quản trị nội bộ Giặt Là Sạch Sẽ
           </Typography>
         </Box>
       </Stack>

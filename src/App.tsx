@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   HashRouter as Router,
   Routes,
@@ -29,6 +29,7 @@ import {
   Wallet,
   PlusCircle,
   Power,
+  ChevronDown,
 } from "lucide-react";
 
 import { Home } from "./pages/Home/index";
@@ -237,11 +238,11 @@ const StoreOwnerRoute = ({ children }: { children: React.ReactElement }) => {
   useEffect(() => {
     if (!token && !adminToken) {
       showToast(
-        "Vui lòng đăng nhập Cổng Chủ Cửa Hàng (/store-owner/login) để truy cập!",
+        "Vui lòng đăng nhập tài khoản chủ cửa hàng để tiếp tục.",
         "warning",
       );
     } else if (role && role !== "store_owner" && role !== "admin" && !adminToken) {
-      showToast("Tài khoản hiện tại không có quyền Chủ cửa hàng!", "error");
+      showToast("Tài khoản hiện tại không có quyền chủ cửa hàng.", "error");
     }
   }, [token, adminToken, role, showToast]);
 
@@ -382,6 +383,26 @@ const AppContent = () => {
 
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isPartnerMenuOpen, setIsPartnerMenuOpen] = useState(false);
+  const partnerMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setIsPartnerMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isPartnerMenuOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        partnerMenuRef.current &&
+        !partnerMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsPartnerMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isPartnerMenuOpen]);
 
   const buildTarget = (import.meta as any).env?.VITE_APP_TARGET as
     | "customer"
@@ -525,7 +546,7 @@ const AppContent = () => {
     return (
       <MobileAppSplash
         appType="customer"
-        durationMs={2400}
+        durationMs={900}
         isLoggedIn={hasCustomerToken}
         onFinish={() => {
           setCustomerSplashDone(true);
@@ -547,7 +568,7 @@ const AppContent = () => {
     return (
       <MobileAppSplash
         appType="driver"
-        durationMs={2400}
+        durationMs={900}
         isLoggedIn={hasDriverToken}
         onFinish={() => {
           setDriverSplashDone(true);
@@ -789,178 +810,265 @@ const AppContent = () => {
 
         {/* Admin Header - Only show on admin pages when logged in */}
         {isAdminPage && isAdminLogged && location.pathname !== "/admin/login" && (
-          <header className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 border-b border-slate-100 bg-white rounded-2xl px-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-md">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-[9px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded tracking-widest">
-                  Bảng Điều Khiển Admin · TP. Hà Nội
+          <header className="bg-white rounded-2xl border border-slate-200 px-5 py-3.5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <NavLink
+                to="/admin/dashboard"
+                className="flex items-center gap-2.5 shrink-0"
+              >
+                <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <span className="text-base font-bold text-slate-900 tracking-tight whitespace-nowrap">
+                  Giặt Là Sạch Sẽ{" "}
+                  <span className="font-normal text-slate-400">·</span>{" "}
+                  <span className="text-sm font-medium text-indigo-600">
+                    Quản trị
+                  </span>
                 </span>
-                <h1 className="block text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-                  Hệ Thống Quản Trị Platform
-                </h1>
-              </div>
+              </NavLink>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="text-right mr-2">
-                <p className="text-xs font-bold text-slate-700">
-                  Quản trị viên Platform
-                </p>
-                <p className="text-[10px] text-emerald-600 font-semibold">
-                  Toàn quyền hệ thống
-                </p>
-              </div>
-              <button
-                onClick={() => setIsProfileModalOpen(true)}
-                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl font-bold cursor-pointer transition-colors text-xs flex items-center gap-1.5"
+            <nav className="flex items-center gap-1 overflow-x-auto py-1 xl:py-0">
+              <NavLink
+                to="/admin/dashboard"
+                className={({ isActive }) =>
+                  `px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`
+                }
               >
-                <CircleUser className="w-4 h-4" />
-                Hồ Sơ Admin
+                Tổng quan
+              </NavLink>
+              <NavLink
+                to="/admin/orders"
+                className={({ isActive }) =>
+                  `px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`
+                }
+              >
+                Đơn hàng
+              </NavLink>
+              <NavLink
+                to="/admin/stores"
+                className={({ isActive }) =>
+                  `px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`
+                }
+              >
+                Chi nhánh
+              </NavLink>
+              <NavLink
+                to="/admin/services"
+                className={({ isActive }) =>
+                  `px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`
+                }
+              >
+                Dịch vụ
+              </NavLink>
+              <NavLink
+                to="/admin/products"
+                className={({ isActive }) =>
+                  `px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`
+                }
+              >
+                Sản phẩm
+              </NavLink>
+              <NavLink
+                to="/admin/users"
+                className={({ isActive }) =>
+                  `px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`
+                }
+              >
+                Tài khoản
+              </NavLink>
+            </nav>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(true)}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium cursor-pointer transition-colors text-xs flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <CircleUser className="w-4 h-4 text-slate-500" />
+                <span>Hồ sơ</span>
               </button>
               <button
+                type="button"
                 onClick={handleAdminLogout}
-                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-xl font-bold cursor-pointer transition-colors text-xs flex items-center gap-2"
+                className="px-3 py-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg font-medium cursor-pointer transition-colors text-xs flex items-center gap-1.5 whitespace-nowrap"
               >
                 <LogOut className="w-4 h-4" />
-                Đăng Xuất
+                <span>Đăng xuất</span>
               </button>
             </div>
           </header>
         )}
 
-        {/* Public Web Information & App Download Portal Header */}
+        {/* Public Web Clean Unified Header */}
         {!isAdminPage &&
           !isStoreOwnerPage &&
           !isMobileCustomerPage &&
           !isMobileDriverPage && (
-            <header className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <NavLink
-                  to="/"
-                  className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
-                >
-                  <Droplets className="w-6 h-6 text-blue-400" />
+            <header className="relative z-30 bg-white rounded-2xl border border-slate-200/80 px-5 py-3.5 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center justify-between gap-3">
+                <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shrink-0">
+                    <Droplets className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <span className="block text-base font-bold text-slate-900 tracking-tight leading-tight">
+                      Giặt Là <span className="text-blue-600">Sạch Sẽ</span>
+                    </span>
+                    <span className="block text-[11px] text-slate-500 font-medium">
+                      Giặt sấy giao nhận · Hà Nội
+                    </span>
+                  </div>
                 </NavLink>
-                <div>
-                  <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded tracking-widest">
-                    Cổng Thông Tin & Tải App · TP. Hà Nội
-                  </span>
-                  <NavLink
-                    to="/"
-                    className="block text-xl md:text-2xl font-black text-slate-900 tracking-tight hover:text-blue-600 transition-colors"
-                  >
-                    Giặt Là <span className="text-blue-600">Sạch Sẽ</span>
-                  </NavLink>
+
+                <div className="flex items-center gap-2 lg:hidden">
+                  <NotificationBellButton role="customer" />
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 text-xs flex-wrap justify-center">
-                <button
-                  onClick={() => setIsInstallModalOpen(true)}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black flex items-center gap-1.5 cursor-pointer transition-colors text-xs whitespace-nowrap shrink-0 shadow-sm"
+              <nav className="flex items-center gap-1 overflow-x-auto py-0.5 lg:py-0">
+                <NavLink
+                  to="/"
+                  end
+                  className={({ isActive }) =>
+                    `px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-colors whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    }`
+                  }
                 >
-                  <Download className="w-4 h-4" />
-                  Tải 2 App Mobile (QR)
+                  Trang chủ
+                </NavLink>
+                <NavLink
+                  to="/stores-map"
+                  className={({ isActive }) =>
+                    `px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-colors whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    }`
+                  }
+                >
+                  Chi nhánh
+                </NavLink>
+                <NavLink
+                  to="/price-info"
+                  className={({ isActive }) =>
+                    `px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-colors whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    }`
+                  }
+                >
+                  Bảng giá
+                </NavLink>
+                <NavLink
+                  to="/contact"
+                  className={({ isActive }) =>
+                    `px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-colors whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    }`
+                  }
+                >
+                  Liên hệ
+                </NavLink>
+              </nav>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Partner & Portal Dropdown */}
+                <div className="relative" ref={partnerMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsPartnerMenuOpen((v) => !v)}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold flex items-center gap-1 cursor-pointer transition-colors text-xs whitespace-nowrap"
+                  >
+                    <span>Đối tác</span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform ${
+                        isPartnerMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isPartnerMenuOpen && (
+                    <div className="absolute left-0 lg:left-auto lg:right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200 shadow-xl p-1.5 z-50 space-y-0.5">
+                      <NavLink
+                        to="/mobile-driver/radar"
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                      >
+                        <Bike className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Ứng dụng tài xế</span>
+                      </NavLink>
+                      <NavLink
+                        to="/store-owner/login"
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                      >
+                        <Store className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span>Cổng chủ tiệm giặt</span>
+                      </NavLink>
+                      <div className="my-1 border-t border-slate-100" />
+                      <NavLink
+                        to="/admin/login"
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-500 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <span>Quản trị hệ thống</span>
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsInstallModalOpen(true)}
+                  className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs whitespace-nowrap"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Tải ứng dụng</span>
                 </button>
 
                 <NavLink
                   to="/mobile-customer/home"
-                  className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl font-black flex items-center gap-1.5 cursor-pointer transition-colors text-xs whitespace-nowrap shrink-0"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs whitespace-nowrap shadow-2xs"
                 >
-                  <Smartphone className="w-4 h-4" />
-                  App Khách Hàng
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Đặt giặt ngay</span>
                 </NavLink>
 
-                <NavLink
-                  to="/mobile-driver/radar"
-                  className="px-3.5 py-2 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-xl font-black flex items-center gap-1.5 cursor-pointer transition-colors text-xs whitespace-nowrap shrink-0"
-                >
-                  <Bike className="w-4 h-4" />
-                  App Tài Xế
-                </NavLink>
-
-                <NavLink
-                  to="/store-owner/login"
-                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black flex items-center gap-1.5 cursor-pointer transition-colors text-xs whitespace-nowrap shrink-0"
-                >
-                  <Store className="w-4 h-4 text-blue-400" />
-                  Web Chủ Tiệm Giặt
-                </NavLink>
-
-                <NavLink
-                  to="/admin/login"
-                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black flex items-center gap-1.5 cursor-pointer transition-colors text-xs whitespace-nowrap shrink-0"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  Web Quản Trị Admin
-                </NavLink>
-
-                <NotificationBellButton role="customer" />
+                <div className="hidden lg:block">
+                  <NotificationBellButton role="customer" />
+                </div>
               </div>
             </header>
-          )}
-
-        {/* Public Web Information Navigation Tabs (No Web Customer Login/Ordering) */}
-        {!isAdminPage &&
-          !isStoreOwnerPage &&
-          !isMobileCustomerPage &&
-          !isMobileDriverPage && (
-            <nav className="bg-white p-2 rounded-2xl border border-slate-100 shadow-sm flex flex-wrap gap-1.5">
-              <NavLink
-                to="/"
-                className={({ isActive }) =>
-                  `flex-1 min-w-[130px] py-3 text-center text-xs md:text-sm font-black rounded-xl transition-all duration-200 cursor-pointer ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`
-                }
-              >
-                1. Cổng Giới Thiệu & Tải App
-              </NavLink>
-
-              <NavLink
-                to="/stores-map"
-                className={({ isActive }) =>
-                  `flex-1 min-w-[130px] py-3 text-center text-xs md:text-sm font-black rounded-xl transition-all duration-200 cursor-pointer ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`
-                }
-              >
-                2. Bản Đồ Chi Nhánh Hà Nội
-              </NavLink>
-
-              <NavLink
-                to="/price-info"
-                className={({ isActive }) =>
-                  `flex-1 min-w-[130px] py-3 text-center text-xs md:text-sm font-black rounded-xl transition-all duration-200 cursor-pointer ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`
-                }
-              >
-                3. Bảng Giá & Quy Trình
-              </NavLink>
-
-              <NavLink
-                to="/contact"
-                className={({ isActive }) =>
-                  `flex-1 min-w-[130px] py-3 text-center text-xs md:text-sm font-black rounded-xl transition-all duration-200 cursor-pointer ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`
-                }
-              >
-                4. Liên Hệ & Đăng Ký Đối Tác
-              </NavLink>
-            </nav>
           )}
 
         {/* Dynamic Outlet View Container of React Router */}
@@ -1221,44 +1329,44 @@ const AppContent = () => {
         </Suspense>
         </main>
 
-        {/* Quick bottom cards for additional values on user dashboard context */}
+        {/* Quick bottom cards for additional values on public home */}
         {!isAdminPage && !isAdminLogged && location.pathname === "/" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-4 border-t border-slate-150 pt-8 border-slate-200">
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex gap-3 text-xs md:text-sm text-slate-700">
-              <ShieldCheck className="w-6 h-6 text-blue-650 text-blue-600 flex-shrink-0" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 my-4 border-t border-slate-200 pt-8">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex gap-3.5 text-xs md:text-sm text-slate-700">
+              <ShieldCheck className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-extrabold text-slate-800 text-sm">
-                  Điện Nước Khép Kín
+                <h4 className="font-bold text-slate-900 text-sm">
+                  Giặt riêng từng mẻ
                 </h4>
-                <p className="text-slate-500 text-xs mt-1 leading-relaxed">
-                  Bộ lồng lọc Nano gia tăng khí nóng vô trùng, khử nấm mốc cực
-                  thơm lâu dài trên từng thớ lụa thô sơ dập mộc.
+                <p className="text-slate-600 text-xs mt-1 leading-relaxed">
+                  Mỗi đơn hàng được giặt và sấy riêng trên một lồng máy, không
+                  giặt chung, đảm bảo vệ sinh và tránh thất lạc đồ.
                 </p>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex gap-3 text-xs md:text-sm text-slate-700">
-              <CalendarCheck className="w-6 h-6 text-indigo-600 flex-shrink-0" />
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex gap-3.5 text-xs md:text-sm text-slate-700">
+              <CalendarCheck className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-extrabold text-slate-800 text-sm">
-                  Trị Liệu & Phân Loại
+                <h4 className="font-bold text-slate-900 text-sm">
+                  Phân loại theo chất liệu
                 </h4>
-                <p className="text-slate-500 text-xs mt-1 leading-relaxed">
-                  Đội ngũ kỹ thuật luôn phân chia quần áo màu riêng biệt, chọn
-                  hóa phẩm mộc mạc an toàn tuyệt đối với làn da mẫn cảm em bé.
+                <p className="text-slate-600 text-xs mt-1 leading-relaxed">
+                  Tách riêng đồ trắng, đồ màu, đồ em bé và vải nhạy cảm; chọn
+                  nước giặt dịu nhẹ phù hợp từng chất liệu.
                 </p>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex gap-3 text-xs md:text-sm text-slate-700">
-              <ExternalLink className="w-6 h-6 text-amber-500 flex-shrink-0" />
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex gap-3.5 text-xs md:text-sm text-slate-700">
+              <ExternalLink className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-extrabold text-slate-800 text-sm">
-                  Thanh Toán Linh Hoạt
+                <h4 className="font-bold text-slate-900 text-sm">
+                  Cân trước – trả sau linh hoạt
                 </h4>
-                <p className="text-slate-500 text-xs mt-1 leading-relaxed">
-                  Khách hàng chỉ trả tiền mặt hoặc chuyển khoản rảnh tay sau khi
-                  chạm tay kiểm đếm quần áo sạch sẽ hoàn toàn tại cổng nhà.
+                <p className="text-slate-600 text-xs mt-1 leading-relaxed">
+                  Kiểm tra và duyệt khối lượng thực tế ngay trên điện thoại trước
+                  khi giặt. Thanh toán tiền mặt hoặc VietQR khi nhận đồ.
                 </p>
               </div>
             </div>
@@ -1274,57 +1382,57 @@ const AppContent = () => {
               <NavLink
                 to="/mobile-customer/home"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-semibold transition-all ${
                     isActive ? "text-blue-600 bg-blue-50" : "text-slate-500"
                   }`
                 }
               >
                 <MapPin className="w-4 h-4 mb-0.5" />
-                <span>Tìm Tiệm</span>
+                <span>Tìm tiệm</span>
               </NavLink>
               <NavLink
                 to="/mobile-customer/create-order"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-semibold transition-all ${
                     isActive ? "text-blue-600 bg-blue-50" : "text-slate-500"
                   }`
                 }
               >
                 <PlusCircle className="w-4 h-4 mb-0.5" />
-                <span>Tạo Đơn</span>
+                <span>Tạo đơn</span>
               </NavLink>
               <NavLink
                 to="/mobile-customer/weight-confirm"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-semibold transition-all ${
                     isActive ? "text-blue-600 bg-blue-50" : "text-slate-500"
                   }`
                 }
               >
                 <Scale className="w-4 h-4 mb-0.5" />
-                <span>Duyệt Cân</span>
+                <span>Duyệt cân</span>
               </NavLink>
               <NavLink
                 to="/mobile-customer/tracking"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-semibold transition-all ${
                     isActive ? "text-blue-600 bg-blue-50" : "text-slate-500"
                   }`
                 }
               >
                 <ShoppingBag className="w-4 h-4 mb-0.5" />
-                <span>Tiến Độ</span>
+                <span>Tiến độ</span>
               </NavLink>
               <NavLink
                 to="/mobile-customer/profile"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-semibold transition-all ${
                     isActive ? "text-blue-600 bg-blue-50" : "text-slate-500"
                   }`
                 }
               >
                 <CircleUser className="w-4 h-4 mb-0.5" />
-                <span>Hồ Sơ</span>
+                <span>Hồ sơ</span>
               </NavLink>
             </div>
           </div>
@@ -1338,7 +1446,7 @@ const AppContent = () => {
               <NavLink
                 to="/mobile-driver/radar"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-semibold transition-all ${
                     isActive
                       ? "text-emerald-600 bg-emerald-50"
                       : "text-slate-500"
@@ -1346,12 +1454,12 @@ const AppContent = () => {
                 }
               >
                 <Radio className="w-4 h-4 mb-0.5" />
-                <span>Sàn Chuyến</span>
+                <span>Nhận chuyến</span>
               </NavLink>
               <NavLink
                 to="/mobile-driver/active-task"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-semibold transition-all ${
                     isActive
                       ? "text-emerald-600 bg-emerald-50"
                       : "text-slate-500"
@@ -1359,12 +1467,12 @@ const AppContent = () => {
                 }
               >
                 <Truck className="w-4 h-4 mb-0.5" />
-                <span>Đang Giao</span>
+                <span>Đang giao</span>
               </NavLink>
               <NavLink
                 to="/mobile-driver/wallet"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-semibold transition-all ${
                     isActive
                       ? "text-emerald-600 bg-emerald-50"
                       : "text-slate-500"
@@ -1372,12 +1480,12 @@ const AppContent = () => {
                 }
               >
                 <Wallet className="w-4 h-4 mb-0.5" />
-                <span>Ví Thu Nhập</span>
+                <span>Thu nhập</span>
               </NavLink>
               <NavLink
                 to="/mobile-driver/profile"
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-bold transition-all ${
+                  `flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-semibold transition-all ${
                     isActive
                       ? "text-emerald-600 bg-emerald-50"
                       : "text-slate-500"
@@ -1385,103 +1493,103 @@ const AppContent = () => {
                 }
               >
                 <CircleUser className="w-4 h-4 mb-0.5" />
-                <span>Hồ Sơ</span>
+                <span>Hồ sơ</span>
               </NavLink>
             </div>
           </div>
         )}
 
-      {/* Professional structured Footer block (Hidden in Standalone Mobile Apps) */}
+      {/* Structured Footer block (Hidden in Standalone Mobile Apps) */}
       {!standaloneApp && !isMobileCustomerPage && !isMobileDriverPage && (
         <footer className="bg-slate-900 text-white mt-12 py-10 border-t border-slate-800 relative z-10 text-xs md:text-sm">
           <div className="max-w-6xl w-full mx-auto px-4 md:px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold">
-                  <Droplets className="w-4 h-4 text-blue-400" />
+                  <Droplets className="w-4 h-4 text-blue-200" />
                 </div>
-                <h3 className="font-extrabold text-white text-base">
-                  Hệ Thống Tiệm Giặt Sạch Sẽ · Hà Nội
+                <h3 className="font-bold text-white text-base">
+                  Giặt Là Sạch Sẽ · Hà Nội
                 </h3>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Dịch vụ thu gom và phát trả đồ giặt là vô trùng trọn gói tại TP.
-                Hà Nội, tích hợp 2 ứng dụng di động riêng cho Khách Hàng và Tài
-                Xế cùng 2 cổng Web Quản Trị cho Chủ Tiệm & Admin Platform.
+                Dịch vụ giặt sấy giao nhận tận nhà tại Hà Nội. Cân đo minh bạch
+                trước khi giặt, mỗi đơn một lồng máy riêng và giao trả đúng hẹn
+                mỗi ngày.
               </p>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-400">
-              <h4 className="font-extrabold text-white uppercase tracking-wider text-xs">
-                Liên hệ văn phòng Hà Nội
+            <div className="space-y-2.5 text-xs text-slate-400">
+              <h4 className="font-semibold text-white text-xs">
+                Liên hệ hỗ trợ
               </h4>
               <p>
-                • Hotline hỗ trợ 24/7:{" "}
-                <span className="text-white font-semibold">1900-5454-99</span>
+                • Tổng đài (07:00 – 22:00):{" "}
+                <span className="text-white font-semibold tabular-nums">
+                  1900-5454-99
+                </span>
               </p>
               <p>
-                • Thư điện tử:{" "}
+                • Email:{" "}
                 <span className="text-white">chamsockhachhang@sachse.vn</span>
               </p>
               <p>
-                • Địa chỉ: Shophouse SV12, KĐT Vinhomes Ocean Park, Gia Lâm, Hà
-                Nội
+                • Văn phòng: Shophouse SV12, KĐT Vinhomes Ocean Park, Gia Lâm,
+                Hà Nội
               </p>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-400">
-              <h4 className="font-extrabold text-white uppercase tracking-wider text-xs">
-                Quận / Huyện phục vụ tại TP. Hà Nội
+            <div className="space-y-2.5 text-xs text-slate-400">
+              <h4 className="font-semibold text-white text-xs">
+                Khu vực phục vụ tại Hà Nội
               </h4>
               <p>
                 • Nội thành: Cầu Giấy, Đống Đa, Ba Đình, Hoàn Kiếm, Tây Hồ, Hai
                 Bà Trưng, Thanh Xuân, Hoàng Mai.
               </p>
               <p>
-                • Khu đô thị & mở rộng: Nam Từ Liêm, Bắc Từ Liêm, Hà Đông, Long
+                • Khu đô thị & lân cận: Nam Từ Liêm, Bắc Từ Liêm, Hà Đông, Long
                 Biên, Gia Lâm, Đông Anh, Thanh Trì.
               </p>
             </div>
           </div>
 
           <div className="max-w-6xl w-full mx-auto px-4 md:px-6 border-t border-slate-800/80 mt-8 pt-6 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-            <p>
-              © 2026 Giặt Là Sạch Sẽ Việt Nam Co., Ltd. Tất cả quyền lợi bảo lưu.
-            </p>
+            <p>© 2026 Giặt Là Sạch Sẽ. Bảo lưu mọi quyền.</p>
             <div className="flex flex-wrap items-center gap-4">
               <NavLink
                 to="/mobile-customer/login"
-                className="text-emerald-400 hover:text-emerald-300 font-bold transition-colors"
+                className="text-slate-300 hover:text-white font-medium transition-colors"
               >
-                App Khách Hàng (Mobile)
+                Ứng dụng khách hàng
               </NavLink>
-              <span>•</span>
+              <span>·</span>
               <NavLink
                 to="/mobile-driver/login"
-                className="text-teal-400 hover:text-teal-300 font-bold transition-colors"
+                className="text-slate-300 hover:text-emerald-400 font-medium transition-colors"
               >
-                App Tài Xế (Mobile)
+                Ứng dụng tài xế
               </NavLink>
-              <span>•</span>
+              <span>·</span>
               <NavLink
                 to="/store-owner/login"
-                className="text-blue-400 hover:text-blue-300 font-bold transition-colors"
+                className="text-slate-300 hover:text-blue-400 font-medium transition-colors"
               >
-                Cổng Web Chủ Cửa Hàng
+                Cổng chủ tiệm
               </NavLink>
-              <span>•</span>
+              <span>·</span>
               <NavLink
                 to="/admin/login"
-                className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors"
+                className="text-slate-400 hover:text-indigo-400 font-medium transition-colors"
               >
-                Cổng Quản Trị Platform (Admin)
+                Quản trị hệ thống
               </NavLink>
             </div>
           </div>
         </footer>
       )}
 
-      {/* Mobile Bottom Bar for legacy web portal only */}
+      {/* Mobile Bottom Bar for public web */}
       {!standaloneApp && !isMobileCustomerPage && !isMobileDriverPage && (
         <MobileNav />
       )}
@@ -1495,7 +1603,7 @@ const AppContent = () => {
       {/* Global Floating Q&A Chatbot Widget for Customer and Shipper */}
       <RoleChatbotWidget />
 
-      {/* App Install / Electron Modal */}
+      {/* App Install Modal */}
       <InstallAppModal
         isOpen={isInstallModalOpen}
         onClose={() => setIsInstallModalOpen(false)}
@@ -1507,9 +1615,9 @@ const AppContent = () => {
         onClose={() => setIsProfileModalOpen(false)}
         roleLabel={
           isAdminPage
-            ? "Quản trị viên Platform"
+            ? "Quản trị viên"
             : isStoreOwnerPage
-              ? "Đối tác Chủ Cửa Hàng"
+              ? "Chủ cửa hàng"
               : "Khách hàng"
         }
       />

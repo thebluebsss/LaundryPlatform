@@ -49,7 +49,7 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
         "SN-" + Math.random().toString(36).substring(2, 7).toUpperCase()
       );
       setStatus("working");
-      setLocation("Tiệm Giặt Sấy Vô Trùng Q1 - Khu Giặt Chính");
+      setLocation("Khu giặt chính - Cửa hàng");
       setNotes("");
     }
   }, [editingItem, isOpen]);

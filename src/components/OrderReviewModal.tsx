@@ -118,8 +118,8 @@ export const OrderReviewModal: React.FC<OrderReviewModalProps> = ({
                   <div className="text-[11px] font-bold text-blue-600">
                     1. Đánh giá Cửa hàng giặt sấy
                   </div>
-                  <div className="text-xs font-black text-slate-900">
-                    {order.storeName || "Tiệm Giặt Sấy Vô Trùng Q1"}
+                  <div className="text-xs font-bold text-slate-900">
+                    {order.storeName || "Tiệm Giặt Sạch Sẽ Hoàn Kiếm"}
                   </div>
                 </div>
               </div>

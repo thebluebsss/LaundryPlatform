@@ -242,15 +242,15 @@ export const useAdminUsers = () => {
               ? "Quản trị viên"
               : "Khách hàng";
       showToast(
-        `Đã lưu quyền "${roleLabel}" vào CSDL cho tài khoản ${
+        `Đã cập nhật quyền "${roleLabel}" cho tài khoản ${
           user.fullName || user.username
-        }!`,
+        }.`,
         "success"
       );
     } catch (err: any) {
       showToast(
         err.response?.data?.message ||
-          "Không thể lưu phân quyền mới vào CSDL!",
+          "Không thể cập nhật phân quyền cho tài khoản này.",
         "error"
       );
     }

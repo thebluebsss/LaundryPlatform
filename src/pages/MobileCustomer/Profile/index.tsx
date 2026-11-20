@@ -101,12 +101,8 @@ export const MobileCustomerProfile: React.FC = () => {
             type="submit"
             loading={saving}
             iconStart={<Save className="w-4 h-4" />}
-            label={
-              saving
-                ? "ĐANG LƯU HỒ SƠ..."
-                : "LƯU THAY ĐỔI THÔNG TIN CÁ NHÂN"
-            }
-            textClassName="!text-xs !font-black"
+            label={saving ? "Đang lưu thay đổi..." : "Lưu thay đổi"}
+            textClassName="!text-xs !font-semibold"
           />
         </form>
 

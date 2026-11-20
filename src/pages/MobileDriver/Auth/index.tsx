@@ -38,33 +38,33 @@ export const MobileDriverAuth: React.FC = () => {
               <Bike className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
-                vn.sachse.driver · Hà Nội
+              <span className="text-[11px] font-semibold bg-white/15 px-2.5 py-0.5 rounded-full">
+                Đối tác giao nhận · Hà Nội
               </span>
-              <h1 className="text-lg font-black mt-1">
-                Sạch Sẽ Tài Xế (Driver App)
+              <h1 className="text-lg font-bold mt-1">
+                Sạch Sẽ Tài Xế
               </h1>
             </div>
           </div>
         </div>
         <p className="text-xs text-emerald-100 mt-3 leading-relaxed">
-          Ứng dụng dành riêng cho Đối tác Tài xế thu gom đồ bẩn và giao trả đồ
-          sạch tại TP. Hà Nội.
+          Ứng dụng dành cho đối tác tài xế nhận đơn lấy đồ và giao trả đồ sạch
+          tại Hà Nội.
         </p>
       </div>
 
       <div className="p-5 space-y-4">
         <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200/80 text-[11px] text-amber-900 leading-relaxed">
-          <span className="font-black">Cấp tài khoản Đối tác Shipper:</span> Tài
-          xế không tự đăng ký trực tuyến. Hồ sơ (CCCD, Bằng lái GPLX, Biển số
-          xe) do Quản trị viên Platform thẩm định trực tiếp và cấp tài khoản.
+          <span className="font-bold">Lưu ý đăng ký tài xế:</span> Tài khoản
+          đối tác được cấp trực tiếp sau khi hoàn tất xác minh hồ sơ (CCCD, bằng
+          lái xe và biển số xe) với đội ngũ vận hành Sạch Sẽ.
         </div>
 
         <form onSubmit={handleDriverLogin} className="space-y-3.5">
           <InputText
-            title="Username, Email hoặc Số điện thoại Tài xế"
+            title="Tên đăng nhập, email hoặc số điện thoại"
             required
-            placeholder="Nhập username, email hoặc SĐT tài xế"
+            placeholder="Nhập tên đăng nhập, email hoặc số điện thoại"
             startAdornment={<User className="w-4 h-4 text-slate-400" />}
             inputProps={{
               value: username,
@@ -75,7 +75,7 @@ export const MobileDriverAuth: React.FC = () => {
           <InputText
             title="Mật khẩu"
             required
-            placeholder="Nhập mật khẩu bảo mật"
+            placeholder="Nhập mật khẩu"
             startAdornment={<Lock className="w-4 h-4 text-slate-400" />}
             endAdornment={
               <button
@@ -101,9 +101,9 @@ export const MobileDriverAuth: React.FC = () => {
             type="submit"
             loading={loading}
             iconStart={<LogIn className="w-4 h-4" />}
-            label={loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP APP TÀI XẾ"}
+            label={loading ? "Đang đăng nhập..." : "Đăng nhập"}
             className="!bg-emerald-600 hover:!bg-emerald-700"
-            textClassName="!text-xs !font-black"
+            textClassName="!text-xs !font-semibold"
           />
         </form>
       </div>

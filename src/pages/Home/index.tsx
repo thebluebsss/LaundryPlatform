@@ -70,29 +70,29 @@ export const Home: React.FC = () => {
   const workflowSteps = [
     {
       step: "Bước 1",
-      title: "Chọn Tiệm & Kê Khai Đồ Giặt",
-      desc: "Chọn chi nhánh gần bạn, tách dòng đồ theo chất liệu vải hoặc dùng AI quét nhãn mác tự động.",
+      title: "Chọn tiệm & kê khai đồ giặt",
+      desc: "Chọn chi nhánh gần nhà, chọn dịch vụ theo cân hoặc theo món và ghi chú riêng cho từng loại vải.",
       icon: Shirt,
       color: "text-blue-600 bg-blue-50 border-blue-100",
     },
     {
       step: "Bước 2",
-      title: "Điều Phối Shipper Thu Gom",
-      desc: "Cửa hàng phát sóng chuyến thu gom tới các Shipper trực tuyến để đến tận cửa lấy đồ.",
+      title: "Tài xế đến tận cửa lấy đồ",
+      desc: "Tài xế gần khu vực của bạn nhận chuyến, đến lấy túi đồ tận nhà và bàn giao về cửa hàng.",
       icon: Truck,
       color: "text-indigo-600 bg-indigo-50 border-indigo-100",
     },
     {
       step: "Bước 3",
-      title: "Cân Thực Tế & Khách Duyệt Giá",
-      desc: "Chủ tiệm kiểm tra & cân thực tế từng dòng đồ. Nếu chênh lệch vượt ngưỡng sẽ gửi thông báo chờ bạn duyệt.",
+      title: "Cân thực tế & xác nhận giá",
+      desc: "Cửa hàng phân loại, cân chính xác từng dòng đồ và gửi thông báo để bạn duyệt chi phí trước khi giặt.",
       icon: Scale,
       color: "text-amber-600 bg-amber-50 border-amber-100",
     },
     {
       step: "Bước 4",
-      title: "Giặt Vô Trùng & Giao Trả Sạch Thơm",
-      desc: "Giặt sấy lồng riêng khử khuẩn Nano Bạc, đóng gói phẳng phiu và Shipper giao trả tận nhà.",
+      title: "Giặt sạch & giao trả tận nhà",
+      desc: "Đồ được giặt riêng từng mẻ, sấy khô gấp phẳng và giao trả đúng khung giờ bạn chọn.",
       icon: Sparkles,
       color: "text-emerald-600 bg-emerald-50 border-emerald-100",
     },
@@ -103,23 +103,23 @@ export const Home: React.FC = () => {
       {/* Hero Banner Area */}
       <HeroSection />
 
-      {/* 4-Step Standardized Business Workflow (Sequence 1, 2, 3) */}
-      <section className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm space-y-5">
+      {/* 4-Step Customer Journey */}
+      <section className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-2xs space-y-5">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
           <div>
-            <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
-              Quy Trình Nghiệp Vụ Khép Kín
-            </span>
-            <h3 className="text-lg md:text-xl font-black text-slate-900 mt-2">
-              4 Bước Đặt Giặt Sấy Minh Bạch Giữa Khách Hàng — Cửa Hàng — Shipper
+            <p className="text-xs font-semibold text-blue-600">
+              Quy trình đơn giản
+            </p>
+            <h3 className="text-lg md:text-xl font-bold text-slate-900 mt-1">
+              4 bước đặt giặt minh bạch từ lúc lấy đến khi giao trả
             </h3>
           </div>
           <button
             type="button"
             onClick={() => navigate("/mobile-customer/home")}
-            className="text-xs font-black text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer self-start md:self-auto"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer self-start md:self-auto"
           >
-            <span>Mở App Khách Hàng trên điện thoại</span>
+            <span>Bắt đầu đặt giặt</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -134,7 +134,7 @@ export const Home: React.FC = () => {
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                    <span className="text-xs font-semibold text-slate-400">
                       {item.step}
                     </span>
                     <div
@@ -143,44 +143,43 @@ export const Home: React.FC = () => {
                       <Icon className="w-4 h-4" />
                     </div>
                   </div>
-                  <h4 className="text-sm font-black text-slate-900">
+                  <h4 className="text-sm font-bold text-slate-900">
                     {item.title}
                   </h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     {item.desc}
                   </p>
                 </div>
-                
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* Active Services Catalog from Database */}
-      <section className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm space-y-5">
+      {/* Active Services Catalog */}
+      <section className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-2xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <Shirt className="w-5 h-5 text-blue-600" />
-              <span>Danh Mục Dịch Vụ Giặt Sấy Đang Phục Vụ ({services.length})</span>
+              <span>Dịch vụ giặt sấy đang phục vụ ({services.length})</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Đơn giá niêm yết từ cơ sở dữ liệu hệ thống — Tự động tính tổng tạm tính khi bạn kê khai đơn đặt lịch
+              Giá niêm yết công khai — tạm tính ngay khi bạn chọn dịch vụ
             </p>
           </div>
           <button
             type="button"
             onClick={() => navigate("/price-info")}
-            className="text-xs font-bold text-blue-600 hover:underline cursor-pointer self-start sm:self-auto"
+            className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer self-start sm:self-auto"
           >
-            Xem chi tiết bảng giá & cam kết →
+            Xem đầy đủ bảng giá →
           </button>
         </div>
 
         {loading ? (
           <div className="py-8 text-center text-xs text-slate-400">
-            Đang tải danh mục dịch vụ từ cơ sở dữ liệu...
+            Đang tải danh sách dịch vụ...
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -195,10 +194,10 @@ export const Home: React.FC = () => {
                 className="p-4 rounded-2xl border border-slate-200/80 hover:border-blue-500 bg-slate-50/40 hover:bg-blue-50/30 transition-all cursor-pointer flex flex-col justify-between gap-3"
               >
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                    {svc.pricingType === "per_kg" ? "Tính theo Kg" : "Tính theo Món"}
+                  <span className="text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
+                    {svc.pricingType === "per_kg" ? "Tính theo kg" : "Tính theo món"}
                   </span>
-                  <h4 className="text-sm font-black text-slate-900 mt-2">
+                  <h4 className="text-sm font-bold text-slate-900 mt-2">
                     {svc.name}
                   </h4>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">
@@ -206,10 +205,10 @@ export const Home: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex items-center justify-between pt-2.5 border-t border-slate-200/60">
-                  <span className="text-sm font-black text-blue-600 font-mono">
+                  <span className="text-sm font-bold text-blue-600 tabular-nums">
                     {Number(svc.unitPrice || 0).toLocaleString("vi-VN")}đ/{svc.unitName}
                   </span>
-                  <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                  <span className="text-xs font-semibold text-slate-600 flex items-center gap-1">
                     Đặt ngay <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
@@ -219,24 +218,24 @@ export const Home: React.FC = () => {
         )}
       </section>
 
-      {/* Active Branches from Database */}
-      <section className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 shadow-sm space-y-5">
+      {/* Active Branches */}
+      <section className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-2xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <Store className="w-5 h-5 text-blue-600" />
-              <span>Hệ Thống Chi Nhánh Cửa Hàng Giặt Sấy ({stores.length})</span>
+              <span>Hệ thống chi nhánh tại Hà Nội ({stores.length})</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Chọn ngay chi nhánh gần bạn để bắt đầu Bước 1 trong quy trình đặt lịch giặt sấy
+              Chọn cửa hàng gần khu vực của bạn để đặt lịch lấy đồ nhanh hơn
             </p>
           </div>
           <button
             type="button"
             onClick={() => navigate("/stores-map")}
-            className="text-xs font-bold text-blue-600 hover:underline cursor-pointer self-start sm:self-auto"
+            className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer self-start sm:self-auto"
           >
-            Mở bản đồ GPS toàn hệ thống →
+            Xem bản đồ tất cả chi nhánh →
           </button>
         </div>
 
@@ -248,15 +247,15 @@ export const Home: React.FC = () => {
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                     {store.status === "open" ? "Đang mở cửa" : "Đang bận"}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-xs font-black text-amber-600">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 tabular-nums">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                     {store.rating} ({store.reviewCount})
                   </span>
                 </div>
-                <h4 className="text-sm font-black text-slate-900">
+                <h4 className="text-sm font-bold text-slate-900">
                   {store.name}
                 </h4>
                 <p className="text-xs text-slate-500 flex items-start gap-1.5">
@@ -266,7 +265,7 @@ export const Home: React.FC = () => {
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                <span className="text-xs text-slate-500 flex items-center gap-1 tabular-nums">
                   <Clock className="w-3.5 h-3.5 text-blue-500" />
                   {store.openHours}
                 </span>
@@ -277,9 +276,9 @@ export const Home: React.FC = () => {
                       `/mobile-customer/create-order?storeId=${encodeURIComponent(store.id)}`,
                     )
                   }
-                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer transition-colors"
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer transition-colors"
                 >
-                  Đặt trên App →
+                  Đặt giặt →
                 </button>
               </div>
             </div>

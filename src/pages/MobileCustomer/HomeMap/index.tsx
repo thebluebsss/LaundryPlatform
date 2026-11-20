@@ -69,47 +69,47 @@ export const MobileCustomerHome: React.FC = () => {
 
       {/* Hero Action Card: Quick Multi-Fabric Order Entry */}
       <div className="bg-slate-900 text-white rounded-2xl p-5 space-y-3">
-        <div className="flex items-center justify-between text-xs text-blue-300 font-semibold">
-          <span>Ứng Dụng Đặt Giặt Tận Nơi</span>
-          <span className="font-mono">Shipper lấy tận cửa 30p</span>
+        <div className="flex items-center justify-between text-xs text-blue-300 font-medium">
+          <span>Giặt sấy giao nhận tận nơi</span>
+          <span className="tabular-nums">Lấy đồ sau ~30 phút</span>
         </div>
-        <h2 className="text-lg font-black tracking-tight">
-          Đặt Lịch Thu Gom Đồ Giặt Tận Nhà
+        <h2 className="text-lg font-bold tracking-tight">
+          Đặt lịch lấy đồ giặt tận nhà
         </h2>
         <p className="text-xs text-slate-300 leading-relaxed">
-          Kê khai từng món đồ theo chất liệu vải và ghi chú yêu cầu trả đồ theo
-          lịch của bạn. Chủ tiệm cân thực tế minh bạch trước khi giặt.
+          Chọn dịch vụ theo từng loại vải và hẹn giờ trả đồ mong muốn. Tiệm cân
+          thực tế và báo giá rõ ràng trước khi giặt.
         </p>
         <div className="pt-1">
           <ButtonCustom
             type="button"
             onClick={() => navigate("/mobile-customer/create-order")}
             iconStart={<PlusCircle className="w-4 h-4" />}
-            label="Tạo Đơn Giặt Mới Ngay"
+            label="Đặt giặt ngay"
             className="!h-11 !text-xs"
-            textClassName="!text-xs"
+            textClassName="!text-xs !font-semibold"
           />
         </div>
       </div>
 
-      {/* Interactive Google Maps View on Mobile */}
+      {/* Interactive Map View on Mobile */}
       <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2.5">
         <div className="flex items-center justify-between px-1">
           <div>
-            <h3 className="text-xs font-black text-slate-900">
-              Bản Đồ Google Maps Cửa Hàng Gần Bạn
+            <h3 className="text-xs font-bold text-slate-900">
+              Bản đồ cửa hàng gần bạn
             </h3>
             <p className="text-[11px] text-slate-500">
-              Chạm vào ghim cửa hàng trên Google Maps để chọn nhanh
+              Chạm vào điểm ghim trên bản đồ để chọn nhanh tiệm giặt
             </p>
           </div>
           <button
             type="button"
             onClick={handleLocateMe}
-            className="h-8 px-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
+            className="h-8 px-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
           >
             <Compass className="w-3.5 h-3.5" />
-            <span>Vị trí GPS</span>
+            <span>Vị trí của tôi</span>
           </button>
         </div>
 
@@ -133,11 +133,11 @@ export const MobileCustomerHome: React.FC = () => {
       {/* Horizontal Service Price Strip */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-black text-slate-900">
-            Bảng Giá Dịch Vụ Tiêu Chuẩn
+          <h3 className="text-xs font-bold text-slate-900">
+            Bảng giá dịch vụ phổ biến
           </h3>
           <span className="text-[11px] text-slate-500">
-            Tính theo kg hoặc từng món
+            Theo kg hoặc từng món
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -154,10 +154,10 @@ export const MobileCustomerHome: React.FC = () => {
               }
               className="text-left p-3 rounded-xl bg-slate-50 hover:bg-blue-50/50 border border-slate-200/80 transition-colors cursor-pointer space-y-1"
             >
-              <div className="font-bold text-slate-900 text-xs truncate">
+              <div className="font-semibold text-slate-900 text-xs truncate">
                 {svc.name}
               </div>
-              <div className="text-xs font-mono font-black text-blue-600">
+              <div className="text-xs font-bold text-blue-600 tabular-nums">
                 {svc.unitPrice.toLocaleString("vi-VN")}đ/{svc.unitName}
               </div>
             </button>
@@ -165,15 +165,15 @@ export const MobileCustomerHome: React.FC = () => {
         </div>
       </div>
 
-      {/* Search & GPS Filter for Nearby Laundry Stores */}
+      {/* Search & Distance/Rating Filter for Nearby Laundry Stores */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h3 className="text-sm font-black text-slate-900">
-              Cửa Hàng Giặt Là Trong Hệ Thống ({stores.length})
+            <h3 className="text-sm font-bold text-slate-900">
+              Cửa hàng quanh bạn ({stores.length})
             </h3>
             <p className="text-[11px] text-slate-500">
-              Tìm theo khoảng cách GPS hoặc theo Ranking đánh giá
+              Sắp xếp theo khoảng cách hoặc mức độ hài lòng của khách hàng
             </p>
           </div>
           <button
@@ -199,39 +199,39 @@ export const MobileCustomerHome: React.FC = () => {
 
         {/* Area Info Badge */}
         <div className="p-2.5 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-center justify-between text-xs">
-          <span className="font-bold text-blue-900">
-            Khu vực phục vụ: Thành phố Hà Nội
+          <span className="font-semibold text-blue-900">
+            Khu vực phục vụ: Hà Nội
           </span>
-          <span className="font-mono text-[11px] text-blue-700">
+          <span className="tabular-nums text-[11px] text-blue-700 font-medium">
             {stores.length} chi nhánh
           </span>
         </div>
 
-        {/* Ranking vs Distance Sort Toggle */}
+        {/* Rating vs Distance Sort Toggle */}
         <div className="grid grid-cols-2 gap-1.5">
           <button
             type="button"
             onClick={() => setSortBy("distance")}
-            className={`py-2 px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+            className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
               sortBy === "distance"
                 ? "bg-blue-50 border-blue-200 text-blue-700"
                 : "bg-white border-slate-200 text-slate-600"
             }`}
           >
             <Compass className="w-3.5 h-3.5" />
-            <span>Gần bạn nhất (km)</span>
+            <span>Gần bạn nhất</span>
           </button>
           <button
             type="button"
             onClick={() => setSortBy("rating")}
-            className={`py-2 px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+            className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
               sortBy === "rating"
                 ? "bg-amber-50 border-amber-300 text-amber-800"
                 : "bg-white border-slate-200 text-slate-600"
             }`}
           >
             <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-            <span>Ranking cao nhất (★)</span>
+            <span>Đánh giá cao nhất</span>
           </button>
         </div>
       </div>

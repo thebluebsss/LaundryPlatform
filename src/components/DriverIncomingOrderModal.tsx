@@ -71,12 +71,12 @@ export const DriverIncomingOrderModal: React.FC = () => {
             </div>
             <div className="min-w-0">
               <span className="text-sm sm:text-base font-bold text-slate-900 block leading-tight truncate">
-                Green Bike · Sạch Sẽ
+                Sạch Sẽ Giao Nhận
               </span>
               <span className="text-[11px] font-semibold text-teal-700 block truncate">
                 {isPickupFromCustomer
-                  ? "Khách đặt lấy đồ giặt tận nhà (Bán kính ≤ 1km)"
-                  : "Cửa hàng gọi trả đồ sạch cho khách (Bán kính ≤ 1km)"}
+                  ? "Lấy đồ giặt tại nhà khách (bán kính ≤ 1km)"
+                  : "Giao trả đồ sạch cho khách (bán kính ≤ 1km)"}
               </span>
             </div>
           </div>

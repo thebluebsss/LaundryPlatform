@@ -18,15 +18,15 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Header section admin controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-2">
-            <ShieldCheck className="text-blue-600 w-7 h-7" />
-            Cổng Điều Hành Lồng Giặt Vô Trùng
+          <h2 className="text-xl md:text-2xl font-bold text-slate-900 flex items-center gap-2 tracking-tight">
+            <ShieldCheck className="text-indigo-600 w-6 h-6" />
+            Tổng quan vận hành hệ thống
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Cập nhật đơn hàng giặt sấy của khách hàng toàn cơ sở theo thời gian
-            thực.
+            Theo dõi doanh thu, tiến độ đơn hàng và hoạt động của toàn bộ chi
+            nhánh tại Hà Nội.
           </p>
         </div>
       </div>
@@ -43,79 +43,79 @@ export const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <button
           onClick={() => navigate("/admin/stores")}
-          className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-sm hover:border-emerald-300 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
         >
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-            <Building className="w-6 h-6 text-emerald-600" />
+          <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors shrink-0">
+            <Building className="w-5 h-5 text-emerald-600" />
           </div>
           <div className="text-left">
-            <h4 className="font-bold text-slate-800 text-sm mb-0.5">
-              Quản Lý Chi Nhánh
+            <h4 className="font-semibold text-slate-900 text-sm mb-0.5">
+              Quản lý chi nhánh
             </h4>
-            <p className="text-xs text-slate-500">Bản đồ & Cửa hàng</p>
+            <p className="text-xs text-slate-500">Bản đồ & cửa hàng</p>
           </div>
         </button>
 
         <button
           onClick={() => navigate("/admin/orders")}
-          className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-sm hover:border-blue-300 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
         >
-          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-            <ShoppingCart className="w-6 h-6 text-blue-600" />
+          <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors shrink-0">
+            <ShoppingCart className="w-5 h-5 text-blue-600" />
           </div>
           <div className="text-left">
-            <h4 className="font-bold text-slate-800 text-sm mb-0.5">
-              Quản Lý Đơn Hàng
+            <h4 className="font-semibold text-slate-900 text-sm mb-0.5">
+              Quản lý đơn hàng
             </h4>
             <p className="text-xs text-slate-500">
-              Xem và quản lý tất cả đơn hàng
+              Theo dõi tất cả đơn giặt
             </p>
           </div>
         </button>
 
         <button
           onClick={() => navigate("/admin/services")}
-          className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-amber-200 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-sm hover:border-amber-300 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
         >
-          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
-            <Sparkles className="w-6 h-6 text-amber-600" />
+          <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors shrink-0">
+            <Sparkles className="w-5 h-5 text-amber-600" />
           </div>
           <div className="text-left">
-            <h4 className="font-bold text-slate-800 text-sm mb-0.5">
-              Quản Lý Dịch Vụ
+            <h4 className="font-semibold text-slate-900 text-sm mb-0.5">
+              Quản lý dịch vụ
             </h4>
-            <p className="text-xs text-slate-500">Bảng giá giặt sấy/hấp sấy</p>
+            <p className="text-xs text-slate-500">Bảng giá giặt sấy & giặt hấp</p>
           </div>
         </button>
 
         <button
           onClick={() => navigate("/admin/products")}
-          className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-sm hover:border-indigo-300 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
         >
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-            <Package className="w-6 h-6 text-indigo-600" />
+          <div className="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 transition-colors shrink-0">
+            <Package className="w-5 h-5 text-indigo-600" />
           </div>
           <div className="text-left">
-            <h4 className="font-bold text-slate-800 text-sm mb-0.5">
-              Quản Lý Sản Phẩm
+            <h4 className="font-semibold text-slate-900 text-sm mb-0.5">
+              Quản lý sản phẩm
             </h4>
-            <p className="text-xs text-slate-500">Thêm, sửa, xóa sản phẩm</p>
+            <p className="text-xs text-slate-500">Sản phẩm chăm sóc đồ</p>
           </div>
         </button>
 
         <button
           onClick={() => navigate("/admin/users")}
-          className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-purple-200 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
+          className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-sm hover:border-purple-300 transition-all duration-200 flex items-center gap-4 group cursor-pointer w-full text-left"
         >
-          <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-            <Users className="w-6 h-6 text-purple-600" />
+          <div className="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors shrink-0">
+            <Users className="w-5 h-5 text-purple-600" />
           </div>
           <div className="text-left">
-            <h4 className="font-bold text-slate-800 text-sm mb-0.5">
-              Quản Lý Người Dùng
+            <h4 className="font-semibold text-slate-900 text-sm mb-0.5">
+              Quản lý tài khoản
             </h4>
             <p className="text-xs text-slate-500">
-              Quản lý tài khoản người dùng
+              Khách hàng, chủ tiệm & tài xế
             </p>
           </div>
         </button>

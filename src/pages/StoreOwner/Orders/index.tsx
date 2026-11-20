@@ -115,7 +115,7 @@ export const StoreOwnerOrders: React.FC = () => {
       await laundryOrdersAPI.saveCustomerCareNote(phone, note);
     } catch {}
     showToast(
-      `Đã lưu ghi chú chăm sóc vải riêng cho khách (${phone}) vào CSDL!`,
+      `Đã lưu ghi chú chăm sóc riêng cho khách hàng (${phone}).`,
       "success"
     );
   };
@@ -136,8 +136,8 @@ export const StoreOwnerOrders: React.FC = () => {
             Quản lý đơn giặt tại tiệm
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Theo dõi Live GPS tài xế, chat trực tiếp theo mã đơn, cân khối lượng
-            thực tế và đối soát thanh toán tự động.
+            Theo dõi vị trí tài xế trực tiếp, nhắn tin theo đơn, cân khối lượng
+            thực tế và đối soát thanh toán.
           </p>
         </div>
 

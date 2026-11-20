@@ -21,19 +21,19 @@ export const MobileCustomerWeightConfirm: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="flex items-center gap-1.5 text-xs font-black text-amber-600">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600">
               <Scale className="w-4 h-4" />
-              <span>Xác Nhận Khối Lượng Cân Thực Tế</span>
+              <span>Xác nhận khối lượng thực tế</span>
             </div>
-            <h2 className="text-base font-black text-slate-900 mt-0.5">
-              Duyệt Cân Nặng & Chi Phí Chính Thức Từ Tiệm Giặt
+            <h2 className="text-base font-bold text-slate-900 mt-0.5">
+              Duyệt cân nặng & chi phí từ tiệm giặt
             </h2>
           </div>
 
           <button
             type="button"
             onClick={fetchOrders}
-            className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             <span>Làm mới</span>
@@ -44,7 +44,7 @@ export const MobileCustomerWeightConfirm: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilterMode("waiting")}
-            className={`py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               filterMode === "waiting"
                 ? "bg-white text-slate-900 shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
@@ -55,7 +55,7 @@ export const MobileCustomerWeightConfirm: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilterMode("all")}
-            className={`py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               filterMode === "all"
                 ? "bg-white text-slate-900 shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
@@ -80,11 +80,11 @@ export const MobileCustomerWeightConfirm: React.FC = () => {
         {!loading && orders.length === 0 && (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
             <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
-            <p className="text-sm font-black text-slate-900">
-              Không có đơn giặt nào đang chờ bạn duyệt cân
+            <p className="text-sm font-bold text-slate-900">
+              Hiện không có đơn nào cần duyệt cân
             </p>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Khi Chủ cửa hàng cân đồ thực tế trên Web Portal, bảng đối chiếu số kg tạm tính và thực tế sẽ xuất hiện ngay tại đây.
+              Khi tiệm giặt cân thực tế xong, bảng đối chiếu số kg tạm tính và thực tế sẽ hiển thị ngay tại đây để bạn xác nhận.
             </p>
           </div>
         )}

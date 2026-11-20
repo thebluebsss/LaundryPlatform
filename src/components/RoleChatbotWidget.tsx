@@ -54,14 +54,14 @@ const getInitialGreeting = (role: ChatRole, userName?: string): ChatTurn => {
     return {
       id: "welcome-driver",
       sender: "bot",
-      text: `Xin chào tài xế ${userName || "Đối tác Sạch Sẽ"}! Tôi là Trợ lý Hỏi Đáp Shipper (kết nối AI Gemini & dữ liệu hệ thống). Bạn có thể hỏi tôi về:\n• Quy trình giao nhận 2 chiều (4 bước chuẩn)\n• Số dư Ví thu nhập & lịch sử chuyến hoàn thành\n• Tuyến đường, điểm lấy – điểm giao của chuyến đang chạy`,
+      text: `Chào ${userName || "anh/chị tài xế"}! Mình có thể hỗ trợ nhanh các thông tin:\n• Quy trình giao nhận 2 chiều (4 bước)\n• Số dư ví thu nhập & lịch sử chuyến đã hoàn thành\n• Tuyến đường, điểm lấy – điểm giao của chuyến đang chạy`,
       timestamp: new Date().toISOString(),
     };
   }
   return {
     id: "welcome-customer",
     sender: "bot",
-    text: `Xin chào ${userName || "Quý khách"}! Tôi là Trợ lý Hỏi Đáp Giặt Là Sạch Sẽ (kết nối AI Gemini & dữ liệu thực tế hệ thống). Tôi có thể giúp bạn tra cứu:\n• Bảng giá giặt sấy theo cân, giặt khô, giặt chăn ga, vệ sinh giày\n• Địa chỉ các chi nhánh tiệm giặt tại TP. Hà Nội\n• Trạng thái đơn hàng, quy trình cân đồ & thanh toán VietQR`,
+    text: `Chào ${userName || "bạn"}! Mình là trợ lý hỗ trợ của Giặt Là Sạch Sẽ. Bạn có thể hỏi nhanh về:\n• Bảng giá giặt sấy theo cân, giặt khô, giặt chăn ga, vệ sinh giày\n• Địa chỉ các chi nhánh tiệm giặt tại Hà Nội\n• Tiến độ đơn hàng, quy trình cân đồ & thanh toán VietQR`,
     timestamp: new Date().toISOString(),
   };
 };
@@ -203,8 +203,8 @@ export const RoleChatbotWidget: React.FC = () => {
         sender: "bot",
         text:
           activeRole === "driver"
-            ? "Hiện kết nối mạng đang bận. Quy trình Shipper gồm 4 bước: (1) Bật Radar nhận chuyến trong 1km -> (2) Di chuyển & bật Live GPS -> (3) Bấm Xác nhận Đã Lấy Đồ -> (4) Giao đồ & nhận 100% cước phí vào Ví thu nhập."
-            : "Hiện kết nối mạng đang bận. Bảng giá tiêu chuẩn: Giặt sấy theo cân 18.000đ/kg, Giặt khô 65.000đ/món, Giặt chăn ga 85.000đ/bộ, Phí giao nhận 25.000đ/đơn tại toàn bộ chi nhánh Hà Nội.",
+            ? "Kết nối mạng đang tạm bận. Quy trình giao nhận gồm 4 bước: (1) Bật nhận chuyến trong bán kính 1km -> (2) Di chuyển theo bản đồ đến điểm hẹn -> (3) Xác nhận đã lấy đồ -> (4) Bàn giao xong và nhận 100% cước phí vào ví."
+            : "Kết nối mạng đang tạm bận. Giá tham khảo: Giặt sấy theo cân từ 15.000đ/kg, giặt hấp từ 65.000đ/cái, giặt chăn ga từ 50.000đ/bộ, phí giao nhận 25.000đ/đơn (miễn phí cho đơn từ 200.000đ) tại Hà Nội.",
         timestamp: new Date().toISOString(),
       };
       const finalMessages = [...updatedWithUser, fallbackTurn];
@@ -250,11 +250,11 @@ export const RoleChatbotWidget: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          aria-label="Mở Trợ lý Chatbot Hỏi Đáp"
+          aria-label="Mở trợ lý hỗ trợ"
           title={
             isDriverMode
-              ? "Mở Trợ lý Hỏi Đáp Shipper (AI Gemini)"
-              : "Mở Trợ lý Hỏi Đáp Khách hàng (AI Gemini)"
+              ? "Mở trợ lý hỗ trợ tài xế"
+              : "Mở trợ lý hỗ trợ khách hàng"
           }
           className={`fixed right-0 top-[46%] -translate-y-1/2 z-[1150] min-w-[50px] min-h-[60px] pl-3 pr-2.5 py-2.5 rounded-l-2xl shadow-[0_8px_24px_rgba(15,23,42,0.22)] border border-r-0 text-white flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition-transform duration-150 ${
             isDriverMode
@@ -265,8 +265,8 @@ export const RoleChatbotWidget: React.FC = () => {
           <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
             <MessageCircleQuestion className="w-4.5 h-4.5 text-white" />
           </div>
-          <span className="text-[10px] font-extrabold leading-none tracking-tight whitespace-nowrap">
-            Hỏi AI
+          <span className="text-[10px] font-bold leading-none tracking-tight whitespace-nowrap">
+            Hỗ trợ
           </span>
         </button>
       )}
@@ -299,12 +299,12 @@ export const RoleChatbotWidget: React.FC = () => {
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold text-white truncate">
-                    {isDriverMode
-                      ? "Chatbot Hỗ Trợ Tài Xế (Shipper)"
-                      : "Chatbot Hỏi Đáp Khách Hàng"}
+                    {isDriverMode ? "Trợ lý tài xế Sạch Sẽ" : "Trợ lý Sạch Sẽ"}
                   </h3>
                   <p className="text-[11px] text-white/80 truncate mt-0.5">
-                    Gemini AI · Đồng bộ dữ liệu hệ thống thời gian thực
+                    {isDriverMode
+                      ? "Hỗ trợ quy trình giao nhận & thu nhập"
+                      : "Hỗ trợ tra cứu bảng giá, cửa hàng & đơn giặt"}
                   </p>
                 </div>
               </div>

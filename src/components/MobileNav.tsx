@@ -14,19 +14,19 @@ export const MobileNav: React.FC = () => {
 
   const navItems = [
     {
-      label: "Giới thiệu",
+      label: "Trang chủ",
       path: "/",
       icon: Home,
       isActive: path === "/",
     },
     {
-      label: "Bản đồ tiệm",
+      label: "Chi nhánh",
       path: "/stores-map",
       icon: MapPin,
       isActive: path.startsWith("/stores-map"),
     },
     {
-      label: "App Khách",
+      label: "Đặt giặt",
       path: "/mobile-customer/home",
       icon: Smartphone,
       isActive: path.startsWith("/mobile-customer"),
@@ -39,7 +39,7 @@ export const MobileNav: React.FC = () => {
       isActive: path.startsWith("/price-info"),
     },
     {
-      label: "Web Chủ Tiệm",
+      label: "Chủ tiệm",
       path: "/store-owner/login",
       icon: Store,
       isActive: path.startsWith("/store-owner"),

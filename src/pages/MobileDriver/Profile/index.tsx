@@ -161,11 +161,9 @@ export const MobileDriverProfile: React.FC = () => {
             type="submit"
             loading={saving}
             iconStart={<Save className="w-4 h-4" />}
-            label={
-              saving ? "ĐANG LƯU HỒ SƠ..." : "LƯU THAY ĐỔI HỒ SƠ TÀI XẾ"
-            }
+            label={saving ? "Đang lưu thay đổi..." : "Lưu thay đổi"}
             className="!bg-emerald-600 hover:!bg-emerald-700"
-            textClassName="!text-xs !font-black"
+            textClassName="!text-xs !font-semibold"
           />
         </form>
 

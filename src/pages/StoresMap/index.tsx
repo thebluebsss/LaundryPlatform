@@ -38,29 +38,26 @@ export const StoresMapPage: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
-              <Compass className="w-3.5 h-3.5" />
-              <span>Google Maps Trực Tuyến · Định Vị Cửa Hàng & Tài Xế</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-blue-200 text-xs font-semibold">
+              <Compass className="w-3.5 h-3.5 text-blue-300" />
+              <span>Hệ thống cửa hàng tại Hà Nội</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">
-              Bản Đồ Hệ Thống{" "}
-              <span className="text-blue-400">Cửa Hàng Giặt Sấy</span> Gần Bạn
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+              Tìm tiệm giặt <span className="text-blue-400">gần bạn nhất</span>
             </h1>
             <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-              Tìm tiệm giặt Sạch Sẽ gần vị trí của bạn trên Google Maps, xem lộ
-              trình khoảng cách thực tế và đặt lịch thu gom tận cửa.
+              Xem địa chỉ, giờ mở cửa và khoảng cách từ vị trí của bạn để đặt
+              lịch giao nhận tận cửa nhanh nhất.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="bg-slate-800/90 px-3.5 py-2 rounded-2xl border border-slate-700 flex items-center gap-1.5 text-xs font-extrabold text-blue-300">
-              <Building2 className="w-3.5 h-3.5 text-blue-400" />
-              <span>
-                Khu vực hoạt động: TP. Hà Nội ({stores.length} chi nhánh)
-              </span>
+            <div className="bg-white/10 px-3.5 py-2 rounded-xl border border-white/15 flex items-center gap-1.5 text-xs font-semibold text-blue-100">
+              <Building2 className="w-3.5 h-3.5 text-blue-300" />
+              <span>Hà Nội · {stores.length} chi nhánh</span>
             </div>
 
             <ButtonCustom
@@ -68,19 +65,19 @@ export const StoresMapPage: React.FC = () => {
               onClick={handleLocateMe}
               loading={locating}
               iconStart={<Navigation className="w-3.5 h-3.5" />}
-              label={locating ? "Đang lấy GPS..." : "Vị Trí Của Tôi"}
-              className="!w-auto !h-10 !px-4 !bg-emerald-500 hover:!bg-emerald-600"
-              textClassName="!text-xs !font-black"
+              label={locating ? "Đang định vị..." : "Vị trí của tôi"}
+              className="!w-auto !h-10 !px-4 !bg-emerald-600 hover:!bg-emerald-500"
+              textClassName="!text-xs !font-semibold"
             />
           </div>
         </div>
       </div>
 
-      {/* Main Split Layout: Store List (Left) + Interactive Google Maps (Right) */}
+      {/* Main Split Layout: Store List (Left) + Interactive Map (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Sidebar: Store Directory */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
             <InputText
               placeholder="Tìm theo tên quận, tên đường hoặc chi nhánh..."
               startAdornment={<Search className="w-4 h-4 text-slate-400" />}
@@ -89,7 +86,7 @@ export const StoresMapPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="text-xs text-slate-400 hover:text-slate-600 font-bold"
+                    className="text-xs text-slate-500 hover:text-slate-700 font-semibold cursor-pointer"
                   >
                     Xóa
                   </button>
@@ -104,41 +101,37 @@ export const StoresMapPage: React.FC = () => {
 
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
             {loading ? (
-              <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center text-xs text-slate-500">
-                Đang tải danh sách cửa hàng từ Cơ sở dữ liệu...
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-xs text-slate-500">
+                Đang tải danh sách chi nhánh...
               </div>
             ) : filteredStores.length === 0 ? (
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 text-center space-y-3">
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 text-center space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
                   <Store className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-sm font-black text-slate-900">
-                    Chưa có cửa hàng nào trong Cơ sở dữ liệu
+                  <h3 className="text-sm font-bold text-slate-900">
+                    {searchQuery.trim()
+                      ? "Không tìm thấy chi nhánh phù hợp"
+                      : "Hiện chưa có chi nhánh nào đang mở"}
                   </h3>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Hệ thống đã được làm sạch toàn bộ dữ liệu mẫu. Chủ cửa hàng
-                    hoặc Quản trị viên có thể đăng nhập cổng Web riêng để khởi
-                    tạo chi nhánh tiệm giặt đầu tiên trên Google Maps.
+                    {searchQuery.trim()
+                      ? "Thử tìm lại với tên quận hoặc tuyến phố khác tại Hà Nội."
+                      : "Danh sách cửa hàng đang được cập nhật. Bạn vui lòng quay lại sau ít phút hoặc liên hệ hotline 1900-5454-99."}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                  <ButtonCustom
-                    type="button"
-                    onClick={() => navigate("/store-owner/login")}
-                    iconStart={<PlusCircle className="w-3.5 h-3.5" />}
-                    label="Cổng Chủ Tiệm (/store-owner/login)"
-                    className="!w-auto !h-9 !px-3.5"
-                    textClassName="!text-xs"
-                  />
-                  <ButtonOutLine
-                    type="button"
-                    onClick={() => navigate("/admin/login")}
-                    label="Cổng Admin (/admin/login)"
-                    className="!w-auto !h-9 !px-3.5"
-                    textClassName="!text-xs"
-                  />
-                </div>
+                {searchQuery.trim() && (
+                  <div className="pt-1 flex justify-center">
+                    <ButtonOutLine
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      label="Xóa từ khóa tìm kiếm"
+                      className="!w-auto !h-9 !px-4"
+                      textClassName="!text-xs"
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               filteredStores.map((store, index) => (

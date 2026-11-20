@@ -19,16 +19,18 @@ export const PriceInfo: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-300">
       
       {/* Intro section banner */}
-      <section className="bg-slate-50 border border-slate-100 rounded-3xl p-6 md:p-8 space-y-4">
+      <section className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 space-y-3">
         <div className="max-w-2xl">
-          <span className="text-[10px] md:text-xs font-black uppercase text-blue-600 tracking-widest bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-            Minh Bạch & Tận Tâm
-          </span>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight mt-3">
-            Bảng Giá Dịch Vụ Công Khai & Câu Hỏi Thường Gặp
+          <p className="text-xs font-semibold text-blue-600">
+            Minh bạch & rõ ràng
+          </p>
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight mt-1">
+            Bảng giá dịch vụ & câu hỏi thường gặp
           </h2>
-          <p className="text-xs md:text-sm text-slate-500 leading-normal mt-2">
-            Không phụ phí phát sinh bừa bãi. Chi phí được tính chuẩn xác theo trọng lượng kilogram hoặc số lượng chiếc đăng ký ban đầu. Yên tâm trao gửi - an tâm giặt giũ.
+          <p className="text-sm text-slate-600 leading-relaxed mt-2">
+            Đơn giá niêm yết công khai theo kg hoặc theo món. Tiệm cân thực tế
+            và gửi bạn duyệt chi phí trước khi bắt đầu giặt, không phát sinh phụ
+            phí ngoài thỏa thuận.
           </p>
         </div>
       </section>

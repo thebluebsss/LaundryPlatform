@@ -33,11 +33,11 @@ export const MobileCustomerTracking: React.FC = () => {
     <div className="space-y-4 pb-8 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between gap-2">
         <div>
-          <h2 className="text-base font-black text-slate-900">
-            Theo Dõi & Lịch Sử Đơn Giặt ({orders.length})
+          <h2 className="text-base font-bold text-slate-900">
+            Theo dõi & lịch sử đơn giặt ({orders.length})
           </h2>
           <p className="text-xs text-slate-500">
-            Xem Live GPS tài xế, chat nội bộ theo mã đơn, thanh toán tự động & đánh giá
+            Xem vị trí tài xế trực tiếp, nhắn tin theo đơn, thanh toán QR và đánh giá
           </p>
         </div>
         <ButtonOutLine

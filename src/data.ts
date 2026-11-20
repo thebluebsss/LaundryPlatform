@@ -4,97 +4,97 @@ export const LAUNDRY_SERVICES: LaundryService[] = [
   // Wash & Fold Services
   {
     id: 'wf-regular',
-    name: 'Giặt Sấy Sấy Khô Thường',
+    name: 'Giặt sấy thường',
     category: 'wash_fold',
     pricingType: 'per_kg',
     unitPrice: 15000,
     unitName: 'kg',
-    description: 'Giặt thường bằng nước ấm, xả comfort, sấy khô hoàn toàn và gấp xếp gọn gàng. Phù hợp cho quần áo hàng ngày.',
+    description: 'Giặt nước ấm, xả thơm dịu nhẹ, sấy khô hoàn toàn và gấp gọn gàng. Phù hợp cho quần áo mặc hằng ngày.',
     iconName: 'Shirt',
     durationDays: 1,
     featured: true
   },
   {
     id: 'wf-premium',
-    name: 'Giặt Ủi Cao Cấp (Có Là Hơi)',
+    name: 'Giặt sấy & là hơi cao cấp',
     category: 'wash_fold',
     pricingType: 'per_kg',
     unitPrice: 25000,
     unitName: 'kg',
-    description: 'Bao gồm toàn bộ quy trình giặt sấy thường kết hợp là hơi phẳng phiu từng nếp nhăn và treo móc cẩn thận.',
+    description: 'Giặt sấy hoàn chỉnh kết hợp là hơi phẳng phiu và treo móc gọn gàng, sẵn sàng mặc ngay.',
     iconName: 'Sparkles',
     durationDays: 1,
     featured: true
   },
-  
+
   // Dry Clean Services
   {
     id: 'dc-vest',
-    name: 'Giặt Hấp Áo Vest / Blazer',
+    name: 'Giặt hấp áo vest / blazer',
     category: 'dry_clean',
     pricingType: 'per_item',
     unitPrice: 65000,
     unitName: 'cái',
-    description: 'Công nghệ giặt hữu cơ (Organic dry cleaning) bảo vệ tối đa phom dáng và sợ chỉ của áo vest nam/nữ.',
+    description: 'Giặt khô dịu nhẹ giúp giữ chuẩn phom dáng, đường may và sợi chỉ cho áo vest nam, nữ.',
     iconName: 'Briefcase',
     durationDays: 2,
     featured: true
   },
   {
     id: 'dc-aodai',
-    name: 'Giặt Hấp Áo Dài Truyền Thống',
+    name: 'Giặt hấp áo dài truyền thống',
     category: 'dry_clean',
     pricingType: 'per_item',
     unitPrice: 85000,
     unitName: 'bộ',
-    description: 'Xử lý giặt hấp dịu nhẹ bảo vệ gấm, lụa tơ tằm, các họa tiết thêu tay hoặc đính cườm lấp lánh.',
+    description: 'Làm sạch nhẹ nhàng dành riêng cho vải gấm, lụa tơ tằm và họa tiết thêu tay hoặc đính kết.',
     iconName: 'Heart',
     durationDays: 2
   },
   {
     id: 'dc-dạ',
-    name: 'Giặt Hấp Áo Dạ / Áo Măng Tô',
+    name: 'Giặt hấp áo dạ / áo măng tô',
     category: 'dry_clean',
     pricingType: 'per_item',
     unitPrice: 95000,
     unitName: 'cái',
-    description: 'Dành cho các loại áo khoác dày, giữ độ ấm tơ lông dạ, không bị xù xì sau khi làm sạch.',
+    description: 'Dành cho áo khoác dày mùa đông, giữ độ mềm ấm của chất dạ và hạn chế xù lông sau khi giặt.',
     iconName: 'Wind',
     durationDays: 2
   },
 
   // Heavy Items Services
   {
-    id: 'hv- blanket',
-    name: 'Giặt Chăn Bông Dày',
+    id: 'hv-blanket',
+    name: 'Giặt chăn bông dày',
     category: 'heavy_items',
     pricingType: 'per_item',
     unitPrice: 60000,
     unitName: 'cái',
-    description: 'Xử lý chăn bông kích thước lớn bằng lồng giặt đại công nghiệp, sấy diệt khuẩn bằng luồng nhiệt cực sạch.',
+    description: 'Giặt riêng bằng máy công nghiệp cỡ lớn, sấy khô sâu giúp chăn bông tơi xốp và sạch mùi ẩm.',
     iconName: 'BedDouble',
     durationDays: 2,
     featured: true
   },
   {
     id: 'hv-bedsheet',
-    name: 'Giặt Bộ Drap Giường (Ga + Gối)',
+    name: 'Giặt bộ chăn ga gối',
     category: 'heavy_items',
     pricingType: 'per_item',
     unitPrice: 50000,
     unitName: 'bộ',
-    description: 'Giặt sạch vết mồ hôi, bụi phấn và tế bào da chết bằng dung dịch diệt khuẩn chuyên sâu.',
+    description: 'Làm sạch mồ hôi, bụi mịn và mùi ẩm mốc bằng nước giặt dịu nhẹ, an toàn cho da.',
     iconName: 'FolderHeart',
     durationDays: 1
   },
   {
     id: 'hv-curtain',
-    name: 'Giặt Rèm Cửa / Màn Cửa',
+    name: 'Giặt rèm cửa / màn cửa',
     category: 'heavy_items',
     pricingType: 'per_kg',
     unitPrice: 35000,
     unitName: 'kg',
-    description: 'Làm sạch sâu bụi bám lâu ngày, ép form rèm luôn đứng dáng và thơm ngát hương hoa lavender.',
+    description: 'Giặt sạch bụi bám lâu ngày, là phẳng giữ nếp rèm đứng dáng và lưu hương dịu nhẹ.',
     iconName: 'Maximize2',
     durationDays: 3
   },
@@ -102,24 +102,24 @@ export const LAUNDRY_SERVICES: LaundryService[] = [
   // Special Care Services
   {
     id: 'sc-sneaker',
-    name: 'Vệ Sinh Giày Thể Thao',
+    name: 'Vệ sinh giày thể thao',
     category: 'special_care',
     pricingType: 'per_item',
     unitPrice: 55000,
     unitName: 'đôi',
-    description: 'Vệ sinh tay tỉ mỉ từ đế đến dây giày, khử mùi nano bạc và chiếu tia UV diệt nấm mốc bên trong.',
+    description: 'Vệ sinh thủ công kỹ lưỡng từ đế đến dây giày, khử mùi và sấy khô đúng nhiệt độ để giữ form giày.',
     iconName: 'Footprints',
     durationDays: 2,
     featured: true
   },
   {
     id: 'sc-leather',
-    name: 'Làm Sạch & Dưỡng Da Giày Hiệu',
+    name: 'Làm sạch & dưỡng giày da',
     category: 'special_care',
     pricingType: 'per_item',
     unitPrice: 120000,
     unitName: 'đôi',
-    description: 'Sử dụng sáp dưỡng chuyên dụng phục hồi độ bóng bẩy tự nhiên cho giày da thật hoặc da lộn.',
+    description: 'Làm sạch nhẹ nhàng kết hợp sáp dưỡng chuyên dụng giúp bề mặt da thật hoặc da lộn mềm mịn, sáng đẹp.',
     iconName: 'Gem',
     durationDays: 3
   }

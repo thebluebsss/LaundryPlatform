@@ -81,10 +81,10 @@ export const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
       }}
     >
       <form onSubmit={onSave}>
-        <DialogTitle sx={{ fontWeight: 900, pb: 1, fontSize: "1.1rem" }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1, fontSize: "1.1rem" }}>
           {editingService
-            ? `Cấu hình dịch vụ: ${editingService.name}`
-            : "Thêm Giải Pháp Giặt Sấy Mới"}
+            ? `Chỉnh sửa dịch vụ: ${editingService.name}`
+            : "Thêm dịch vụ giặt sấy mới"}
         </DialogTitle>
         <DialogContent className="space-y-4 pt-4 mt-2">
           <InputText

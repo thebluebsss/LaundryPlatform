@@ -1220,7 +1220,7 @@ export const updateCustomerCareNote = asyncHandler(
         customerCareNote: cleanNote,
         updatedOrdersCount: matchingOrders.length,
       },
-      "Đã lưu ghi chú chăm sóc vải riêng của khách hàng vào CSDL"
+      "Đã lưu ghi chú chăm sóc riêng của khách hàng"
     );
   }
 );

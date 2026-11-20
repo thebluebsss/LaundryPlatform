@@ -29,9 +29,9 @@ export const CustomerLoginForm: React.FC<CustomerLoginFormProps> = ({
   return (
     <form onSubmit={onSubmit} className="space-y-3.5">
       <InputText
-        title="Tên đăng nhập, Email hoặc Số điện thoại"
+        title="Tên đăng nhập, email hoặc số điện thoại"
         required
-        placeholder="Nhập username, email hoặc SĐT"
+        placeholder="Nhập tên đăng nhập, email hoặc số điện thoại"
         startAdornment={<User className="w-4 h-4 text-slate-400" />}
         inputProps={{
           value: loginUsername,
@@ -47,7 +47,7 @@ export const CustomerLoginForm: React.FC<CustomerLoginFormProps> = ({
           <button
             type="button"
             onClick={onSwitchForgot}
-            className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+            className="text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
           >
             Quên mật khẩu?
           </button>
@@ -82,8 +82,8 @@ export const CustomerLoginForm: React.FC<CustomerLoginFormProps> = ({
         type="submit"
         loading={loading}
         iconStart={<LogIn className="w-4 h-4" />}
-        label={loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP APP KHÁCH HÀNG"}
-        textClassName="!text-xs !font-black"
+        label={loading ? "Đang đăng nhập..." : "Đăng nhập"}
+        textClassName="!text-xs !font-semibold"
       />
     </form>
   );
