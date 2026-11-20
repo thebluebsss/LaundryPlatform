@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Box,
   Typography,
@@ -370,35 +371,37 @@ export const UsersTable = ({
       </TableContainer>
 
       {/* Modal Preview Driver License Image */}
-      {previewLicenseUrl && (
-        <div
-          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-[9999] flex items-center justify-center p-4"
-          onClick={() => setPreviewLicenseUrl(null)}
-        >
+      {previewLicenseUrl &&
+        createPortal(
           <div
-            className="bg-white rounded-3xl max-w-lg w-full p-5 space-y-3 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-[1300] flex items-center justify-center p-4"
+            onClick={() => setPreviewLicenseUrl(null)}
           >
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-black text-slate-900">
-                Ảnh Chụp Bằng Lái Xe (GPLX) Đối Tác Shipper
+            <div
+              className="bg-white rounded-3xl max-w-lg w-full p-5 space-y-3 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-black text-slate-900">
+                  Ảnh Chụp Bằng Lái Xe (GPLX) Đối Tác Shipper
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewLicenseUrl(null)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
+                >
+                  Đóng
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setPreviewLicenseUrl(null)}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
-              >
-                Đóng
-              </button>
+              <img
+                src={previewLicenseUrl}
+                alt="Bằng lái xe Shipper"
+                className="w-full max-h-[380px] object-contain rounded-2xl border border-slate-200 bg-slate-50"
+              />
             </div>
-            <img
-              src={previewLicenseUrl}
-              alt="Bằng lái xe Shipper"
-              className="w-full max-h-[380px] object-contain rounded-2xl border border-slate-200 bg-slate-50"
-            />
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 };

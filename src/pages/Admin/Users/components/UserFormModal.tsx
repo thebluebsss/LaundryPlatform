@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Box, Typography, Button, Stack } from "@mui/material";
 import {
   X,
@@ -193,8 +194,8 @@ export const UserFormModal = ({
     }
   };
 
-  return (
-    <Box className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+  return createPortal(
+    <Box className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-[1300]">
       <Box className="bg-white rounded-3xl max-w-4xl w-full p-6 md:p-7 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
         <Box className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
           <div>
@@ -785,6 +786,7 @@ export const UserFormModal = ({
           </Stack>
         </form>
       </Box>
-    </Box>
+    </Box>,
+    document.body
   );
 };

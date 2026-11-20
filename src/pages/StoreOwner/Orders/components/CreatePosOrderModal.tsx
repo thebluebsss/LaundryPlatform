@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Plus, Trash2, Store } from "lucide-react";
 import { LaundryService } from "../../../../types";
 import { ButtonCustom, ButtonOutLine } from "../../../../components/ButtonCustom";
 import { InputText } from "../../../../components/InputText";
 import { InputSelect } from "../../../../components/InputSelect";
+import { getScopedProfile } from "../../../../utils/authStorage";
 
 interface CreatePosOrderModalProps {
   isOpen: boolean;
@@ -19,10 +20,21 @@ export const CreatePosOrderModal: React.FC<CreatePosOrderModalProps> = ({
   onClose,
   onCreate,
 }) => {
+  const ownerProfile = getScopedProfile("store_owner");
+  const resolvedStoreId = ownerProfile?.assignedStoreId || "store-hn-hoankiem";
+  const resolvedStoreName =
+    ownerProfile?.storeName || "Tiệm Giặt Sạch Sẽ Hoàn Kiếm";
+  const resolvedDefaultDistrict =
+    ownerProfile?.storeDistrict || "Quận Hoàn Kiếm";
+
   const [customerName, setCustomerName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [address, setAddress] = useState("Khách gửi trực tiếp tại quầy (Walk-in POS)");
-  const [district, setDistrict] = useState("Quận 1");
+  const [address, setAddress] = useState(
+    ownerProfile?.address
+      ? `Tại quầy POS · ${ownerProfile.address}`
+      : "Khách gửi trực tiếp tại quầy (Walk-in POS)"
+  );
+  const [district, setDistrict] = useState(resolvedDefaultDistrict);
   const [paymentMethod, setPaymentMethod] = useState("vietqr");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<any[]>([
@@ -37,6 +49,12 @@ export const CreatePosOrderModal: React.FC<CreatePosOrderModalProps> = ({
       actualQuantity: 3,
     },
   ]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setDistrict(resolvedDefaultDistrict);
+    }
+  }, [isOpen, resolvedDefaultDistrict]);
 
   if (!isOpen) return null;
 
@@ -111,12 +129,13 @@ export const CreatePosOrderModal: React.FC<CreatePosOrderModalProps> = ({
     const today = new Date().toISOString().split("T")[0];
     onCreate({
       id: "POS-" + Math.floor(1000 + Math.random() * 9000),
+      orderType: "pos",
       customerName: customerName.trim(),
       phoneNumber: phoneNumber.trim(),
       address: address.trim(),
       district,
-      storeId: "store-hcm-q1",
-      storeName: "Tiệm Giặt Sấy Vô Trùng Q1",
+      storeId: resolvedStoreId,
+      storeName: resolvedStoreName,
       pickupDate: today,
       pickupTime: "Tại quầy POS",
       deliveryDate: today,

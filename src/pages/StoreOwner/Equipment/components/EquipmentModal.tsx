@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, WashingMachine } from "lucide-react";
 import { StoreEquipmentItem } from "../hook";
 import { ButtonCustom, ButtonOutLine } from "../../../../components/ButtonCustom";
@@ -69,8 +70,8 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[1300] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
       <form
         onSubmit={handleSubmit}
         className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-xl p-6 md:p-8 space-y-5 animate-in zoom-in-95 duration-200"
@@ -185,6 +186,7 @@ export const EquipmentModal: React.FC<EquipmentModalProps> = ({
           />
         </div>
       </form>
-    </div>
+    </div>,
+    document.body
   );
 };

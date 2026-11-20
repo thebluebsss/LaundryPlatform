@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Users, Phone, MapPin } from 'lucide-react';
 import { LaundryOrder, OrderStatus } from '../../../../types';
 import { Stack, Box, Typography, Button } from '@mui/material';
@@ -20,8 +21,8 @@ export const AdminOrderModal: React.FC<AdminOrderModalProps> = ({
     return num.toLocaleString('vi-VN') + ' đ';
   };
 
-  return (
-    <Box id="admin-order-dialog" className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+  return createPortal(
+    <Box id="admin-order-dialog" className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-[1300] animate-in fade-in duration-200">
       <Box className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150 relative">
         <Stack spacing={3}>
           <Box>
@@ -240,6 +241,7 @@ export const AdminOrderModal: React.FC<AdminOrderModalProps> = ({
           </Button>
         </Stack>
       </Box>
-    </Box>
+    </Box>,
+    document.body
   );
 };

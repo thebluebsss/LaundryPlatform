@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Search, Plus, Users, X, Navigation } from "lucide-react";
 import { useStoreOwnerOrders } from "./hook";
 import { WeighAndInspectModal } from "./components/WeighAndInspectModal";
@@ -291,41 +292,49 @@ export const StoreOwnerOrders: React.FC = () => {
       />
 
       {/* Live GPS Tracking Modal for Store Owner */}
-      {gpsOrder && (
-        <div className="fixed inset-0 z-[1200] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-2xl rounded-2xl border border-slate-200 p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
-                  <Navigation className="w-5 h-5 text-emerald-600" />
+      {gpsOrder &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[1300] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+            onClick={() => setGpsOrder(null)}
+          >
+            <div
+              className="bg-white w-full max-w-2xl rounded-2xl border border-slate-200 p-5 space-y-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                    <Navigation className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">
+                      Bản Đồ Live GPS Tài Xế · Đơn #{gpsOrder.id.toUpperCase()}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Khách hàng: {gpsOrder.customerName} ({gpsOrder.phoneNumber})
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">
-                    Bản Đồ Live GPS Tài Xế · Đơn #{gpsOrder.id.toUpperCase()}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Khách hàng: {gpsOrder.customerName} ({gpsOrder.phoneNumber})
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setGpsOrder(null)}
+                  className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setGpsOrder(null)}
-                className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <OrderLiveGpsMap
-              order={
-                orders.find((o) => o.id === gpsOrder.id) || gpsOrder
-              }
-              heightClassName="h-[340px]"
-            />
-          </div>
-        </div>
-      )}
+              <OrderLiveGpsMap
+                order={
+                  orders.find((o) => o.id === gpsOrder.id) || gpsOrder
+                }
+                heightClassName="h-[340px]"
+              />
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Electronic Payment & Auto-Reconciliation Modal */}
       <VietQrSheetModal

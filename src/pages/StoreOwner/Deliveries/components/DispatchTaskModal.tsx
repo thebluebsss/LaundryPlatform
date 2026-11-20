@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Truck } from "lucide-react";
 import { CourierDriver } from "../../../../types";
 import { ButtonCustom, ButtonOutLine } from "../../../../components/ButtonCustom";
@@ -59,8 +60,8 @@ export const DispatchTaskModal: React.FC<DispatchTaskModalProps> = ({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[1300] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
       <form
         onSubmit={handleSubmit}
         className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-xl p-6 md:p-8 space-y-5 animate-in zoom-in-95 duration-200"
@@ -138,7 +139,7 @@ export const DispatchTaskModal: React.FC<DispatchTaskModalProps> = ({
         <InputText
           title="Địa chỉ lấy / giao đồ"
           required
-          placeholder="VD: 45 Lê Thánh Tôn, Phường Bến Nghé, Quận 1"
+          placeholder="VD: 24 Phố Hàng Bài, Quận Hoàn Kiếm, TP. Hà Nội"
           inputProps={{
             value: customerAddress,
             onChange: (e: any) => setCustomerAddress(e.target.value),
@@ -185,6 +186,7 @@ export const DispatchTaskModal: React.FC<DispatchTaskModalProps> = ({
           />
         </div>
       </form>
-    </div>
+    </div>,
+    document.body
   );
 };

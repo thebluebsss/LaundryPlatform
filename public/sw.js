@@ -1,7 +1,8 @@
-const CACHE_NAME = "sachse-v1";
+const CACHE_NAME = "sachse-v2";
 const urlsToCache = [
   "/",
-  "/manifest.json"
+  "/manifest.json",
+  "/app-icon.svg"
 ];
 
 self.addEventListener("install", (event) => {
@@ -41,17 +42,36 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Network-first for HTML navigations so users always get latest app shell
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req).catch(() => {
-        return caches.match("/");
-      })
+      fetch(req)
+        .then((networkRes) => {
+          if (networkRes && networkRes.ok) {
+            const resClone = networkRes.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put("/", resClone));
+          }
+          return networkRes;
+        })
+        .catch(() => caches.match("/"))
     );
-  } else {
-    event.respondWith(
-      caches.match(req).then((response) => {
-        return response || fetch(req);
-      })
-    );
+    return;
   }
+
+  // Stale-while-revalidate for static assets so cache updates cleanly on new deploys
+  event.respondWith(
+    caches.match(req).then((cachedResponse) => {
+      const fetchPromise = fetch(req)
+        .then((networkRes) => {
+          if (networkRes && networkRes.ok && networkRes.type === "basic") {
+            const resClone = networkRes.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          }
+          return networkRes;
+        })
+        .catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
+    })
+  );
 });
