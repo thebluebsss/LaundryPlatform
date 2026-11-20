@@ -68,27 +68,29 @@ export const StoreOwnerLogin: React.FC = () => {
             }}
           />
 
-          <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between gap-2 text-xs">
-            <div>
-              <div className="font-bold text-blue-900">
-                Tài khoản Chủ tiệm khởi tạo sẵn:
+          {(import.meta as any).env?.DEV && (
+            <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between gap-2 text-xs">
+              <div>
+                <div className="font-bold text-blue-900">
+                  Tài khoản Chủ tiệm mẫu (Dev only):
+                </div>
+                <div className="font-mono text-[11px] text-blue-700">
+                  Tài khoản: <strong>owner</strong> · Mật khẩu:{" "}
+                  <strong>123456</strong>
+                </div>
               </div>
-              <div className="font-mono text-[11px] text-blue-700">
-                Tài khoản: <strong>owner</strong> · Mật khẩu:{" "}
-                <strong>123456</strong>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername("owner");
+                  setPassword("123456");
+                }}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-[11px] shrink-0 cursor-pointer"
+              >
+                Điền nhanh
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setUsername("owner");
-                setPassword("123456");
-              }}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-[11px] shrink-0 cursor-pointer"
-            >
-              Điền nhanh
-            </button>
-          </div>
+          )}
 
           <ButtonCustom
             type="submit"

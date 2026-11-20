@@ -110,11 +110,13 @@ export const getUsers = async (filters: any = {}, page = 1, limit = 100) => {
   const query: any = {};
 
   if (filters.search) {
+    const safeSearch = String(filters.search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(safeSearch, "i");
     query.$or = [
-      { fullName: new RegExp(filters.search, "i") },
-      { email: new RegExp(filters.search, "i") },
-      { username: new RegExp(filters.search, "i") },
-      { phone: new RegExp(filters.search, "i") },
+      { fullName: regex },
+      { email: regex },
+      { username: regex },
+      { phone: regex },
     ];
   }
 

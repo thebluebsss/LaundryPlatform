@@ -1,13 +1,13 @@
 import express from "express";
 import * as storeController from "../controllers/storeController";
-import { authenticateToken, requireAdmin, requireRoles } from "../middleware/auth";
+import { authenticateToken, optionalAuth, requireAdmin, requireRoles } from "../middleware/auth";
 
 const router = express.Router();
 
 // Public routes for users to locate nearby stores and couriers
 router.get("/", storeController.getStores);
 router.get("/nearby", storeController.getNearbyStores);
-router.get("/drivers", storeController.getStoreDrivers);
+router.get("/drivers", optionalAuth as any, storeController.getStoreDrivers);
 router.get("/:id", storeController.getStoreById);
 
 // Admin / Store Owner routes

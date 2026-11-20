@@ -22,6 +22,7 @@ router.post(
 
 router.get(
   "/check-duplicate",
+  authLimiter as any,
   authController.checkDuplicate
 );
 

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "../../../components/Toast";
 import { setScopedSession } from "../../../utils/authStorage";
+import { API_BASE_URL } from "../../../services/api";
 
 export const useMobileDriverAuth = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export const useMobileDriverAuth = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

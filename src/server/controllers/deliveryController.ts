@@ -273,17 +273,24 @@ export const getAvailableTasks = async (req: Request, res: Response) => {
 export const rejectTask = async (req: Request, res: Response) => {
   try {
     const { taskId, orderId, driverId, reason } = req.body;
-    if (!taskId || !driverId) {
+    const authUser = req.user;
+    const isDriverCaller = authUser && authUser.role === "driver";
+
+    if (!taskId || (!isDriverCaller && !driverId)) {
       return res.status(400).json({
         success: false,
         message: "Cần cung cấp taskId và driverId",
       });
     }
 
-    const driverIdentifiers = String(driverId)
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const driverIdentifiers = isDriverCaller
+      ? [authUser._id, authUser.id, authUser.username, authUser.phone]
+          .map((s) => String(s || "").trim())
+          .filter(Boolean)
+      : String(driverId)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
 
     let task: any = await DeliveryTask.findOne({ id: taskId });
     if (!task && mongoose.Types.ObjectId.isValid(taskId)) {
@@ -779,19 +786,28 @@ export const updateDriverLocation = async (req: Request, res: Response) => {
       });
     }
 
+    const authUser = req.user;
+    const isDriverCaller = authUser && authUser.role === "driver";
+    const resolvedDriverId = isDriverCaller
+      ? String(authUser._id || authUser.id)
+      : String(driverId || authUser?._id || "drv-live");
+    const resolvedDriverName = isDriverCaller
+      ? authUser.fullName || driverName || "Tài xế Sạch Sẽ"
+      : driverName || "Tài xế Sạch Sẽ";
+
     const liveLocation = {
       lat: Number(Number(lat).toFixed(6)),
       lng: Number(Number(lng).toFixed(6)),
       heading: heading !== undefined ? Number(heading) : 0,
       speedKmh: speedKmh !== undefined ? Number(speedKmh) : 28,
       updatedAt: new Date().toISOString(),
-      driverId: driverId || "drv-live",
-      driverName: driverName || "Tài xế Sạch Sẽ",
+      driverId: resolvedDriverId,
+      driverName: resolvedDriverName,
     };
 
     try {
-      if (driverId) {
-        await User.findByIdAndUpdate(driverId, {
+      if (resolvedDriverId && resolvedDriverId !== "drv-live") {
+        await User.findByIdAndUpdate(resolvedDriverId, {
           currentLocation: { lat: liveLocation.lat, lng: liveLocation.lng },
           lastLogin: new Date(),
         });
@@ -800,11 +816,20 @@ export const updateDriverLocation = async (req: Request, res: Response) => {
 
     // Update active DeliveryTask(s) and linked LaundryOrder(s)
     const updatedOrderIds = new Set<string>();
-    if (orderId) {
+    if (orderId && !isDriverCaller) {
       updatedOrderIds.add(String(orderId));
     }
 
     try {
+      const driverIdsLower = new Set(
+        (isDriverCaller
+          ? [authUser._id, authUser.id, authUser.phone]
+          : [resolvedDriverId]
+        )
+          .map((s) => String(s || "").trim().toLowerCase())
+          .filter(Boolean)
+      );
+
       const allTasks = (await DeliveryTask.find({})) || [];
       for (const t of allTasks) {
         const isActive =
@@ -813,10 +838,16 @@ export const updateDriverLocation = async (req: Request, res: Response) => {
           t.status !== "cancelled";
         if (!isActive) continue;
 
+        const belongsToDriver =
+          driverIdsLower.has(String(t.driverId || "").trim().toLowerCase()) ||
+          driverIdsLower.has(String(t.driverPhone || "").trim().toLowerCase());
+
+        if (isDriverCaller && !belongsToDriver) continue;
+
         const matchesTask =
           (taskId && t.id === taskId) ||
           (orderId && t.orderId === orderId) ||
-          (driverId && String(t.driverId) === String(driverId));
+          belongsToDriver;
 
         if (matchesTask) {
           await DeliveryTask.findOneAndUpdate(
@@ -830,9 +861,10 @@ export const updateDriverLocation = async (req: Request, res: Response) => {
       }
 
       for (const ordId of updatedOrderIds) {
-        await LaundryOrder.findOneAndUpdate(
+        const updatedOrd = await LaundryOrder.findOneAndUpdate(
           { id: ordId },
-          { driverLocation: liveLocation }
+          { driverLocation: liveLocation },
+          { new: true }
         );
         realtimeHub.broadcast(
           "DRIVER_GPS_UPDATED",
@@ -840,7 +872,15 @@ export const updateDriverLocation = async (req: Request, res: Response) => {
             orderId: ordId,
             driverLocation: liveLocation,
           },
-          ordId
+          ordId,
+          updatedOrd
+            ? {
+                userId: updatedOrd.userId,
+                phoneNumber: updatedOrd.phoneNumber,
+                storeId: updatedOrd.storeId,
+                shipperId: updatedOrd.shipperId || resolvedDriverId,
+              }
+            : { shipperId: resolvedDriverId }
         );
       }
     } catch (e) {}

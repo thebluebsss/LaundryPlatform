@@ -9,16 +9,27 @@ import User from "../models/User";
  * @route   GET /api/auth/check-duplicate
  * @access  Public
  */
+const ALLOWED_DUPLICATE_FIELDS = new Set(["username", "email", "phone"]);
+
 export const checkDuplicate = asyncHandler(async (req: Request, res: Response) => {
-  const { field, value } = req.query;
-  if (!field || !value) {
+  const rawField = typeof req.query.field === "string" ? req.query.field.trim() : "";
+  const rawValue = typeof req.query.value === "string" ? req.query.value.trim() : "";
+
+  if (!rawField || !rawValue) {
     return res.status(400).json({ success: false, message: "Thiếu trường dữ liệu" });
   }
 
-  const query: any = {};
-  query[field as string] = value;
+  if (!ALLOWED_DUPLICATE_FIELDS.has(rawField)) {
+    return res.status(400).json({
+      success: false,
+      message: "Trường kiểm tra không hợp lệ (chỉ hỗ trợ username, email, phone)",
+    });
+  }
 
-  const existing = await User.findOne(query);
+  const normalizedValue = rawField === "email" ? rawValue.toLowerCase() : rawValue;
+  const query: any = { [rawField]: normalizedValue };
+
+  const existing = await (User as any).findOne(query);
   res.status(200).json({
     success: true,
     duplicated: !!existing,

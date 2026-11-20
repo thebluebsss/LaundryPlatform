@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "../../../components/Toast";
 import { useLoading } from "../../../context/LoadingContext";
 import { setScopedSession } from "../../../utils/authStorage";
+import { API_BASE_URL } from "../../../services/api";
 
 export const useStoreOwnerLogin = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export const useStoreOwnerLogin = () => {
     setSubmitting(true);
     setGlobalLoading(true);
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

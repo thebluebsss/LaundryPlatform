@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "../../../components/Toast";
 import { setScopedSession } from "../../../utils/authStorage";
+import { API_BASE_URL } from "../../../services/api";
 
 export interface CustomerRegisterFormState {
   username: string;
@@ -58,7 +59,7 @@ export const useMobileCustomerAuth = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -122,7 +123,7 @@ export const useMobileCustomerAuth = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/register", {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,7 +163,7 @@ export const useMobileCustomerAuth = () => {
     setLoading(true);
     setFallbackOtpHint(null);
     try {
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: forgotEmail.trim() }),
@@ -172,10 +173,6 @@ export const useMobileCustomerAuth = () => {
         const data = result.data || {};
         if (data.email) {
           setForgotEmail(data.email);
-        }
-        if (data.devOtp) {
-          setFallbackOtpHint(String(data.devOtp));
-          setForgotOtp(String(data.devOtp));
         }
         showToast(
           data.message ||
@@ -214,7 +211,7 @@ export const useMobileCustomerAuth = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/reset-password", {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

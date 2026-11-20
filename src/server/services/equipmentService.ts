@@ -13,11 +13,13 @@ export const getEquipment = async (filters: any = {}) => {
   if (filters.storeId && filters.storeId !== "all") query.storeId = filters.storeId;
 
   if (filters.search) {
+    const safeSearch = String(filters.search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(safeSearch, "i");
     query.$or = [
-      { name: new RegExp(filters.search, "i") },
-      { model: new RegExp(filters.search, "i") },
-      { serialNumber: new RegExp(filters.search, "i") },
-      { location: new RegExp(filters.search, "i") },
+      { name: regex },
+      { model: regex },
+      { serialNumber: regex },
+      { location: regex },
     ];
   }
 

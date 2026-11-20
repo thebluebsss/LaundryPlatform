@@ -46,7 +46,7 @@ export const AdminLogin = () => {
       const msg =
         err.response?.data?.message ||
         err.message ||
-        "Tài khoản hoặc mật khẩu Quản trị viên không chính xác. (Mặc định: admin / admin123)";
+        "Tài khoản hoặc mật khẩu Quản trị viên không chính xác.";
       setError(msg);
       showToast(msg, "error");
     } finally {

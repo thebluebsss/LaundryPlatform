@@ -16,7 +16,8 @@ export const getLaundryServices = async (filters: any = {}) => {
 
   // Search
   if (filters.search) {
-    query.name = new RegExp(filters.search, "i");
+    const safeSearch = String(filters.search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    query.name = new RegExp(safeSearch, "i");
   }
 
   // Sort

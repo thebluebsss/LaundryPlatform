@@ -72,6 +72,15 @@ export const getNearbyStores = asyncHandler(async (req: Request, res: Response) 
  * @route   GET /api/stores
  * @access  Public
  */
+const escapeRegex = (raw: unknown) =>
+  String(raw ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const maskPhone = (phone: string) => {
+  const clean = String(phone || "").trim();
+  if (clean.length < 7) return "***";
+  return `${clean.slice(0, 3)}****${clean.slice(-3)}`;
+};
+
 export const getStores = asyncHandler(async (req: Request, res: Response) => {
   const { city, status, search, ownerId } = req.query;
 
@@ -80,10 +89,11 @@ export const getStores = asyncHandler(async (req: Request, res: Response) => {
   if (status && status !== "all") query.status = status;
   if (ownerId) query.ownerId = ownerId;
   if (search) {
+    const safeSearch = escapeRegex(search);
     query.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { address: { $regex: search, $options: "i" } },
-      { district: { $regex: search, $options: "i" } },
+      { name: { $regex: safeSearch, $options: "i" } },
+      { address: { $regex: safeSearch, $options: "i" } },
+      { district: { $regex: safeSearch, $options: "i" } },
     ];
   }
 
@@ -116,27 +126,30 @@ export const getStoreById = asyncHandler(async (req: Request, res: Response) => 
 });
 
 /**
- * @desc    Lấy danh sách tài xế thực tế trong CSDL
+ * @desc    Lấy danh sách tài xế thực tế trong CSDL (ẩn SĐT/biển số chi tiết nếu chưa đăng nhập)
  * @route   GET /api/stores/drivers
- * @access  Public
+ * @access  Public (full contact info for authenticated users/staff)
  */
 export const getStoreDrivers = asyncHandler(async (req: Request, res: Response) => {
   const { storeId } = req.query;
+  const isAuthenticated = Boolean(req.user);
   const users = await (User as any).find({ role: "driver" });
   const drivers = (users || []).map((u: any) => {
     const obj = u.toObject ? u.toObject() : u;
+    const rawPhone = obj.phone || "0911222333";
+    const rawPlate = obj.licensePlate || "29-B1 888.99";
     return {
       id: obj._id || obj.id || obj.username,
       name: obj.fullName || obj.username || "Tài xế Sạch Sẽ",
-      phone: obj.phone || "0911222333",
+      phone: isAuthenticated ? rawPhone : maskPhone(rawPhone),
       storeId: obj.assignedStoreId || (storeId as string) || "",
       storeName: obj.storeName || "Hệ thống Sạch Sẽ",
       vehicleType: obj.vehicleType === "van" ? "van" : "bike",
-      licensePlate: obj.licensePlate || "29-B1 888.99",
+      licensePlate: isAuthenticated ? rawPlate : "***",
       rating: 4.9,
       completedOrders: obj.completedOrders || 0,
-      lat: obj.lat || 21.0285,
-      lng: obj.lng || 105.8542,
+      lat: obj.currentLocation?.lat || obj.lat || 21.0285,
+      lng: obj.currentLocation?.lng || obj.lng || 105.8542,
       status: obj.isAvailable === false ? "busy" : "available",
     };
   });

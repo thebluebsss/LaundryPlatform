@@ -198,23 +198,31 @@ export const createPayOSOrder = asyncHandler(async (req: Request, res: Response)
  * @access  Public
  */
 export const payosWebhook = asyncHandler(async (req: Request, res: Response) => {
-  const result = await paymentService.verifyPayOSWebhook(req.body);
+  const result: any = await paymentService.verifyPayOSWebhook(req.body);
 
-  if (result.success) {
-    const { orderId, amount, transactionId } = result.data;
+  if (result.success && result.data) {
+    const orderId = String(result.data.orderId || result.data.orderCode || "");
+    const amount = Number(result.data.amount || 0);
+    const transactionId = String(
+      result.data.transactionId || result.data.reference || result.data.orderCode || ""
+    );
 
-    try {
-      await bookingService.updatePaymentStatus(orderId, "paid", {
-        transactionId,
-        gateway: "payos",
-        amount,
-      });
-    } catch (error) {
-      await orderService.updateOrderPaymentStatus(orderId, "paid", {
-        transactionId,
-        gateway: "payos",
-        amount,
-      });
+    if (orderId) {
+      try {
+        await bookingService.updatePaymentStatus(orderId, "paid", {
+          transactionId,
+          gateway: "payos",
+          amount,
+        });
+      } catch {
+        try {
+          await orderService.updateOrderPaymentStatus(orderId, "paid", {
+            transactionId,
+            gateway: "payos",
+            amount,
+          });
+        } catch {}
+      }
     }
   }
 
@@ -273,10 +281,21 @@ export const calculatePrice = asyncHandler(async (req: Request, res: Response) =
 /**
  * @desc    Lấy payment status của booking
  * @route   GET /api/payment/status/:bookingId
- * @access  Public
+ * @access  Private
  */
 export const getBookingPaymentStatus = asyncHandler(async (req: Request, res: Response) => {
-  const booking = await bookingService.getBookingById(req.params.bookingId);
+  const booking: any = await bookingService.getBookingById(req.params.bookingId);
+  const role = normalizeRole(req.user?.role);
+  const isStaff = role === "admin" || role === "store_owner";
+  const isOwner =
+    (booking?.userId && String(booking.userId) === String(req.user?._id || req.user?.id)) ||
+    (booking?.phone && req.user?.phone && String(booking.phone) === String(req.user.phone));
+  if (!isStaff && !isOwner) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền xem trạng thái thanh toán của đơn này",
+    });
+  }
 
   successResponse(
     res,
@@ -291,10 +310,19 @@ export const getBookingPaymentStatus = asyncHandler(async (req: Request, res: Re
 /**
  * @desc    Lấy payment status của order
  * @route   GET /api/payment/products/status/:orderId
- * @access  Public
+ * @access  Private
  */
 export const getOrderPaymentStatus = asyncHandler(async (req: Request, res: Response) => {
-  const order = await orderService.getOrderById(req.params.orderId);
+  const order: any = await orderService.getOrderById(req.params.orderId);
+  const role = normalizeRole(req.user?.role);
+  const isStaff = role === "admin" || role === "store_owner";
+  const ownerId = order?.userId?._id || order?.userId;
+  if (!isStaff && ownerId && String(ownerId) !== String(req.user?._id || req.user?.id)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền xem trạng thái thanh toán của đơn hàng này",
+    });
+  }
 
   successResponse(
     res,

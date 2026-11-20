@@ -15,10 +15,12 @@ export const getProducts = async (filters: any = {}) => {
 
   // Search
   if (filters.search) {
+    const safeSearch = String(filters.search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(safeSearch, "i");
     query.$or = [
-      { name: new RegExp(filters.search, "i") },
-      { description: new RegExp(filters.search, "i") },
-      { brand: new RegExp(filters.search, "i") },
+      { name: regex },
+      { description: regex },
+      { brand: regex },
     ];
   }
 

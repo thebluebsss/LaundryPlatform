@@ -38,7 +38,10 @@ export const getBookings = async (filters: any = {}, page = 1, limit = 10) => {
   // Filters
   if (filters.status) query.status = filters.status;
   if (filters.paymentStatus) query.paymentStatus = filters.paymentStatus;
-  if (filters.phone) query.phone = new RegExp(filters.phone, "i");
+  if (filters.phone) {
+    const safePhone = String(filters.phone).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    query.phone = new RegExp(safePhone, "i");
+  }
   if (filters.service) query.service = filters.service;
 
   const [bookings, total] = await Promise.all([
