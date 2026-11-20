@@ -74,5 +74,9 @@ export const clearScopedSession = (scope: AppActorScope) => {
   localStorage.removeItem(keys.profile);
   localStorage.removeItem("sachse_user_token");
   localStorage.removeItem("sachse_user_profile");
+  const bellRole = scope === "store_owner" ? "store" : scope;
+  if (bellRole === "customer" || bellRole === "driver" || bellRole === "store") {
+    localStorage.removeItem(`sachse_bell_notifications_v3_${bellRole}`);
+  }
   window.dispatchEvent(new Event("storage"));
 };

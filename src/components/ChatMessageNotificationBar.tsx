@@ -25,10 +25,18 @@ import {
 import { OrderChatMessage } from "../types";
 import { useRealtimeOrders } from "../utils/realtimeClient";
 import { OrderChatDrawer } from "./OrderChatDrawer";
-import { getScopedProfile } from "../utils/authStorage";
+import { getScopedProfile, getScopedToken } from "../utils/authStorage";
 import { laundryOrdersAPI } from "../services/api";
 
 export type ActorRole = "customer" | "driver" | "store";
+
+const hasRoleAuthToken = (role: ActorRole): boolean => {
+  if (role === "driver") return Boolean(getScopedToken("driver"));
+  if (role === "store") {
+    return Boolean(getScopedToken("store_owner") || getScopedToken("admin"));
+  }
+  return Boolean(getScopedToken("customer"));
+};
 
 export interface StoredNotificationItem {
   id: string;
@@ -203,21 +211,24 @@ export const NotificationBellButton: React.FC<{
         ? "store"
         : "customer");
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() =>
+    hasRoleAuthToken(resolvedRole)
+  );
   const [items, setItems] = useState<StoredNotificationItem[]>(() =>
-    loadStoredNotifications(resolvedRole)
+    hasRoleAuthToken(resolvedRole) ? loadStoredNotifications(resolvedRole) : []
   );
 
   const refreshItems = useCallback(() => {
-    setItems(loadStoredNotifications(resolvedRole));
+    const authed = hasRoleAuthToken(resolvedRole);
+    setIsAuthenticated(authed);
+    setItems(authed ? loadStoredNotifications(resolvedRole) : []);
   }, [resolvedRole]);
 
   useEffect(() => {
     refreshItems();
     const handleSync = () => refreshItems();
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key && e.key.startsWith(STORAGE_KEY_PREFIX)) {
-        refreshItems();
-      }
+    const handleStorage = () => {
+      refreshItems();
     };
     window.addEventListener(BELL_SYNC_EVENT, handleSync);
     window.addEventListener("storage", handleStorage);
@@ -225,7 +236,11 @@ export const NotificationBellButton: React.FC<{
       window.removeEventListener(BELL_SYNC_EVENT, handleSync);
       window.removeEventListener("storage", handleStorage);
     };
-  }, [refreshItems]);
+  }, [refreshItems, location.pathname]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const unreadCount = items.filter((n) => !n.isRead).length;
 
@@ -318,9 +333,36 @@ export const ChatMessageNotificationBar: React.FC = () => {
       ? "store"
       : "customer";
 
+  const isExcludedRoute =
+    location.pathname.includes("/login") ||
+    location.pathname.startsWith("/admin");
+
+  const [isViewerAuthenticated, setIsViewerAuthenticated] = useState<boolean>(
+    () => !isExcludedRoute && hasRoleAuthToken(viewerRole)
+  );
+
+  useEffect(() => {
+    const syncAuth = () => {
+      const authed = !isExcludedRoute && hasRoleAuthToken(viewerRole);
+      setIsViewerAuthenticated(authed);
+      if (!authed) {
+        setIsHistoryOpen(false);
+        setBanners([]);
+        setActiveChatOrder(null);
+      }
+    };
+    syncAuth();
+    window.addEventListener("storage", syncAuth);
+    return () => window.removeEventListener("storage", syncAuth);
+  }, [viewerRole, isExcludedRoute, location.pathname]);
+
   const refreshHistory = useCallback(() => {
+    if (!isViewerAuthenticated) {
+      setHistoryItems([]);
+      return;
+    }
     setHistoryItems(loadStoredNotifications(viewerRole));
-  }, [viewerRole]);
+  }, [viewerRole, isViewerAuthenticated]);
 
   useEffect(() => {
     refreshHistory();
@@ -329,6 +371,7 @@ export const ChatMessageNotificationBar: React.FC = () => {
   // Listen for Bell button clicks
   useEffect(() => {
     const handleOpenDrawer = () => {
+      if (!isViewerAuthenticated) return;
       refreshHistory();
       setIsHistoryOpen(true);
     };
@@ -341,67 +384,64 @@ export const ChatMessageNotificationBar: React.FC = () => {
       window.removeEventListener(OPEN_BELL_DRAWER_EVENT, handleOpenDrawer);
       window.removeEventListener(BELL_SYNC_EVENT, handleSync);
     };
-  }, [refreshHistory]);
+  }, [refreshHistory, isViewerAuthenticated]);
 
-  // Sync recent order chat messages from backend into notification history for all 3 actors
+  // Sync recent order chat messages from backend only when authenticated for the active role
   useEffect(() => {
+    if (!isViewerAuthenticated) return;
     let mounted = true;
     laundryOrdersAPI
       .getAll()
       .then((res) => {
         if (!mounted) return;
         const orders = Array.isArray(res.data?.data) ? res.data.data : [];
-        const roles: ActorRole[] = ["customer", "driver", "store"];
+        const currentList = loadStoredNotifications(viewerRole);
+        const existingIds = new Set(currentList.map((item) => item.id));
+        let changed = false;
 
-        roles.forEach((r) => {
-          const currentList = loadStoredNotifications(r);
-          const existingIds = new Set(currentList.map((item) => item.id));
-          let changed = false;
-
-          orders.forEach((ord: any) => {
-            const msgs: OrderChatMessage[] = Array.isArray(ord.messages)
-              ? ord.messages
-              : [];
-            msgs.forEach((m) => {
-              if (!m?.id || m.senderRole === r) return;
-              const notifId = `notif_${r}_${m.id}`;
-              if (!existingIds.has(notifId)) {
-                existingIds.add(notifId);
-                changed = true;
-                currentList.unshift({
-                  id: notifId,
-                  orderId: ord.id,
-                  targetRole: r,
-                  senderRole: m.senderRole,
-                  senderName: m.senderName || "Hệ thống",
-                  text: m.text,
-                  isQuickReply: m.isQuickReply,
-                  createdAt: m.createdAt || new Date().toISOString(),
-                  receivedAt: m.createdAt
-                    ? new Date(m.createdAt).getTime()
-                    : Date.now(),
-                  isRead: false,
-                  customerName: ord.customerName || "Khách hàng",
-                  storeName: ord.storeName || "Tiệm Giặt Sạch Sẽ",
-                  shipperName: ord.shipperName || "Tài xế Sạch Sẽ",
-                  messages: msgs,
-                });
-              }
-            });
+        orders.forEach((ord: any) => {
+          const msgs: OrderChatMessage[] = Array.isArray(ord.messages)
+            ? ord.messages
+            : [];
+          msgs.forEach((m) => {
+            if (!m?.id || m.senderRole === viewerRole) return;
+            const notifId = `notif_${viewerRole}_${m.id}`;
+            if (!existingIds.has(notifId)) {
+              existingIds.add(notifId);
+              changed = true;
+              currentList.unshift({
+                id: notifId,
+                orderId: ord.id,
+                targetRole: viewerRole,
+                senderRole: m.senderRole,
+                senderName: m.senderName || "Hệ thống",
+                text: m.text,
+                isQuickReply: m.isQuickReply,
+                createdAt: m.createdAt || new Date().toISOString(),
+                receivedAt: m.createdAt
+                  ? new Date(m.createdAt).getTime()
+                  : Date.now(),
+                isRead: false,
+                customerName: ord.customerName || "Khách hàng",
+                storeName: ord.storeName || "Tiệm Giặt Sạch Sẽ",
+                shipperName: ord.shipperName || "Tài xế Sạch Sẽ",
+                messages: msgs,
+              });
+            }
           });
-
-          if (changed) {
-            currentList.sort((a, b) => b.receivedAt - a.receivedAt);
-            saveStoredNotifications(r, currentList);
-          }
         });
+
+        if (changed) {
+          currentList.sort((a, b) => b.receivedAt - a.receivedAt);
+          saveStoredNotifications(viewerRole, currentList);
+        }
       })
       .catch(() => {});
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [viewerRole, isViewerAuthenticated]);
 
   const getCurrentUserDisplayName = useCallback((): string | undefined => {
     const scope =
@@ -534,17 +574,19 @@ export const ChatMessageNotificationBar: React.FC = () => {
 
   const handleRealtimeEvent = useCallback(
     (event: any) => {
+      if (!isViewerAuthenticated) return;
       if (event.type === "ORDER_CHAT_MESSAGE" && event.data?.message) {
         enqueueIncomingMessage(event.data);
       }
     },
-    [enqueueIncomingMessage]
+    [enqueueIncomingMessage, isViewerAuthenticated]
   );
 
   useRealtimeOrders(handleRealtimeEvent);
 
   // Also check localStorage when switching portals in the same tab or receiving storage events across tabs
   useEffect(() => {
+    if (!isViewerAuthenticated) return;
     const checkStoredChatEvent = () => {
       try {
         const raw = localStorage.getItem("sachse_latest_chat_event");
@@ -573,7 +615,7 @@ export const ChatMessageNotificationBar: React.FC = () => {
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [viewerRole, enqueueIncomingMessage]);
+  }, [viewerRole, enqueueIncomingMessage, isViewerAuthenticated]);
 
   // Auto-dismiss floating banner after 8 seconds unless hovered
   useEffect(() => {
@@ -660,6 +702,10 @@ export const ChatMessageNotificationBar: React.FC = () => {
     if (historyFilter === "read") return item.isRead;
     return true;
   });
+
+  if (!isViewerAuthenticated) {
+    return null;
+  }
 
   return (
     <>

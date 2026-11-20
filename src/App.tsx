@@ -946,9 +946,11 @@ const AppContent = () => {
                   </div>
                 </NavLink>
 
-                <div className="flex items-center gap-2 lg:hidden">
-                  <NotificationBellButton role="customer" />
-                </div>
+                {customerLogged && (
+                  <div className="flex items-center gap-2 lg:hidden">
+                    <NotificationBellButton role="customer" />
+                  </div>
+                )}
               </div>
 
               <nav className="flex items-center gap-1 overflow-x-auto py-0.5 lg:py-0">
@@ -1064,9 +1066,11 @@ const AppContent = () => {
                   <span>Đặt giặt ngay</span>
                 </NavLink>
 
-                <div className="hidden lg:block">
-                  <NotificationBellButton role="customer" />
-                </div>
+                {customerLogged && (
+                  <div className="hidden lg:block">
+                    <NotificationBellButton role="customer" />
+                  </div>
+                )}
               </div>
             </header>
           )}
