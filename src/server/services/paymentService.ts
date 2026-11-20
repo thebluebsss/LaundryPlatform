@@ -204,11 +204,18 @@ export const createMoMoPayment = async (
   }
 };
 
+const timingSafeHexEqual = (a: unknown, b: unknown): boolean => {
+  const strA = String(a || "").trim().toLowerCase();
+  const strB = String(b || "").trim().toLowerCase();
+  if (!strA || strA.length !== strB.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(strA), Buffer.from(strB));
+};
+
 // Verify VNPay IPN
 export const verifyVNPayIPN = async (vnp_Params: any) => {
   try {
-    const secureHash = vnp_Params["vnp_SecureHash"];
-    const paramsCopy = { ...vnp_Params };
+    const secureHash = vnp_Params?.["vnp_SecureHash"];
+    const paramsCopy = { ...(vnp_Params || {}) };
     delete paramsCopy["vnp_SecureHash"];
     delete paramsCopy["vnp_SecureHashType"];
 
@@ -217,10 +224,43 @@ export const verifyVNPayIPN = async (vnp_Params: any) => {
     const hmac = crypto.createHmac("sha512", vnpayConfig.vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
 
-    return secureHash === signed;
-  } catch (error) {
+    const validSignature = timingSafeHexEqual(secureHash, signed);
+    const responseCode = String(vnp_Params?.["vnp_ResponseCode"] ?? "");
+    const transactionStatus = String(vnp_Params?.["vnp_TransactionStatus"] ?? "00");
+    const isPaymentSuccess =
+      validSignature && responseCode === "00" && transactionStatus === "00";
+
+    if (!validSignature) {
+      return {
+        success: false,
+        validSignature: false,
+        RspCode: "97",
+        Message: "Invalid signature",
+      };
+    }
+
+    return {
+      success: isPaymentSuccess,
+      validSignature: true,
+      RspCode: isPaymentSuccess ? "00" : responseCode || "99",
+      Message: isPaymentSuccess ? "Confirm Success" : "Payment failed or cancelled",
+      data: {
+        orderId: String(vnp_Params["vnp_TxnRef"] || ""),
+        amount: Math.round(Number(vnp_Params["vnp_Amount"] || 0) / 100),
+        transactionId: String(
+          vnp_Params["vnp_TransactionNo"] || vnp_Params["vnp_TxnRef"] || ""
+        ),
+        responseCode,
+      },
+    };
+  } catch (error: any) {
     console.error("VNPay IPN Verification Error:", error);
-    return false;
+    return {
+      success: false,
+      validSignature: false,
+      RspCode: "99",
+      Message: error.message || "Unknown error",
+    };
   }
 };
 
@@ -228,20 +268,20 @@ export const verifyVNPayIPN = async (vnp_Params: any) => {
 export const verifyMoMoIPN = async (requestBody: any) => {
   try {
     const {
-      partnerCode,
-      orderId,
-      requestId,
-      amount,
-      orderInfo,
-      orderType,
-      transId,
-      resultCode,
-      message,
-      payType,
-      responseTime,
-      extraData,
-      signature,
-    } = requestBody;
+      partnerCode = "",
+      orderId = "",
+      requestId = "",
+      amount = "",
+      orderInfo = "",
+      orderType = "",
+      transId = "",
+      resultCode = "",
+      message = "",
+      payType = "",
+      responseTime = "",
+      extraData = "",
+      signature = "",
+    } = requestBody || {};
 
     const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=${extraData}&message=${message}&orderId=${orderId}&orderInfo=${orderInfo}&orderType=${orderType}&partnerCode=${partnerCode}&payType=${payType}&requestId=${requestId}&responseTime=${responseTime}&resultCode=${resultCode}&transId=${transId}`;
 
@@ -250,10 +290,36 @@ export const verifyMoMoIPN = async (requestBody: any) => {
       .update(rawSignature)
       .digest("hex");
 
-    return signature === expectedSignature;
-  } catch (error) {
+    const validSignature = timingSafeHexEqual(signature, expectedSignature);
+    const numericResultCode = Number(resultCode);
+    const isPaymentSuccess = validSignature && numericResultCode === 0;
+
+    if (!validSignature) {
+      return {
+        success: false,
+        validSignature: false,
+        message: "Invalid signature",
+      };
+    }
+
+    return {
+      success: isPaymentSuccess,
+      validSignature: true,
+      message: isPaymentSuccess ? "Confirm Success" : message || "Payment failed",
+      data: {
+        orderId: String(orderId),
+        amount: Math.round(Number(amount || 0)),
+        transactionId: String(transId || requestId || orderId),
+        resultCode: numericResultCode,
+      },
+    };
+  } catch (error: any) {
     console.error("MoMo IPN Verification Error:", error);
-    return false;
+    return {
+      success: false,
+      validSignature: false,
+      message: error.message || "Unknown error",
+    };
   }
 };
 

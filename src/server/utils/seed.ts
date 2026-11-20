@@ -23,22 +23,6 @@ export const seedAdmin = async () => {
           ...defaults,
         });
         logger.info(`Default user "${username}" seeded successfully!`);
-      } else {
-        const pwOk = await bcrypt.compare(plainPw, existing.password || "");
-        const updates: Record<string, any> = {};
-        if (!pwOk) {
-          updates.password = await bcrypt.hash(plainPw, 10);
-        }
-        if (defaults.role && existing.role !== defaults.role) {
-          updates.role = defaults.role;
-        }
-        if (existing.isActive === false) {
-          updates.isActive = true;
-        }
-        if (Object.keys(updates).length > 0) {
-          await User.findByIdAndUpdate(existing._id, { $set: updates });
-          logger.info(`Repaired default user "${username}" credentials/role.`);
-        }
       }
     };
 

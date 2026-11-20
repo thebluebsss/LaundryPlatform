@@ -127,19 +127,7 @@ export const login = async (emailOrUsername: string, password: any) => {
   }
 
   // Kiểm tra password
-  let isPasswordValid = await bcrypt.compare(String(password), user.password);
-
-  // Tự động khôi phục nếu tài khoản mặc định bị double-hash từ phiên bản trước
-  if (
-    !isPasswordValid &&
-    ((["driver", "owner", "user"].includes(user.username) &&
-      String(password) === "123456") ||
-      (user.username === "admin" && String(password) === "admin123"))
-  ) {
-    const fixedHash = await bcrypt.hash(String(password), 10);
-    await User.findByIdAndUpdate(user._id, { $set: { password: fixedHash } });
-    isPasswordValid = true;
-  }
+  const isPasswordValid = await bcrypt.compare(String(password), user.password);
 
   if (!isPasswordValid) {
     throw new UnauthorizedError("Tài khoản (Username/Email/SĐT) hoặc mật khẩu không đúng");
@@ -202,6 +190,13 @@ export const getProfile = async (userId: string) => {
  */
 export const updateProfile = async (userId: string, updateData: any) => {
   const payload = { ...updateData };
+  // Never allow role/privilege escalation through self profile update
+  delete payload.role;
+  delete payload.isActive;
+  delete payload.assignedStoreId;
+  delete payload.totalEarnings;
+  delete payload.completedOrders;
+
   if (payload.password && String(payload.password).trim().length >= 6) {
     payload.password = await bcrypt.hash(String(payload.password).trim(), 10);
   } else {
@@ -308,16 +303,16 @@ export const forgotPassword = async (emailOrIdentifier: string) => {
     };
   }
 
+  // Never leak raw OTP in HTTP responses (only log server-side in non-production)
+  if (config.nodeEnv !== "production") {
+    console.warn(`[DEV ONLY] OTP reset password cho ${targetEmail}: ${otp}`);
+  }
+
   return {
     email: targetEmail,
     emailSent: false,
-    devOtp: otp,
-    smtpWarning: mailResult.requiresAppPassword
-      ? "Gmail yêu cầu Mật khẩu ứng dụng 16 ký tự (Google App Password) cho biến EMAIL_PASS trong Secret thay vì mật khẩu đăng nhập Gmail thông thường."
-      : mailResult.error,
-    message: mailResult.requiresAppPassword
-      ? `Đã tạo mã OTP cho ${targetEmail}. (Lưu ý: Gmail từ chối mật khẩu thường trong Secret EMAIL_PASS vì yêu cầu Google App Password 16 ký tự — Mã OTP của bạn là: ${otp})`
-      : `Đã tạo mã OTP xác thực cho ${targetEmail}: ${otp}`,
+    message:
+      "Hệ thống email tạm thời chưa gửi được mã OTP. Vui lòng kiểm tra cấu hình EMAIL_USER / EMAIL_PASS (Google App Password) trên máy chủ hoặc liên hệ Quản trị viên.",
   };
 };
 

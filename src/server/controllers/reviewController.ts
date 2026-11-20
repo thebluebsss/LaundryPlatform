@@ -9,36 +9,38 @@ import User from "../models/User";
 async function recalculateStoreAndShipperStats(storeId?: string, shipperId?: string) {
   try {
     if (storeId) {
-      const storeReviews = await (Review as any).find({ storeId, isHidden: false });
-      if (storeReviews && storeReviews.length > 0) {
+      const storeReviews = (await (Review as any).find({ storeId, isHidden: false })) || [];
+      const store =
+        (await (Store as any).findOne({ customId: storeId })) ||
+        (await (Store as any).findOne({ id: storeId })) ||
+        (await (Store as any).findById(storeId).catch(() => null));
+      if (store) {
         const avg =
-          storeReviews.reduce((s: number, r: any) => s + Number(r.storeRating || 5), 0) /
-          storeReviews.length;
+          storeReviews.length > 0
+            ? storeReviews.reduce((s: number, r: any) => s + Number(r.storeRating || 5), 0) /
+              storeReviews.length
+            : 5.0;
         const roundedRating = Math.round(avg * 10) / 10;
-        const store = await (Store as any).findOne({ id: storeId }) || await (Store as any).findById(storeId);
-        if (store) {
-          const baseCount = Math.max(store.reviewCount || 100, storeReviews.length);
-          await (Store as any).findByIdAndUpdate(store._id || store.id, {
-            rating: roundedRating,
-            reviewCount: baseCount + 1,
-          });
-        }
+        await (Store as any).findByIdAndUpdate(store._id || store.id, {
+          rating: roundedRating,
+          reviewCount: storeReviews.length,
+        });
       }
     }
     if (shipperId) {
-      const driverReviews = await (Review as any).find({ shipperId, isHidden: false });
-      if (driverReviews && driverReviews.length > 0) {
+      const driverReviews = (await (Review as any).find({ shipperId, isHidden: false })) || [];
+      const driver = await (User as any).findById(shipperId).catch(() => null);
+      if (driver) {
         const avg =
-          driverReviews.reduce((s: number, r: any) => s + Number(r.shipperRating || 5), 0) /
-          driverReviews.length;
+          driverReviews.length > 0
+            ? driverReviews.reduce((s: number, r: any) => s + Number(r.shipperRating || 5), 0) /
+              driverReviews.length
+            : 5.0;
         const roundedRating = Math.round(avg * 10) / 10;
-        const driver = await (User as any).findById(shipperId);
-        if (driver) {
-          await (User as any).findByIdAndUpdate(driver._id || driver.id, {
-            rating: roundedRating,
-            reviewCount: driverReviews.length,
-          });
-        }
+        await (User as any).findByIdAndUpdate(driver._id || driver.id, {
+          rating: roundedRating,
+          reviewCount: driverReviews.length,
+        });
       }
     }
   } catch (e) {}
@@ -102,13 +104,11 @@ export const getReviews = asyncHandler(async (req: Request, res: Response) => {
 /**
  * @desc    Khách hàng gửi hoặc cập nhật đánh giá chất lượng cửa hàng và tài xế cho đơn hàng đã hoàn thành
  * @route   POST /api/reviews
- * @access  Public / Customer
+ * @access  Private (Customer)
  */
 export const createOrUpdateReview = asyncHandler(async (req: Request, res: Response) => {
-
   const {
     orderId,
-    userId,
     customerName,
     customerPhone,
     storeId,
@@ -128,17 +128,25 @@ export const createOrUpdateReview = asyncHandler(async (req: Request, res: Respo
     });
   }
 
+  const authUserId = String(req.user?._id || req.user?.id || "");
+  const isAdmin = req.user?.role === "admin";
   const existing = await (Review as any).findOne({ orderId });
 
   if (existing) {
+    if (!isAdmin && existing.userId && String(existing.userId) !== authUserId) {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn không có quyền chỉnh sửa đánh giá của khách hàng khác",
+      });
+    }
     const updated = await (Review as any).findByIdAndUpdate(
       existing._id || existing.id,
       {
-        storeRating: Number(storeRating || 5),
+        storeRating: Math.min(5, Math.max(1, Number(storeRating || 5))),
         storeComment: storeComment ?? existing.storeComment,
-        shipperRating: Number(shipperRating || 5),
+        shipperRating: Math.min(5, Math.max(1, Number(shipperRating || 5))),
         shipperComment: shipperComment ?? existing.shipperComment,
-        customerName: customerName || existing.customerName,
+        customerName: customerName || req.user?.fullName || existing.customerName,
         shipperId: shipperId || existing.shipperId,
         shipperName: shipperName || existing.shipperName,
       },
@@ -154,11 +162,11 @@ export const createOrUpdateReview = asyncHandler(async (req: Request, res: Respo
   const newReview = await (Review as any).create({
     id: "REV-" + Math.floor(1005 + Math.random() * 8990),
     orderId,
-    userId: userId || "user-default-id",
-    customerName: customerName || "Khách hàng",
-    customerPhone: customerPhone || "",
-    storeId: storeId || "store-hcm-q1",
-    storeName: storeName || "Tiệm Giặt Sấy Vô Trùng Q1",
+    userId: authUserId || "user-default-id",
+    customerName: customerName || req.user?.fullName || "Khách hàng",
+    customerPhone: customerPhone || req.user?.phone || "",
+    storeId: storeId || "store-hn-hoankiem",
+    storeName: storeName || "Tiệm Giặt Sạch Sẽ",
     shipperId: shipperId || "drv-1",
     shipperName: shipperName || "Nguyễn Văn Hùng",
     storeRating: Math.min(5, Math.max(1, Number(storeRating || 5))),
@@ -183,7 +191,7 @@ export const createOrUpdateReview = asyncHandler(async (req: Request, res: Respo
 /**
  * @desc    Chủ cửa hàng (Store Manager) phản hồi đánh giá của khách hàng
  * @route   PATCH /api/reviews/:id/reply
- * @access  Store Manager / Admin
+ * @access  Private (Store Owner / Admin)
  */
 export const replyToReview = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -191,7 +199,7 @@ export const replyToReview = asyncHandler(async (req: Request, res: Response) =>
 
   let review = await (Review as any).findOne({ id });
   if (!review) {
-    review = await (Review as any).findById(id);
+    review = await (Review as any).findById(id).catch(() => null);
   }
   if (!review) {
     review = await (Review as any).findOne({ orderId: id });
@@ -201,6 +209,18 @@ export const replyToReview = asyncHandler(async (req: Request, res: Response) =>
     return res.status(404).json({
       success: false,
       message: "Không tìm thấy đánh giá để phản hồi",
+    });
+  }
+
+  if (
+    req.user?.role !== "admin" &&
+    req.user?.assignedStoreId &&
+    review.storeId &&
+    String(req.user.assignedStoreId) !== String(review.storeId)
+  ) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền phản hồi đánh giá của cửa hàng khác",
     });
   }
 

@@ -100,14 +100,18 @@ export const useMobileCustomerTracking = () => {
   const handleConfirmPaid = async (orderId: string) => {
     setProcessingPayment(true);
     try {
-      await laundryOrdersAPI.updateStatus(orderId, {
-        paymentStatus: "paid",
+      await laundryOrdersAPI.reconcilePaymentWebhook(orderId, {
+        gateway: "vietqr",
       });
       showToast(`Đã xác nhận thanh toán cho đơn #${orderId}!`, "success");
       setQrOrder(null);
       await fetchOrders();
-    } catch {
-      showToast("Không thể cập nhật trạng thái thanh toán", "error");
+    } catch (err: any) {
+      showToast(
+        err?.response?.data?.message ||
+          "Không thể cập nhật trạng thái thanh toán",
+        "error"
+      );
     } finally {
       setProcessingPayment(false);
     }

@@ -25,9 +25,9 @@ router.get("/my", authenticateToken as any, bookingController.getMyBookings);
 
 router.get("/", authenticateToken as any, requireAdmin as any, bookingController.getBookings);
 
-router.get("/:id", bookingController.getBookingById);
+router.get("/phone/:phone", authenticateToken as any, bookingController.getBookingsByPhone);
 
-router.get("/phone/:phone", bookingController.getBookingsByPhone);
+router.get("/:id", authenticateToken as any, bookingController.getBookingById);
 
 router.post(
   "/",

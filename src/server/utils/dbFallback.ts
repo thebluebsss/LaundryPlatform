@@ -245,17 +245,22 @@ function matchQuery(item: any, query: any): boolean {
 export class SimulatedDoc {
   [key: string]: any;
   private _collection: string;
+  private _logicalId?: string;
 
   constructor(collection: string, data: any) {
     Object.assign(this, data);
     this._collection = collection;
-    if (!this._id && !this.id) {
-      this._id = "fallback-id-" + Math.random().toString(36).substring(2, 10);
+    if (!this._id) {
+      this._id = this._logicalId || this.customId || "fallback-id-" + Math.random().toString(36).substring(2, 10);
     }
   }
 
   get id() {
-    return this.customId || this._id;
+    return this._logicalId || this.customId || this._id;
+  }
+
+  set id(val: any) {
+    this._logicalId = val;
   }
 
   async save() {
@@ -274,8 +279,13 @@ export class SimulatedDoc {
   }
 
   toObject() {
-    const copy = { ...this };
+    const copy: any = { ...this };
+    const logicalId = this._logicalId || this.customId || this._id;
     delete copy._collection;
+    delete copy._logicalId;
+    if (logicalId !== undefined) {
+      copy.id = logicalId;
+    }
     return copy;
   }
 
@@ -313,12 +323,20 @@ class SimulatedSingleQuery {
     return this;
   }
 
+  lean() {
+    return this;
+  }
+
   exec() {
     return Promise.resolve(this.item);
   }
 
   then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
     return Promise.resolve(this.item).then(onfulfilled, onrejected);
+  }
+
+  catch(onrejected?: (reason: any) => any) {
+    return Promise.resolve(this.item).catch(onrejected);
   }
 }
 
@@ -366,12 +384,20 @@ class SimulatedQuery {
     return this;
   }
 
+  lean() {
+    return this;
+  }
+
   exec() {
     return Promise.resolve(this.items);
   }
 
   then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
     return Promise.resolve(this.items).then(onfulfilled, onrejected);
+  }
+
+  catch(onrejected?: (reason: any) => any) {
+    return Promise.resolve(this.items).catch(onrejected);
   }
 }
 
@@ -431,16 +457,27 @@ export function createModelFallback(collection: string) {
       );
       if (index === -1) return new SimulatedSingleQuery(collection, null);
 
-      const updatedItem = {
-        ...items[index],
-        ...(update.$set || update),
-        updatedAt: new Date().toISOString(),
-      };
+      const next: any = { ...items[index] };
+      if (update && typeof update === "object") {
+        const directFields = Object.entries(update).filter(([k]) => !k.startsWith("$"));
+        for (const [k, v] of directFields) {
+          next[k] = v;
+        }
+        if (update.$set && typeof update.$set === "object") {
+          Object.assign(next, update.$set);
+        }
+        if (update.$inc && typeof update.$inc === "object") {
+          for (const [k, delta] of Object.entries(update.$inc)) {
+            next[k] = Number(next[k] || 0) + Number(delta || 0);
+          }
+        }
+      }
+      next.updatedAt = new Date().toISOString();
 
-      items[index] = updatedItem;
+      items[index] = next;
       db[collection] = items;
       writeDb(db);
-      return new SimulatedSingleQuery(collection, updatedItem);
+      return new SimulatedSingleQuery(collection, next);
     },
 
     findOneAndUpdate: function (query: any, update: any) {
@@ -449,16 +486,27 @@ export function createModelFallback(collection: string) {
       const index = items.findIndex((item: any) => matchQuery(item, query));
       if (index === -1) return new SimulatedSingleQuery(collection, null);
 
-      const updatedItem = {
-        ...items[index],
-        ...(update.$set || update),
-        updatedAt: new Date().toISOString(),
-      };
+      const next: any = { ...items[index] };
+      if (update && typeof update === "object") {
+        const directFields = Object.entries(update).filter(([k]) => !k.startsWith("$"));
+        for (const [k, v] of directFields) {
+          next[k] = v;
+        }
+        if (update.$set && typeof update.$set === "object") {
+          Object.assign(next, update.$set);
+        }
+        if (update.$inc && typeof update.$inc === "object") {
+          for (const [k, delta] of Object.entries(update.$inc)) {
+            next[k] = Number(next[k] || 0) + Number(delta || 0);
+          }
+        }
+      }
+      next.updatedAt = new Date().toISOString();
 
-      items[index] = updatedItem;
+      items[index] = next;
       db[collection] = items;
       writeDb(db);
-      return new SimulatedSingleQuery(collection, updatedItem);
+      return new SimulatedSingleQuery(collection, next);
     },
 
     findByIdAndDelete: function (id: string) {

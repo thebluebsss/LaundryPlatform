@@ -1,8 +1,76 @@
+import crypto from "crypto";
 import { Request, Response } from "express";
 import { asyncHandler } from "../utils/errorHandler";
 import { successResponse } from "../utils/response";
 import LaundryOrder from "../models/LaundryOrder";
+import LaundryService from "../models/LaundryService";
+import Product from "../models/Product";
 import { realtimeHub } from "../services/realtimeHub";
+import { normalizeRole } from "../middleware/auth";
+import { config } from "../config/env";
+
+const cleanStr = (val: unknown): string => String(val ?? "").trim().toLowerCase();
+
+const isOrderOwner = (user: any, order: any): boolean => {
+  if (!user || !order) return false;
+  const uid = cleanStr(user._id || user.id);
+  const phone = cleanStr(user.phone);
+  return (
+    (uid !== "" && cleanStr(order.userId) === uid) ||
+    (phone !== "" && cleanStr(order.phoneNumber) === phone)
+  );
+};
+
+const isOrderStoreOwner = (user: any, order: any): boolean => {
+  if (!user || normalizeRole(user.role) !== "store_owner") return false;
+  const assignedStoreId = cleanStr(user.assignedStoreId);
+  if (!assignedStoreId) return true;
+  return cleanStr(order?.storeId) === assignedStoreId;
+};
+
+const isOrderDriver = (user: any, order: any): boolean => {
+  if (!user || normalizeRole(user.role) !== "driver") return false;
+  const uid = cleanStr(user._id || user.id);
+  const phone = cleanStr(user.phone);
+  const shipperId = cleanStr(order?.shipperId);
+  const shipperPhone = cleanStr(order?.shipperPhone);
+  return (
+    (uid !== "" && shipperId === uid) ||
+    (phone !== "" && (shipperId === phone || shipperPhone === phone))
+  );
+};
+
+const canAccessOrder = (user: any, order: any): boolean => {
+  if (!user || !order) return false;
+  const role = normalizeRole(user.role);
+  if (role === "admin") return true;
+  if (role === "store_owner") return isOrderStoreOwner(user, order);
+  if (role === "driver") return isOrderDriver(user, order);
+  return isOrderOwner(user, order);
+};
+
+const verifyPaymentWebhookSignature = (req: Request): boolean => {
+  if (!config.paymentWebhookSecret) return false;
+  const sigHeader = String(
+    req.headers["x-webhook-signature"] || req.headers["x-signature"] || ""
+  ).trim();
+  if (!sigHeader) return false;
+  const expected = crypto
+    .createHmac("sha256", config.paymentWebhookSecret)
+    .update(JSON.stringify(req.body || {}))
+    .digest("hex");
+  const sigBuf = Buffer.from(sigHeader);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length) return false;
+  return crypto.timingSafeEqual(sigBuf, expBuf);
+};
+
+const orderAudience = (order: any) => ({
+  userId: order?.userId,
+  phoneNumber: order?.phoneNumber,
+  storeId: order?.storeId,
+  shipperId: order?.shipperId,
+});
 
 const findOrderByIdOrCustomId = async (rawId: string) => {
   let order = await (LaundryOrder as any).findOne({ id: rawId });
@@ -15,31 +83,74 @@ const findOrderByIdOrCustomId = async (rawId: string) => {
 };
 
 /**
- * @desc    Tạo đơn hàng mới
+ * @desc    Tạo đơn hàng mới (tính giá từ bảng dịch vụ & sản phẩm trên server)
  * @route   POST /api/laundry-orders
- * @access  Public
+ * @access  Private
  */
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
-  const orderData = { ...req.body };
+  const user = req.user;
+  const role = normalizeRole(user?.role);
+  const isStaff = role === "admin" || role === "store_owner";
+
+  const orderData: any = { ...req.body };
   if (!orderData.id) {
     orderData.id = "ORD-" + Math.floor(1000 + Math.random() * 9000);
   }
-  if (!orderData.status) {
+
+  // Bind customer identity & restrict sensitive initial statuses for non-staff
+  if (!isStaff) {
+    orderData.userId = String(user._id || user.id);
     orderData.status = "pending";
-  }
-  if (!orderData.weightConfirmStatus) {
+    orderData.paymentStatus = "unpaid";
     orderData.weightConfirmStatus = "not_weighed";
+  } else {
+    orderData.status = orderData.status || "pending";
+    orderData.weightConfirmStatus = orderData.weightConfirmStatus || "not_weighed";
+    if (role === "store_owner" && user.assignedStoreId) {
+      orderData.storeId = user.assignedStoreId;
+    }
+  }
+
+  // Fetch authoritative prices from DB (LaundryService & Product)
+  const [dbServices, dbProducts] = await Promise.all([
+    (LaundryService as any).find({}).catch(() => []),
+    (Product as any).find({}).catch(() => []),
+  ]);
+
+  const serviceById = new Map<string, any>();
+  const serviceByName = new Map<string, any>();
+  for (const s of dbServices || []) {
+    if (s.customId) serviceById.set(cleanStr(s.customId), s);
+    if (s.id) serviceById.set(cleanStr(s.id), s);
+    if (s._id) serviceById.set(cleanStr(s._id), s);
+    if (s.name) serviceByName.set(cleanStr(s.name), s);
+  }
+
+  const productById = new Map<string, any>();
+  const productByName = new Map<string, any>();
+  for (const p of dbProducts || []) {
+    if (p.id) productById.set(cleanStr(p.id), p);
+    if (p._id) productById.set(cleanStr(p._id), p);
+    if (p.name) productByName.set(cleanStr(p.name), p);
   }
 
   let computedSubtotal = 0;
   if (Array.isArray(orderData.items)) {
     orderData.items = orderData.items.map((item: any) => {
-      const estQty = Number(item.estimatedQuantity ?? item.quantity ?? 1);
-      const unitPrice = Number(item.unitPrice ?? 20000);
-      const lineTotal = Number(item.estimatedLineTotal ?? estQty * unitPrice);
+      const estQty = Math.max(0.5, Number(item.estimatedQuantity ?? item.quantity ?? 1) || 1);
+      const matchedService =
+        serviceById.get(cleanStr(item.serviceId || item.id)) ||
+        serviceByName.get(cleanStr(item.serviceName || item.name));
+      const authoritativeUnitPrice = matchedService
+        ? Number(matchedService.unitPrice ?? matchedService.price ?? 20000)
+        : isStaff
+          ? Math.max(0, Number(item.unitPrice ?? 20000))
+          : Math.max(15000, Number(item.unitPrice ?? 20000));
+      const lineTotal = Math.round(estQty * authoritativeUnitPrice);
       computedSubtotal += lineTotal;
       return {
         ...item,
+        unitPrice: authoritativeUnitPrice,
         quantity: estQty,
         estimatedQuantity: estQty,
         actualQuantity: item.actualQuantity !== undefined ? item.actualQuantity : null,
@@ -49,25 +160,45 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const computedProductsTotal = Array.isArray(orderData.products)
-    ? orderData.products.reduce(
-        (sum: number, p: any) =>
-          sum + Number(p.quantity || 0) * Number(p.unitPrice || 0),
-        0
-      )
-    : Number(orderData.productsTotal || 0);
+  let computedProductsTotal = 0;
+  if (Array.isArray(orderData.products)) {
+    orderData.products = orderData.products.map((p: any) => {
+      const qty = Math.max(0, Math.round(Number(p.quantity || 0)));
+      const matchedProduct =
+        productById.get(cleanStr(p.productId || p.id)) ||
+        productByName.get(cleanStr(p.name || p.productName));
+      const unitPrice = matchedProduct
+        ? Number(matchedProduct.price || 0)
+        : Math.max(0, Number(p.unitPrice || 0));
+      computedProductsTotal += qty * unitPrice;
+      return { ...p, quantity: qty, unitPrice };
+    });
+  }
 
-  const subtotal = Number(orderData.subtotal ?? computedSubtotal);
-  const estimatedSubtotal = Number(orderData.estimatedSubtotal ?? subtotal);
-  const deliveryFee = Number(orderData.deliveryFee ?? 25000);
-  const discountAmount = Number(orderData.discountAmount ?? 0);
-  const extraFee = Number(orderData.extraFee ?? 0);
-  const totalPrice = Number(
-    orderData.totalPrice ??
-      Math.max(
-        0,
-        subtotal + computedProductsTotal + deliveryFee + extraFee - discountAmount
-      )
+  const subtotal = Math.max(0, Math.round(computedSubtotal));
+  const estimatedSubtotal = subtotal;
+  const deliveryFee =
+    isStaff && orderData.deliveryFee !== undefined
+      ? Math.max(0, Math.round(Number(orderData.deliveryFee) || 0))
+      : orderData.orderType === "pos"
+        ? 0
+        : 25000;
+
+  // Validate promo codes server-side (prevent arbitrary client discount tampering)
+  const promoCode = String(orderData.promoCode || "").trim().toUpperCase();
+  let discountAmount = 0;
+  if (isStaff && orderData.discountAmount !== undefined) {
+    discountAmount = Math.min(subtotal, Math.max(0, Math.round(Number(orderData.discountAmount) || 0)));
+  } else if (promoCode === "SACHSE10" || promoCode === "GIATLA10") {
+    discountAmount = Math.min(50000, Math.round(subtotal * 0.1));
+  } else if (promoCode === "FREESHIP") {
+    discountAmount = deliveryFee;
+  }
+
+  const extraFee = isStaff ? Math.max(0, Math.round(Number(orderData.extraFee ?? 0))) : 0;
+  const totalPrice = Math.max(
+    0,
+    subtotal + computedProductsTotal + deliveryFee + extraFee - discountAmount
   );
 
   orderData.subtotal = subtotal;
@@ -76,7 +207,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   orderData.deliveryFee = deliveryFee;
   orderData.discountAmount = discountAmount;
   orderData.extraFee = extraFee;
-  orderData.extraFeeReason = orderData.extraFeeReason || "";
+  orderData.extraFeeReason = isStaff ? orderData.extraFeeReason || "" : "";
   orderData.customerSpecialRequest = orderData.customerSpecialRequest || "";
   orderData.totalPrice = totalPrice;
 
@@ -214,32 +345,58 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * @desc    Lấy danh sách đơn hàng (hỗ trợ filter theo userId, phone, storeId, status)
+ * @desc    Lấy danh sách đơn hàng (tự động giới hạn theo vai trò & chủ sở hữu)
  * @route   GET /api/laundry-orders
- * @access  Public
+ * @access  Private
  */
 export const getOrders = asyncHandler(async (req: Request, res: Response) => {
   const { userId, phone, storeId, status } = req.query;
+  const user = req.user;
+  const role = normalizeRole(user?.role);
+
   const query: any = {};
-  if (userId) query.userId = userId;
-  if (phone) query.phoneNumber = phone;
-  if (storeId && storeId !== "all") query.storeId = storeId;
   if (status && status !== "all") query.status = status;
 
-  const orders = await (LaundryOrder as any).find(query).sort({ createdAt: -1 });
+  if (role === "admin") {
+    if (userId) query.userId = userId;
+    if (phone) query.phoneNumber = phone;
+    if (storeId && storeId !== "all") query.storeId = storeId;
+  } else if (role === "store_owner") {
+    if (user.assignedStoreId) {
+      query.storeId = user.assignedStoreId;
+    } else if (storeId && storeId !== "all") {
+      query.storeId = storeId;
+    }
+    if (phone) query.phoneNumber = phone;
+  }
 
-  successResponse(res, orders || [], "Lấy danh sách đơn hàng thành công");
+  let orders = (await (LaundryOrder as any).find(query).sort({ createdAt: -1 })) || [];
+
+  // Strict per-user filtering for customer and driver (handles both MongoDB and JSON fallback)
+  if (role === "user" || role === "guest") {
+    orders = orders.filter((o: any) => isOrderOwner(user, o));
+  } else if (role === "driver") {
+    orders = orders.filter((o: any) => isOrderDriver(user, o));
+  }
+
+  successResponse(res, orders, "Lấy danh sách đơn hàng thành công");
 });
 
 /**
  * @desc    Lấy chi tiết đơn hàng
  * @route   GET /api/laundry-orders/:id
- * @access  Public
+ * @access  Private
  */
 export const getOrderById = asyncHandler(async (req: Request, res: Response) => {
   const order = await findOrderByIdOrCustomId(req.params.id);
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+  if (!canAccessOrder(req.user, order)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền xem đơn hàng này",
+    });
   }
   successResponse(res, order, "Lấy chi tiết đơn hàng thành công");
 });
@@ -247,18 +404,62 @@ export const getOrderById = asyncHandler(async (req: Request, res: Response) => 
 /**
  * @desc    Cập nhật trạng thái đơn hàng
  * @route   PATCH /api/laundry-orders/:id/status
- * @access  Public
+ * @access  Private
  */
 export const updateOrderStatus = asyncHandler(async (req: Request, res: Response) => {
-  const { status, paymentStatus, weightConfirmStatus, byRole } = req.body;
+  const { status, paymentStatus, weightConfirmStatus } = req.body;
   const order = await findOrderByIdOrCustomId(req.params.id);
 
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
   }
 
+  const user = req.user;
+  const role = normalizeRole(user?.role);
+  const isStaff = role === "admin" || role === "store_owner";
+
+  if (!canAccessOrder(user, order)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền cập nhật đơn hàng này",
+    });
+  }
+
+  // Never trust client-supplied byRole: enforce strict role-based transition permissions
+  if (!isStaff) {
+    if (paymentStatus !== undefined) {
+      return res.status(403).json({
+        success: false,
+        message: "Chỉ Chủ tiệm hoặc Quản trị viên mới có thể cập nhật trạng thái thanh toán thủ công",
+      });
+    }
+    if (req.body.assignedMachineId !== undefined || req.body.assignedMachineName !== undefined) {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn không có quyền gán thiết bị giặt",
+      });
+    }
+    if (role === "user" || role === "guest") {
+      // Customers may only cancel their own order (or confirm/reject weight via confirm-weight)
+      if (status && status !== "cancelled") {
+        return res.status(403).json({
+          success: false,
+          message: "Khách hàng chỉ có thể hủy đơn hàng của mình",
+        });
+      }
+    } else if (role === "driver") {
+      const driverAllowedStatuses = ["picking_up", "sorting", "delivering", "completed"];
+      if (status && !driverAllowedStatuses.includes(status)) {
+        return res.status(403).json({
+          success: false,
+          message: "Tài xế không được phép chuyển đơn sang trạng thái này",
+        });
+      }
+    }
+  }
+
   // Kiểm tra điều kiện hủy đơn: Khách hàng chỉ được hủy đơn trước khi tài xế lấy đơn thành công
-  if (status === "cancelled" && byRole !== "store" && byRole !== "admin") {
+  if (status === "cancelled" && !isStaff) {
     const postPickupStatuses = [
       "sorting",
       "waiting_confirm",
@@ -300,13 +501,13 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
 
   const updateFields: any = {};
   if (status) updateFields.status = status;
-  if (paymentStatus) {
+  if (paymentStatus && isStaff) {
     updateFields.paymentStatus = paymentStatus;
     if (paymentStatus === "paid" && !order.paidAt) {
       updateFields.paidAt = new Date().toISOString();
     }
   }
-  if (weightConfirmStatus) updateFields.weightConfirmStatus = weightConfirmStatus;
+  if (weightConfirmStatus && isStaff) updateFields.weightConfirmStatus = weightConfirmStatus;
   if (status === "completed") updateFields.completedAt = new Date().toISOString();
   if (status === "cancelled") {
     updateFields.cancelledAt = new Date().toISOString();
@@ -314,10 +515,10 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
       updateFields.cancelReason = String(req.body.cancelReason);
     }
   }
-  if (req.body.assignedMachineId !== undefined) {
+  if (isStaff && req.body.assignedMachineId !== undefined) {
     updateFields.assignedMachineId = String(req.body.assignedMachineId);
   }
-  if (req.body.assignedMachineName !== undefined) {
+  if (isStaff && req.body.assignedMachineName !== undefined) {
     updateFields.assignedMachineName = String(req.body.assignedMachineName);
   }
 
@@ -359,7 +560,7 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
     }
   }
 
-  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id);
+  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id, orderAudience(updatedOrder));
 
   successResponse(res, updatedOrder, "Cập nhật trạng thái đơn hàng thành công");
 });
@@ -367,7 +568,7 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
 /**
  * @desc    Cập nhật cân đo thực tế, dòng đồ giặt (Order_Details) & phụ phí yêu cầu đặc biệt của chủ tiệm
  * @route   PATCH /api/laundry-orders/:id/weigh
- * @access  Public / Store Owner
+ * @access  Private (Store Owner / Admin)
  */
 export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Response) => {
   const {
@@ -388,6 +589,13 @@ export const weighAndInspectOrder = asyncHandler(async (req: Request, res: Respo
 
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+
+  if (normalizeRole(req.user?.role) !== "admin" && !isOrderStoreOwner(req.user, order)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền cân đo đơn hàng của cửa hàng khác",
+    });
   }
 
   const updatedItems = Array.isArray(items) ? items : order.items || [];
@@ -501,6 +709,14 @@ export const confirmOrderWeight = asyncHandler(async (req: Request, res: Respons
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
   }
 
+  const role = normalizeRole(req.user?.role);
+  if (role !== "admin" && !isOrderOwner(req.user, order)) {
+    return res.status(403).json({
+      success: false,
+      message: "Chỉ chủ đơn hàng mới có quyền xác nhận cân nặng",
+    });
+  }
+
   const isApproved = approved !== false;
   const updateFields = isApproved
     ? {
@@ -518,7 +734,7 @@ export const confirmOrderWeight = asyncHandler(async (req: Request, res: Respons
     { new: true }
   );
 
-  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id);
+  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id, orderAudience(updatedOrder));
 
   successResponse(
     res,
@@ -532,12 +748,18 @@ export const confirmOrderWeight = asyncHandler(async (req: Request, res: Respons
 /**
  * @desc    Lấy lịch sử tin nhắn Chat nội bộ theo mã đơn
  * @route   GET /api/laundry-orders/:id/messages
- * @access  Public
+ * @access  Private
  */
 export const getOrderMessages = asyncHandler(async (req: Request, res: Response) => {
   const order = await findOrderByIdOrCustomId(req.params.id);
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+  if (!canAccessOrder(req.user, order)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền xem tin nhắn của đơn hàng này",
+    });
   }
   const messages = Array.isArray(order.messages) ? order.messages : [];
   successResponse(res, { orderId: order.id, messages }, "Lấy lịch sử chat đơn hàng thành công");
@@ -546,10 +768,10 @@ export const getOrderMessages = asyncHandler(async (req: Request, res: Response)
 /**
  * @desc    Gửi tin nhắn hoặc câu trả lời nhanh 1 chạm trong Kênh Chat Nội Bộ theo mã đơn
  * @route   POST /api/laundry-orders/:id/messages
- * @access  Public (Khách hàng / Tài xế / Chủ tiệm)
+ * @access  Private (Khách hàng / Tài xế / Chủ tiệm / Admin)
  */
 export const sendOrderMessage = asyncHandler(async (req: Request, res: Response) => {
-  const { senderRole, senderName, text, isQuickReply } = req.body;
+  const { senderName, text, isQuickReply } = req.body;
   if (!text || !String(text).trim()) {
     return res.status(400).json({
       success: false,
@@ -562,36 +784,47 @@ export const sendOrderMessage = asyncHandler(async (req: Request, res: Response)
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
   }
 
+  if (!canAccessOrder(req.user, order)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền nhắn tin trong đơn hàng này",
+    });
+  }
+
+  // Derive senderRole strictly from authenticated JWT user (never trust spoofed body.senderRole)
+  const authRole = normalizeRole(req.user?.role);
+  const resolvedRole: "customer" | "driver" | "store" | "system" =
+    authRole === "driver"
+      ? "driver"
+      : authRole === "store_owner" || authRole === "admin"
+        ? "store"
+        : "customer";
+
   const hasAssignedDriver = Boolean(
     (order.shipperId && String(order.shipperId).trim()) ||
       (order.shipperName && String(order.shipperName).trim())
   );
 
-  if (!hasAssignedDriver && senderRole !== "driver") {
+  if (!hasAssignedDriver && resolvedRole !== "driver") {
     return res.status(400).json({
       success: false,
       message: "Chưa có tài xế nhận chuyến nên chưa thể nhắn tin trong đơn hàng này",
     });
   }
 
-  const resolvedRole: "customer" | "driver" | "store" | "system" =
-    senderRole === "driver" || senderRole === "store" || senderRole === "system"
-      ? senderRole
-      : "customer";
-
   const defaultName =
     resolvedRole === "driver"
-      ? order.shipperName || "Tài xế Sạch Sẽ"
+      ? req.user?.fullName || order.shipperName || "Tài xế Sạch Sẽ"
       : resolvedRole === "store"
-        ? order.storeName || "Chủ Tiệm Giặt Sạch Sẽ"
-        : order.customerName || "Khách hàng";
+        ? order.storeName || req.user?.fullName || "Chủ Tiệm Giặt Sạch Sẽ"
+        : req.user?.fullName || order.customerName || "Khách hàng";
 
   const newMessage = {
     id: "msg-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6),
     orderId: order.id,
     senderRole: resolvedRole,
     senderName: senderName || defaultName,
-    text: String(text).trim(),
+    text: String(text).trim().slice(0, 2000),
     isQuickReply: Boolean(isQuickReply),
     createdAt: new Date().toISOString(),
   };
@@ -619,7 +852,8 @@ export const sendOrderMessage = asyncHandler(async (req: Request, res: Response)
       storeId: order.storeId || "",
       shipperId: order.shipperId || "",
     },
-    order.id
+    order.id,
+    orderAudience(order)
   );
 
   successResponse(
@@ -638,10 +872,10 @@ export const sendOrderMessage = asyncHandler(async (req: Request, res: Response)
 /**
  * @desc    Cập nhật tọa độ Live GPS của tài xế trực tiếp vào đơn hàng & phát SSE thời gian thực
  * @route   POST /api/laundry-orders/:id/driver-location
- * @access  Public / Driver
+ * @access  Private (Driver / Admin)
  */
 export const updateOrderDriverLocation = asyncHandler(async (req: Request, res: Response) => {
-  const { lat, lng, heading, speedKmh, driverId, driverName } = req.body;
+  const { lat, lng, heading, speedKmh, driverName } = req.body;
   if (lat === undefined || lng === undefined) {
     return res.status(400).json({
       success: false,
@@ -654,14 +888,22 @@ export const updateOrderDriverLocation = asyncHandler(async (req: Request, res: 
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
   }
 
+  const authRole = normalizeRole(req.user?.role);
+  if (authRole !== "admin" && !isOrderDriver(req.user, order)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không phải tài xế đang phụ trách đơn hàng này",
+    });
+  }
+
   const liveLocation = {
     lat: Number(Number(lat).toFixed(6)),
     lng: Number(Number(lng).toFixed(6)),
     heading: heading !== undefined ? Number(heading) : 0,
     speedKmh: speedKmh !== undefined ? Number(speedKmh) : 28,
     updatedAt: new Date().toISOString(),
-    driverId: driverId || order.shipperId || "drv-live",
-    driverName: driverName || order.shipperName || "Tài xế Sạch Sẽ",
+    driverId: String(req.user?._id || req.user?.id || order.shipperId || "drv-live"),
+    driverName: driverName || req.user?.fullName || order.shipperName || "Tài xế Sạch Sẽ",
   };
 
   const updatedOrder = await (LaundryOrder as any).findByIdAndUpdate(
@@ -692,7 +934,8 @@ export const updateOrderDriverLocation = asyncHandler(async (req: Request, res: 
       orderId: order.id,
       driverLocation: liveLocation,
     },
-    order.id
+    order.id,
+    orderAudience(order)
   );
 
   successResponse(
@@ -709,7 +952,7 @@ export const updateOrderDriverLocation = asyncHandler(async (req: Request, res: 
 /**
  * @desc    Khởi tạo phiên Thanh toán Điện tử đa cổng (VietQR Napas247 / PayOS / VNPay) cho đơn giặt
  * @route   POST /api/laundry-orders/:id/payment-link
- * @access  Public
+ * @access  Private
  */
 export const createOrderPaymentLink = asyncHandler(async (req: Request, res: Response) => {
   const { gateway = "vietqr" } = req.body;
@@ -717,6 +960,13 @@ export const createOrderPaymentLink = asyncHandler(async (req: Request, res: Res
 
   if (!order) {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
+  }
+
+  if (!canAccessOrder(req.user, order)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền khởi tạo thanh toán cho đơn hàng này",
+    });
   }
 
   const amount = Math.round(Number(order.totalPrice || 0));
@@ -776,7 +1026,7 @@ export const createOrderPaymentLink = asyncHandler(async (req: Request, res: Res
 /**
  * @desc    Webhook Tự động Đối soát Thanh toán Điện tử (VietQR / PayOS / VNPay)
  * @route   POST /api/laundry-orders/:id/payment-webhook
- * @access  Public / Payment Gateway Webhook
+ * @access  Signed Payment Gateway Webhook OR Authenticated Admin / Store Owner
  */
 export const reconcileOrderPaymentWebhook = asyncHandler(async (req: Request, res: Response) => {
   const { gateway = "vietqr", transactionId, amount } = req.body;
@@ -786,7 +1036,50 @@ export const reconcileOrderPaymentWebhook = asyncHandler(async (req: Request, re
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
   }
 
-  const paidAmount = Math.round(Number(amount || order.totalPrice || 0));
+  const hasValidWebhookSignature = verifyPaymentWebhookSignature(req);
+  const authRole = req.user ? normalizeRole(req.user.role) : "";
+  const isAuthorizedStaff =
+    authRole === "admin" || (authRole === "store_owner" && isOrderStoreOwner(req.user, order));
+  const isDevOwnerDemo =
+    config.allowDemoPaymentConfirm && Boolean(req.user) && isOrderOwner(req.user, order);
+
+  if (!hasValidWebhookSignature && !isAuthorizedStaff && !isDevOwnerDemo) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Thiếu chữ ký xác thực webhook thanh toán hợp lệ (x-webhook-signature) hoặc quyền Quản trị/Chủ tiệm",
+    });
+  }
+
+  const expectedOrderTotal = Math.round(Number(order.totalPrice || 0));
+  if (hasValidWebhookSignature && amount !== undefined) {
+    const incomingAmount = Math.round(Number(amount));
+    if (!Number.isFinite(incomingAmount) || incomingAmount < expectedOrderTotal) {
+      return res.status(400).json({
+        success: false,
+        message: "Số tiền giao dịch không khớp với tổng giá trị đơn hàng",
+      });
+    }
+  }
+
+  // Idempotency: if already paid, return existing state cleanly
+  if (order.paymentStatus === "paid") {
+    return successResponse(
+      res,
+      {
+        orderId: order.id,
+        paymentStatus: "paid",
+        paymentMethod: order.paymentMethod,
+        paymentTransactionId: order.paymentTransactionId,
+        amount: expectedOrderTotal,
+        paidAt: order.paidAt,
+        order,
+      },
+      "Đơn hàng này đã được đối soát thanh toán trước đó"
+    );
+  }
+
+  const paidAmount = expectedOrderTotal;
   const resolvedGateway = gateway || order.paymentMethod || "vietqr";
   const gatewayPrefix = String(resolvedGateway).toUpperCase();
   const resolvedTxId =
@@ -823,6 +1116,7 @@ export const reconcileOrderPaymentWebhook = asyncHandler(async (req: Request, re
     { new: true }
   );
 
+  const audience = orderAudience(updatedOrder || order);
   realtimeHub.broadcast(
     "ORDER_PAYMENT_RECONCILED",
     {
@@ -834,10 +1128,11 @@ export const reconcileOrderPaymentWebhook = asyncHandler(async (req: Request, re
       paidAt,
       order: updatedOrder,
     },
-    order.id
+    order.id,
+    audience
   );
 
-  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id);
+  realtimeHub.broadcast("ORDER_UPDATED", updatedOrder, order.id, audience);
 
   successResponse(
     res,
@@ -857,7 +1152,7 @@ export const reconcileOrderPaymentWebhook = asyncHandler(async (req: Request, re
 /**
  * @desc    Xóa đơn hàng
  * @route   DELETE /api/laundry-orders/:id
- * @access  Public
+ * @access  Private (Admin / Store Owner)
  */
 export const deleteOrder = asyncHandler(async (req: Request, res: Response) => {
   const order = await findOrderByIdOrCustomId(req.params.id);
@@ -866,11 +1161,18 @@ export const deleteOrder = asyncHandler(async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, message: "Đơn hàng không tồn tại" });
   }
 
+  if (normalizeRole(req.user?.role) !== "admin" && !isOrderStoreOwner(req.user, order)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền xóa đơn hàng của cửa hàng khác",
+    });
+  }
+
   try {
     await (LaundryOrder as any).findByIdAndDelete(order._id || order.id);
   } catch (err) {}
 
-  realtimeHub.broadcast("ORDER_UPDATED", { id: order.id, deleted: true }, order.id);
+  realtimeHub.broadcast("ORDER_UPDATED", { id: order.id, deleted: true }, order.id, orderAudience(order));
 
   successResponse(res, null, "Xóa đơn hàng thành công");
 });

@@ -17,7 +17,6 @@ import connectDB from "./src/server/config/database";
 import logger from "./src/server/utils/logger";
 import { config } from "./src/server/config/env";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { seedAdmin, seedProducts, seedServices, seedStores } from "./src/server/utils/seed";
 
 import mongoose from "mongoose";
@@ -37,11 +36,12 @@ async function initDatabaseAndSeed() {
 }
 
 async function startServer() {
-  const PORT = 3000;
+  const PORT = config.port;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     logger.info("Starting in DEVELOPMENT mode with Vite Middleware");
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

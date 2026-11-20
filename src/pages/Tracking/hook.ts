@@ -275,10 +275,9 @@ export const useTracking = () => {
   const handlePaymentSuccess = async (orderId: string) => {
     setLoading(true);
     try {
-      await Promise.allSettled([
-        laundryOrdersAPI.updateStatus(orderId, { paymentStatus: "paid" }),
-        bookingsAPI.updatePaymentStatus(orderId, "paid"),
-      ]);
+      await laundryOrdersAPI.reconcilePaymentWebhook(orderId, {
+        gateway: "vietqr",
+      });
       const updated = orders.map((o) =>
         o.id === orderId ? { ...o, paymentStatus: "paid" as const } : o
       );

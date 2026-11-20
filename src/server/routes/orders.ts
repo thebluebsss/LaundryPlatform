@@ -26,7 +26,7 @@ router.get(
   orderController.getAllOrders,
 );
 
-router.get("/:id", orderController.getOrderById);
+router.get("/:id", authenticateToken as any, orderController.getOrderById);
 
 router.patch(
   "/:id/status",

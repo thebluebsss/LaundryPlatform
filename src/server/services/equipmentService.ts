@@ -10,6 +10,7 @@ export const getEquipment = async (filters: any = {}) => {
 
   if (filters.type && filters.type !== "all") query.type = filters.type;
   if (filters.status && filters.status !== "all") query.status = filters.status;
+  if (filters.storeId && filters.storeId !== "all") query.storeId = filters.storeId;
 
   if (filters.search) {
     query.$or = [

@@ -29,17 +29,28 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Network first fallback to cache strategy for API, or cache first for static assets
-  if (event.request.mode === "navigate") {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // Never intercept non-GET requests, cross-origin requests, or API / SSE endpoints
+  if (
+    req.method !== "GET" ||
+    url.origin !== self.location.origin ||
+    url.pathname.startsWith("/api/")
+  ) {
+    return;
+  }
+
+  if (req.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => {
+      fetch(req).catch(() => {
         return caches.match("/");
       })
     );
   } else {
     event.respondWith(
-      caches.match(event.request).then((response) => {
-        return response || fetch(event.request);
+      caches.match(req).then((response) => {
+        return response || fetch(req);
       })
     );
   }

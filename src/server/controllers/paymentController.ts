@@ -1,9 +1,28 @@
+import crypto from "crypto";
 import { Request, Response } from "express";
 import { asyncHandler } from "../utils/errorHandler";
 import { successResponse } from "../utils/response";
 import * as paymentService from "../services/paymentService";
 import * as bookingService from "../services/bookingService";
 import * as orderService from "../services/orderService";
+import { config } from "../config/env";
+import { normalizeRole } from "../middleware/auth";
+
+const verifyVietQrWebhookSignature = (req: Request): boolean => {
+  if (!config.paymentWebhookSecret) return false;
+  const sigHeader = String(
+    req.headers["x-webhook-signature"] || req.headers["x-signature"] || ""
+  ).trim();
+  if (!sigHeader) return false;
+  const expected = crypto
+    .createHmac("sha256", config.paymentWebhookSecret)
+    .update(JSON.stringify(req.body || {}))
+    .digest("hex");
+  const sigBuf = Buffer.from(sigHeader);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length) return false;
+  return crypto.timingSafeEqual(sigBuf, expBuf);
+};
 
 /**
  * @desc    Tạo VNPay payment URL cho booking
@@ -14,14 +33,14 @@ export const createVNPayBooking = asyncHandler(async (req: Request, res: Respons
   const { bookingId, amount, orderInfo } = req.body;
   const ipAddr = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
 
-  const paymentUrl = await paymentService.createVNPayPaymentUrl(
+  const result = await paymentService.createVNPayPaymentUrl(
     bookingId,
     amount,
     orderInfo,
     ipAddr,
   );
 
-  successResponse(res, { paymentUrl }, "Tạo payment URL thành công");
+  successResponse(res, result, "Tạo payment URL thành công");
 });
 
 /**
@@ -33,14 +52,14 @@ export const createVNPayOrder = asyncHandler(async (req: Request, res: Response)
   const { orderId, amount, orderInfo } = req.body;
   const ipAddr = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
 
-  const paymentUrl = await paymentService.createVNPayPaymentUrl(
+  const result = await paymentService.createVNPayPaymentUrl(
     orderId,
     amount,
     orderInfo,
     ipAddr,
   );
 
-  successResponse(res, { paymentUrl }, "Tạo payment URL thành công");
+  successResponse(res, result, "Tạo payment URL thành công");
 });
 
 /**
@@ -287,27 +306,77 @@ export const getOrderPaymentStatus = asyncHandler(async (req: Request, res: Resp
   );
 });
 export const vnpayIPNGet = asyncHandler(async (req: Request, res: Response) => {
-  // Let callback parse GET queries too
   const result: any = await paymentService.verifyVNPayIPN(req.query);
+  if (result.success && result.data?.orderId) {
+    const { orderId, amount, transactionId } = result.data;
+    try {
+      await bookingService.updatePaymentStatus(orderId, "paid", {
+        transactionId,
+        gateway: "vnpay",
+        amount,
+      });
+    } catch {
+      try {
+        await orderService.updateOrderPaymentStatus(orderId, "paid", {
+          transactionId,
+          gateway: "vnpay",
+          amount,
+        });
+      } catch {}
+    }
+  }
   res.json(result);
 });
+
 export const momoIPNGet = asyncHandler(async (req: Request, res: Response) => {
   const result: any = await paymentService.verifyMoMoIPN(req.query);
+  if (result.success && result.data?.orderId) {
+    const { orderId, amount, transactionId } = result.data;
+    try {
+      await bookingService.updatePaymentStatus(orderId, "paid", {
+        transactionId,
+        gateway: "momo",
+        amount,
+      });
+    } catch {
+      try {
+        await orderService.updateOrderPaymentStatus(orderId, "paid", {
+          transactionId,
+          gateway: "momo",
+          amount,
+        });
+      } catch {}
+    }
+  }
   res.json(result);
 });
 
 /**
  * @desc    Tạo mã thanh toán VietQR ngân hàng 24/7 (Napas 247)
  * @route   POST /api/payment/vietqr/create
- * @access  Public
+ * @access  Private
  */
 export const createVietQRPayment = asyncHandler(async (req: Request, res: Response) => {
-  const { orderId, amount, customerName, orderInfo } = req.body;
+  const { orderId, amount } = req.body;
 
-  if (!orderId || !amount) {
+  if (!orderId) {
     return res.status(400).json({
       success: false,
-      message: "Vui lòng cung cấp orderId và số tiền (amount)",
+      message: "Vui lòng cung cấp orderId",
+    });
+  }
+
+  let resolvedAmount = Math.round(Number(amount || 0));
+  const LaundryOrder = (await import("../models/LaundryOrder")).default;
+  const existingOrder: any = await (LaundryOrder as any).findOne({ id: orderId });
+  if (existingOrder && existingOrder.totalPrice) {
+    resolvedAmount = Math.round(Number(existingOrder.totalPrice));
+  }
+
+  if (!resolvedAmount || resolvedAmount <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Số tiền thanh toán không hợp lệ",
     });
   }
 
@@ -319,25 +388,25 @@ export const createVietQRPayment = asyncHandler(async (req: Request, res: Respon
   const encodedAccName = encodeURIComponent(ACCOUNT_NAME);
 
   // Sinh link ảnh VietQR chuẩn Napas247 theo chuẩn VietQR.io
-  const qrImageUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${Math.round(amount)}&addInfo=${transferContent}&accountName=${encodedAccName}`;
+  const qrImageUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${resolvedAmount}&addInfo=${transferContent}&accountName=${encodedAccName}`;
 
-  // Cập nhật thông tin vào đơn hàng nếu có
-  try {
-    const LaundryOrder = (await import("../models/LaundryOrder")).default;
-    await (LaundryOrder as any).findOneAndUpdate(
-      { id: orderId },
-      {
-        paymentMethod: "vietqr",
-        vietQrUrl: qrImageUrl,
-      }
-    );
-  } catch (err) {}
+  if (existingOrder) {
+    try {
+      await (LaundryOrder as any).findOneAndUpdate(
+        { id: orderId },
+        {
+          paymentMethod: "vietqr",
+          vietQrUrl: qrImageUrl,
+        }
+      );
+    } catch {}
+  }
 
   successResponse(
     res,
     {
       orderId,
-      amount: Math.round(amount),
+      amount: resolvedAmount,
       bankId: BANK_ID,
       bankName: "MBBank - Ngân Hàng Quân Đội",
       accountNumber: ACCOUNT_NO,
@@ -351,9 +420,9 @@ export const createVietQRPayment = asyncHandler(async (req: Request, res: Respon
 });
 
 /**
- * @desc    Xác nhận thanh toán VietQR (qua Webhook hoặc Khách xác nhận)
+ * @desc    Xác nhận thanh toán VietQR (Yêu cầu chữ ký HMAC Webhook hoặc Admin/Chủ tiệm xác nhận)
  * @route   POST /api/payment/vietqr/confirm
- * @access  Public
+ * @access  Signed Webhook / Admin / Store Owner
  */
 export const confirmVietQRPayment = asyncHandler(async (req: Request, res: Response) => {
   const { orderId, transactionId, amount } = req.body;
@@ -365,32 +434,77 @@ export const confirmVietQRPayment = asyncHandler(async (req: Request, res: Respo
     });
   }
 
-  try {
-    const LaundryOrder = (await import("../models/LaundryOrder")).default;
-    const order = await (LaundryOrder as any).findOneAndUpdate(
-      { id: orderId },
-      {
-        paymentStatus: "paid",
-        status: "washing",
-      },
-      { new: true }
-    );
+  const LaundryOrder = (await import("../models/LaundryOrder")).default;
+  const order: any = await (LaundryOrder as any).findOne({ id: orderId });
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      message: "Không tìm thấy đơn hàng tương ứng",
+    });
+  }
 
-    successResponse(
+  const hasValidSig = verifyVietQrWebhookSignature(req);
+  const authRole = req.user ? normalizeRole(req.user.role) : "";
+  const isStaff = authRole === "admin" || authRole === "store_owner";
+  const isOrderOwner =
+    Boolean(req.user) &&
+    ((order.userId && String(order.userId) === String(req.user._id || req.user.id)) ||
+      (order.phoneNumber &&
+        req.user.phone &&
+        String(order.phoneNumber) === String(req.user.phone)));
+  const isDevOwnerDemo = config.allowDemoPaymentConfirm && isOrderOwner;
+
+  if (!hasValidSig && !isStaff && !isDevOwnerDemo) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Thiếu chữ ký xác thực webhook VietQR hợp lệ hoặc quyền Chủ tiệm/Admin",
+    });
+  }
+
+  const expectedTotal = Math.round(Number(order.totalPrice || 0));
+  if (hasValidSig && amount !== undefined && Number(amount) < expectedTotal) {
+    return res.status(400).json({
+      success: false,
+      message: "Số tiền thanh toán không đủ theo giá trị đơn hàng",
+    });
+  }
+
+  if (order.paymentStatus === "paid") {
+    return successResponse(
       res,
       {
         orderId,
         paymentStatus: "paid",
-        transactionId: transactionId || `TXN-VQR-${Date.now()}`,
-        paidAt: new Date().toISOString(),
+        transactionId: order.paymentTransactionId || transactionId || `TXN-VQR-${Date.now()}`,
+        paidAt: order.paidAt || new Date().toISOString(),
       },
-      "Xác nhận thanh toán VietQR thành công"
+      "Đơn hàng đã được xác nhận thanh toán trước đó"
     );
-  } catch (err: any) {
-    res.status(500).json({
-      success: false,
-      message: err.message || "Lỗi khi xác nhận giao dịch VietQR",
-    });
   }
+
+  const resolvedTxId = transactionId || `TXN-VQR-${Date.now()}`;
+  const paidAt = new Date().toISOString();
+
+  await (LaundryOrder as any).findOneAndUpdate(
+    { id: orderId },
+    {
+      paymentStatus: "paid",
+      paymentTransactionId: resolvedTxId,
+      paidAt,
+    },
+    { new: true }
+  );
+
+  successResponse(
+    res,
+    {
+      orderId,
+      paymentStatus: "paid",
+      transactionId: resolvedTxId,
+      paidAt,
+    },
+    "Xác nhận thanh toán VietQR thành công"
+  );
 });
 

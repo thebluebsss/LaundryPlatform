@@ -2,18 +2,36 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const nodeEnv = process.env.NODE_ENV || "development";
+const resolvedJwtSecret = (
+  process.env.JWT_SECRET ||
+  process.env.SESSION_SECRET ||
+  ""
+).trim();
+
+if (nodeEnv === "production" && !resolvedJwtSecret) {
+  throw new Error(
+    "CRITICAL: JWT_SECRET (hoặc SESSION_SECRET) bắt buộc phải được cấu hình trong môi trường production!"
+  );
+}
+
+const parsedPort = Number(process.env.PORT);
+
 export const config = {
-  port: 3000,
-  nodeEnv: process.env.NODE_ENV || "development",
+  port: Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000,
+  nodeEnv,
+
+  // CORS
+  corsOrigins: (process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
 
   // Database
   mongodbUri: process.env.MONGODB_URI || "mongodb://localhost:27017/prolaundry",
 
   // JWT
-  jwtSecret:
-    process.env.JWT_SECRET ||
-    process.env.SESSION_SECRET ||
-    "sachse_dev_only_jwt_secret_change_in_prod",
+  jwtSecret: resolvedJwtSecret || "sachse_dev_only_jwt_secret_change_in_prod",
   jwtExpiry: "7d",
 
   // Email credentials (loaded strictly from environment variables / Secrets)
@@ -42,7 +60,12 @@ export const config = {
     phoneNumber: process.env.TWILIO_PHONE_NUMBER,
   },
 
-  // Payment Gateways
+  // Payment Gateways & Webhook Security
+  paymentWebhookSecret: (process.env.PAYMENT_WEBHOOK_SECRET || "").trim(),
+  allowDemoPaymentConfirm:
+    process.env.ALLOW_DEMO_PAYMENT_CONFIRM === "true" ||
+    nodeEnv !== "production",
+
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY,
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
@@ -74,5 +97,6 @@ export const config = {
   },
 
   // AI
+  geminiModel: (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim(),
   groqApiKey: process.env.GROQ_API_KEY,
 };

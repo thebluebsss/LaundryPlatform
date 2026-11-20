@@ -186,16 +186,60 @@ export const createStore = asyncHandler(async (req: Request, res: Response) => {
 export const updateStore = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  let store = await (Store as any).findOneAndUpdate({ customId: id }, req.body, {
-    new: true,
-  });
-  if (!store) {
-    store = await (Store as any).findByIdAndUpdate(id, req.body, { new: true });
+  let existing = await (Store as any).findOne({ customId: id });
+  if (!existing) {
+    try {
+      existing = await (Store as any).findById(id);
+    } catch {}
   }
 
-  if (!store) {
+  if (!existing) {
     return errorResponse(res, "Không tìm thấy cửa hàng để cập nhật", 404);
   }
+
+  const user = req.user;
+  const userRole = user?.role === "store_manager" ? "store_owner" : user?.role;
+  if (userRole !== "admin") {
+    const storeKey = String(existing.customId || existing.id || existing._id || "");
+    const ownerMatches =
+      existing.ownerId && String(existing.ownerId) === String(user?._id || user?.id);
+    const assignedMatches =
+      user?.assignedStoreId && String(user.assignedStoreId) === storeKey;
+    if (!ownerMatches && !assignedMatches && user?.assignedStoreId) {
+      return errorResponse(res, "Bạn không có quyền cập nhật cửa hàng của đối tác khác", 403);
+    }
+  }
+
+  const allowedFields = [
+    "name",
+    "address",
+    "district",
+    "city",
+    "phone",
+    "lat",
+    "lng",
+    "openHours",
+    "priceRange",
+    "status",
+    "description",
+    "image",
+    "images",
+    "services",
+    "isActive",
+  ];
+  const safeUpdate: Record<string, any> = {};
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      if (field === "isActive" && userRole !== "admin") continue;
+      safeUpdate[field] = req.body[field];
+    }
+  }
+
+  const store = await (Store as any).findByIdAndUpdate(
+    existing._id || existing.id,
+    { $set: safeUpdate },
+    { new: true }
+  );
 
   successResponse(res, normalizeStoreDoc(store), "Cập nhật cửa hàng thành công");
 });

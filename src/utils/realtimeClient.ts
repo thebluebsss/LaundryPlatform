@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { detectActiveScopeFromUrl, getScopedToken } from "./authStorage";
 
 export type RealtimeEventType =
   | "DRIVER_GPS_UPDATED"
@@ -16,15 +17,35 @@ export interface RealtimeMessage {
 
 type Listener = (msg: RealtimeMessage) => void;
 
+const resolveApiBase = (): string => {
+  const raw = ((import.meta as any).env?.VITE_API_URL as string | undefined)?.trim();
+  return raw ? raw.replace(/\/$/, "") : "/api";
+};
+
+const getActiveSseToken = (): string | null => {
+  const scope = detectActiveScopeFromUrl();
+  let token = getScopedToken(scope);
+  if (!token && scope === "store_owner") {
+    token = getScopedToken("admin");
+  }
+  if (!token || token === "activated" || !token.includes(".") || token.length < 15) {
+    return null;
+  }
+  return token;
+};
+
 class RealtimeClient {
   private eventSource: EventSource | null = null;
+  private activeToken: string | null = null;
   private broadcastChannel: BroadcastChannel | null = null;
   private listeners: Set<Listener> = new Set();
   private reconnectTimer: number | null = null;
   private processedEventKeys: Set<string> = new Set();
+  private storageListenerBound = false;
 
   public subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
+    this.bindStorageListener();
     this.ensureConnected();
     return () => {
       this.listeners.delete(listener);
@@ -32,6 +53,23 @@ class RealtimeClient {
         this.close();
       }
     };
+  }
+
+  private bindStorageListener() {
+    if (typeof window === "undefined" || this.storageListenerBound) return;
+    this.storageListenerBound = true;
+    const handleAuthChange = () => {
+      if (this.listeners.size === 0) return;
+      const nextToken = getActiveSseToken();
+      if (nextToken !== this.activeToken) {
+        this.closeEventSource();
+        if (nextToken) {
+          this.ensureConnected();
+        }
+      }
+    };
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("hashchange", handleAuthChange);
   }
 
   private getDedupeKey(msg: RealtimeMessage): string | null {
@@ -86,11 +124,22 @@ class RealtimeClient {
       }
     }
 
-    if (this.eventSource) return;
+    const token = getActiveSseToken();
+    if (!token) {
+      this.closeEventSource();
+      return;
+    }
+
+    if (this.eventSource && this.activeToken === token) return;
+    if (this.eventSource) {
+      this.closeEventSource();
+    }
 
     try {
-      const es = new EventSource("/api/laundry-orders/stream");
+      const streamUrl = `${resolveApiBase()}/laundry-orders/stream?token=${encodeURIComponent(token)}`;
+      const es = new EventSource(streamUrl);
       this.eventSource = es;
+      this.activeToken = token;
 
       es.onmessage = (ev) => {
         try {
@@ -108,7 +157,7 @@ class RealtimeClient {
 
       es.onerror = () => {
         this.closeEventSource();
-        if (this.listeners.size > 0 && !this.reconnectTimer) {
+        if (this.listeners.size > 0 && !this.reconnectTimer && getActiveSseToken()) {
           this.reconnectTimer = window.setTimeout(() => {
             this.reconnectTimer = null;
             this.ensureConnected();
@@ -127,9 +176,14 @@ class RealtimeClient {
       } catch {}
       this.eventSource = null;
     }
+    this.activeToken = null;
   }
 
   private close() {
+    if (this.reconnectTimer) {
+      window.clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     this.closeEventSource();
     if (this.broadcastChannel) {
       try {

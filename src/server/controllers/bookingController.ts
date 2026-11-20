@@ -46,16 +46,33 @@ export const getBookings = asyncHandler(async (req: Request, res: Response) => {
  * @access  Public
  */
 export const getBookingById = asyncHandler(async (req: Request, res: Response) => {
-  const booking = await bookingService.getBookingById(req.params.id);
+  const booking: any = await bookingService.getBookingById(req.params.id);
+  const isAdmin = req.user?.role === "admin" || req.user?.role === "store_owner";
+  const ownerMatches =
+    (booking?.userId && String(booking.userId) === String(req.user?._id || req.user?.id)) ||
+    (booking?.phone && req.user?.phone && String(booking.phone) === String(req.user.phone));
+  if (!isAdmin && !ownerMatches) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền xem đơn đặt lịch này",
+    });
+  }
   successResponse(res, booking, "Lấy chi tiết booking thành công");
 });
 
 /**
  * @desc    Tìm booking theo số điện thoại
  * @route   GET /api/bookings/phone/:phone
- * @access  Public
+ * @access  Private
  */
 export const getBookingsByPhone = asyncHandler(async (req: Request, res: Response) => {
+  const isStaff = req.user?.role === "admin" || req.user?.role === "store_owner";
+  if (!isStaff && String(req.params.phone || "").trim() !== String(req.user?.phone || "").trim()) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn chỉ có thể tra cứu lịch sử theo số điện thoại của chính mình",
+    });
+  }
   const bookings = await bookingService.getBookingsByPhone(req.params.phone);
   successResponse(res, bookings, "Tìm bookings thành công");
 });

@@ -315,8 +315,6 @@ export const updateUserSchema = Joi.object({
  */
 export const validate = (schema: Joi.ObjectSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    console.log("Validating request body:", req.body);
-
     const { error, value } = schema.validate(req.body, {
       abortEarly: false,
       stripUnknown: true,
@@ -327,8 +325,6 @@ export const validate = (schema: Joi.ObjectSchema) => {
         field: detail.path.join("."),
         message: detail.message,
       }));
-
-      console.log("Validation errors:", errors);
 
       return res.status(400).json({
         success: false,

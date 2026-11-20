@@ -5,8 +5,9 @@ import {
   clearScopedSession,
 } from "../utils/authStorage";
 
-// API base URL - change this to your backend URL
-const API_BASE_URL = "/api";
+// API base URL - supports VITE_API_URL for native Capacitor mobile builds
+const rawApiUrl = ((import.meta as any).env?.VITE_API_URL as string | undefined)?.trim();
+export const API_BASE_URL = rawApiUrl ? rawApiUrl.replace(/\/$/, "") : "/api";
 
 // Create axios instance
 const api = axios.create({
@@ -16,22 +17,33 @@ const api = axios.create({
   },
 });
 
+const sanitizeToken = (token: string | null): string | null => {
+  if (!token) return null;
+  if (token === "activated" || !token.includes(".") || token.length < 15) {
+    return null;
+  }
+  return token;
+};
+
 // Add auth token to requests based on active app/portal route
 api.interceptors.request.use(
   (config) => {
     const scope = detectActiveScopeFromUrl();
-    let token = getScopedToken(scope);
+    let token = sanitizeToken(getScopedToken(scope));
+    let usedScope = scope;
 
-    // Filter out legacy dummy tokens like "activated"
-    if (
-      token &&
-      (token === "activated" || !token.includes(".") || token.length < 15)
-    ) {
-      token = null;
+    // StoreOwnerRoute allows Admin access via adminToken -> forward admin JWT when store_owner token is absent
+    if (!token && scope === "store_owner") {
+      const adminToken = sanitizeToken(getScopedToken("admin"));
+      if (adminToken) {
+        token = adminToken;
+        usedScope = "admin";
+      }
     }
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      (config as any).__authScope = usedScope;
     }
     return config;
   },
@@ -40,14 +52,14 @@ api.interceptors.request.use(
   },
 );
 
-// Handle 401 response interceptor to clean up expired/invalid tokens for active scope only
+// Handle 401 response interceptor to clean up expired/invalid tokens for the scope whose token was sent
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
       const isAuthRoute = error.config?.url?.includes("/auth/");
       if (!isAuthRoute) {
-        const scope = detectActiveScopeFromUrl();
+        const scope = (error.config as any)?.__authScope || detectActiveScopeFromUrl();
         clearScopedSession(scope);
       }
     }

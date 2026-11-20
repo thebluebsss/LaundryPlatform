@@ -1,18 +1,44 @@
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("path");
+const http = require("http");
 const { spawn } = require("child_process");
 
 let mainWindow;
 let serverProcess;
 
+function waitForServer(url, retries = 30, intervalMs = 300) {
+  return new Promise((resolve) => {
+    let attempts = 0;
+    const probe = () => {
+      attempts += 1;
+      const req = http.get(url, (res) => {
+        res.resume();
+        resolve();
+      });
+      req.on("error", () => {
+        if (attempts >= retries) {
+          resolve();
+        } else {
+          setTimeout(probe, intervalMs);
+        }
+      });
+      req.setTimeout(1000, () => {
+        req.destroy();
+      });
+    };
+    probe();
+  });
+}
+
 function startServer(callback) {
+  const port = process.env.PORT || "3000";
   // Start Express server internally
   serverProcess = spawn("node", [path.join(__dirname, "dist/server.cjs")], {
-    env: { ...process.env, NODE_ENV: "production", PORT: "3000" },
-    stdio: "inherit"
+    env: { ...process.env, NODE_ENV: "production", PORT: port },
+    stdio: "inherit",
   });
 
-  setTimeout(callback, 2000);
+  waitForServer(`http://localhost:${port}/api/health`).then(callback);
 }
 
 function createWindow() {
@@ -29,7 +55,8 @@ function createWindow() {
     },
   });
 
-  const appUrl = process.env.ELECTRON_START_URL || "http://localhost:3000";
+  const port = process.env.PORT || "3000";
+  const appUrl = process.env.ELECTRON_START_URL || `http://localhost:${port}`;
   mainWindow.loadURL(appUrl);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -59,8 +86,12 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+app.on("before-quit", () => {
   if (serverProcess) {
     serverProcess.kill();
+    serverProcess = null;
   }
 });
 

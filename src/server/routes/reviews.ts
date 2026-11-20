@@ -9,7 +9,7 @@ import {
 const router = express.Router();
 
 router.get("/", reviewController.getReviews);
-router.post("/", reviewController.createOrUpdateReview);
+router.post("/", authenticateToken as any, reviewController.createOrUpdateReview);
 router.patch(
   "/:id/reply",
   authenticateToken as any,

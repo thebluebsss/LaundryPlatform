@@ -286,7 +286,7 @@ const AdminRoute = ({ children }: { children: React.ReactElement }) => {
   const profile = getScopedProfile("admin");
   const role = normalizeRole(profile?.role);
 
-  if (!token && role !== "admin") {
+  if (!token || role !== "admin") {
     return <Navigate to="/admin/login" replace />;
   }
   return children;
@@ -298,7 +298,7 @@ const AdminRedirect = () => {
   const profile = getScopedProfile("admin");
   const role = normalizeRole(profile?.role);
 
-  if (token || role === "admin") {
+  if (token && role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;
   }
   return <Navigate to="/admin/login" replace />;

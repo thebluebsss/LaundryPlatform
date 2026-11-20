@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import LaundryService from "../models/LaundryService";
 import Store from "../models/Store";
 import LaundryOrder from "../models/LaundryOrder";
 import DeliveryTask from "../models/DeliveryTask";
 import { asyncHandler } from "../utils/errorHandler";
 import { successResponse } from "../utils/response";
+import { config } from "../config/env";
+import { normalizeRole } from "../middleware/auth";
 
 const getGeminiClient = () => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -14,11 +16,6 @@ const getGeminiClient = () => {
   }
   return new GoogleGenAI({
     apiKey: apiKey.trim(),
-    httpOptions: {
-      headers: {
-        "User-Agent": "aistudio-build",
-      },
-    },
   });
 };
 
@@ -26,12 +23,16 @@ const STATUS_VI_MAP: Record<string, string> = {
   pending: "Chờ tài xế nhận chuyến",
   picking_up: "Tài xế đang đến lấy đồ",
   at_store: "Đã tới tiệm · Chờ cân đồ",
+  sorting: "Đã tới tiệm · Đang phân loại & cân đồ",
+  waiting_confirm: "Chờ khách xác nhận cân nặng & giá mới",
   waiting_weight_confirm: "Chờ khách xác nhận cân nặng & giá mới",
   washing: "Đang giặt sấy tại tiệm",
+  ironing: "Đang là ủi & đóng gói",
   ready_for_delivery: "Đã giặt xong · Chờ giao trả",
   delivering: "Tài xế đang giao đồ sạch về cho khách",
   completed: "Đã hoàn thành",
   cancelled: "Đã hủy",
+  returning: "Yêu cầu hoàn trả đồ",
   return_requested: "Yêu cầu hoàn trả đồ",
 };
 
@@ -43,14 +44,14 @@ const TASK_STATUS_VI_MAP: Record<string, string> = {
   cancelled: "Đã hủy chuyến",
 };
 
+const cleanLower = (v: unknown) => String(v ?? "").trim().toLowerCase();
+
 export const chatWithAssistant = asyncHandler(
   async (req: Request, res: Response) => {
     const {
       role = "customer",
       message = "",
       history = [],
-      userId = "",
-      phone = "",
       userName = "",
     } = req.body;
 
@@ -62,43 +63,104 @@ export const chatWithAssistant = asyncHandler(
       });
     }
 
+    const authUser = req.user;
+    const authRole = authUser ? normalizeRole(authUser.role) : "";
     const activeRole: "customer" | "driver" =
       role === "driver" ? "driver" : "customer";
 
-    // 1. Fetch live system data from MongoDB / Fallback DB
-    const [servicesRaw, storesRaw, ordersRaw, tasksRaw] = await Promise.all([
-      (LaundryService as any).find({}).catch(() => []),
-      (Store as any).find({}).catch(() => []),
-      (LaundryOrder as any).find({}).sort({ createdAt: -1 }).catch(() => []),
-      (DeliveryTask as any).find({}).sort({ createdAt: -1 }).catch(() => []),
+    // 1. Fetch public catalog data (services & stores) with bounded queries
+    const [servicesRaw, storesRaw] = await Promise.all([
+      (LaundryService as any).find({ isActive: { $ne: false } }).limit(20).catch(() => []),
+      (Store as any).find({ isActive: { $ne: false } }).limit(20).catch(() => []),
     ]);
+
+    // 2. Fetch personal orders / driver tasks ONLY for the authenticated JWT user (prevent PII cross-leak)
+    let relevantOrders: any[] = [];
+    let completedTasks: any[] = [];
+    let activeDriverTasks: any[] = [];
+    let broadcastingTasksCount = 0;
+
+    if (authUser && activeRole === "customer") {
+      const authId = cleanLower(authUser._id || authUser.id);
+      const authPhone = cleanLower(authUser.phone);
+      const recentOrders =
+        (await (LaundryOrder as any)
+          .find(
+            authId
+              ? { userId: String(authUser._id || authUser.id) }
+              : authPhone
+                ? { phoneNumber: String(authUser.phone) }
+                : {}
+          )
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .catch(() => [])) || [];
+      relevantOrders = recentOrders
+        .filter(
+          (o: any) =>
+            (authId && cleanLower(o.userId) === authId) ||
+            (authPhone && cleanLower(o.phoneNumber) === authPhone)
+        )
+        .slice(0, 3);
+    }
+
+    if (authUser && activeRole === "driver" && (authRole === "driver" || authRole === "admin")) {
+      const driverIds = new Set(
+        [authUser._id, authUser.id, authUser.username, authUser.phone]
+          .map(cleanLower)
+          .filter(Boolean)
+      );
+      const [driverTasksRaw, broadcastingRaw] = await Promise.all([
+        (DeliveryTask as any)
+          .find({ driverId: String(authUser._id || authUser.id) })
+          .sort({ createdAt: -1 })
+          .limit(50)
+          .catch(() => []),
+        (DeliveryTask as any)
+          .find({ status: "broadcasting" })
+          .limit(20)
+          .catch(() => []),
+      ]);
+      const myTasks = (Array.isArray(driverTasksRaw) ? driverTasksRaw : []).filter(
+        (t: any) =>
+          driverIds.has(cleanLower(t.driverId)) ||
+          driverIds.has(cleanLower(t.driverPhone))
+      );
+      completedTasks = myTasks.filter((t: any) => t.status === "completed");
+      activeDriverTasks = myTasks.filter((t: any) =>
+        ["accepted", "arrived_pickup", "picked_up", "in_transit"].includes(t.status)
+      );
+      broadcastingTasksCount = Array.isArray(broadcastingRaw)
+        ? broadcastingRaw.length
+        : 0;
+    }
 
     const services = Array.isArray(servicesRaw) && servicesRaw.length > 0
       ? servicesRaw
       : [
           {
             name: "Giặt sấy tiêu chuẩn theo cân",
-            price: 18000,
-            unit: "kg",
-            turnaroundHours: 12,
+            unitPrice: 18000,
+            unitName: "kg",
+            durationDays: 1,
           },
           {
             name: "Giặt khô & Là hơi cao cấp (Vest, Áo dạ, Lụa)",
-            price: 65000,
-            unit: "món",
-            turnaroundHours: 24,
+            unitPrice: 65000,
+            unitName: "món",
+            durationDays: 1,
           },
           {
             name: "Giặt chăn ga gối đệm diệt khuẩn UV",
-            price: 85000,
-            unit: "bộ",
-            turnaroundHours: 18,
+            unitPrice: 85000,
+            unitName: "bộ",
+            durationDays: 1,
           },
           {
             name: "Vệ sinh & Khử mùi giày Sneaker chuyên sâu",
-            price: 75000,
-            unit: "đôi",
-            turnaroundHours: 24,
+            unitPrice: 75000,
+            unitName: "đôi",
+            durationDays: 1,
           },
         ];
 
@@ -125,42 +187,28 @@ export const chatWithAssistant = asyncHandler(
           },
         ];
 
-    const allOrders = Array.isArray(ordersRaw) ? ordersRaw : [];
-    const allTasks = Array.isArray(tasksRaw) ? tasksRaw : [];
-
-    // Filter customer orders if phone or userId provided, otherwise take top 3 latest orders
-    const customerOrders = allOrders
-      .filter((o: any) => {
-        if (userId && o.userId === userId) return true;
-        if (phone && o.phoneNumber === phone) return true;
-        return false;
-      })
-      .slice(0, 3);
-    const relevantOrders =
-      customerOrders.length > 0 ? customerOrders : allOrders.slice(0, 3);
-
-    // Compute Driver / Shipper metrics & active tasks
-    const completedTasks = allTasks.filter(
-      (t: any) => t.status === "completed"
-    );
-    const activeDriverTasks = allTasks.filter(
-      (t: any) => t.status === "accepted" || t.status === "picked_up"
-    );
-    const broadcastingTasks = allTasks.filter(
-      (t: any) => t.status === "broadcasting"
-    );
-
     const totalDriverEarnings = completedTasks.reduce(
-      (sum: number, t: any) => sum + (Number(t.shippingFee) || 25000),
+      (sum: number, t: any) =>
+        sum + (Number(t.shippingFee) || 25000) + Number(t.tipAmount || 0),
       0
     );
+
+    const resolveServicePrice = (s: any) =>
+      Number(s?.unitPrice ?? s?.price ?? 20000);
+    const resolveServiceUnit = (s: any) => s?.unitName || s?.unit || "kg";
+    const resolveTurnaround = (s: any) =>
+      s?.turnaroundHours
+        ? `~${s.turnaroundHours}h`
+        : s?.durationDays
+          ? `~${Number(s.durationDays) * 24}h`
+          : "~12h";
 
     // Build textual context for Gemini System Instruction
     const servicesText = services
       .slice(0, 8)
       .map(
         (s: any) =>
-          `- ${s.name}: ${Number(s.price || 20000).toLocaleString("vi-VN")}đ/${s.unit || "kg"} (Thời gian hoàn thành: ~${s.turnaroundHours || 12}h)`
+          `- ${s.name}: ${resolveServicePrice(s).toLocaleString("vi-VN")}đ/${resolveServiceUnit(s)} (Thời gian hoàn thành: ${resolveTurnaround(s)})`
       )
       .join("\n");
 
@@ -172,32 +220,36 @@ export const chatWithAssistant = asyncHandler(
       )
       .join("\n");
 
-    const ordersText =
-      relevantOrders.length > 0
+    const ordersText = !authUser
+      ? "- Bạn chưa đăng nhập — vui lòng đăng nhập App Khách hàng để tra cứu chi tiết đơn giặt của riêng bạn."
+      : relevantOrders.length > 0
         ? relevantOrders
             .map(
               (o: any) =>
-                `- Mã đơn #${String(o.id).toUpperCase()}: Khách ${o.customerName} | Tiệm: ${o.storeName || "Sạch Sẽ"} | Trạng thái: ${STATUS_VI_MAP[o.status] || o.status} | Cân nặng: ${o.actualWeightKg || o.estimatedWeight || 3}kg | Tổng tiền: ${Number(o.totalPrice || 0).toLocaleString("vi-VN")}đ (${o.paymentStatus === "paid" ? "Đã thanh toán" : "Chưa thanh toán"}) | Tài xế: ${o.shipperName || "Đang tìm tài xế"}`
+                `- Mã đơn #${String(o.id).toUpperCase()}: Tiệm: ${o.storeName || "Sạch Sẽ"} | Trạng thái: ${STATUS_VI_MAP[o.status] || o.status} | Tổng tiền: ${Number(o.totalPrice || 0).toLocaleString("vi-VN")}đ (${o.paymentStatus === "paid" ? "Đã thanh toán" : "Chưa thanh toán"}) | Tài xế: ${o.shipperName || "Đang tìm tài xế"}`
             )
             .join("\n")
-        : "- Chưa có đơn hàng nào đang hoạt động.";
+        : "- Bạn chưa có đơn hàng nào đang hoạt động.";
 
-    const driverTasksText =
-      activeDriverTasks.length > 0
+    const driverTasksText = !authUser
+      ? "- Vui lòng đăng nhập tài khoản Shipper để xem ví thu nhập và chuyến giao nhận của bạn."
+      : activeDriverTasks.length > 0
         ? activeDriverTasks
             .map(
               (t: any) =>
-                `- Chuyến #${String(t.id).toUpperCase()} (Đơn #${String(t.orderId).toUpperCase()}): Loại: ${t.taskType === "deliver_to_customer" ? "Chiều 2 - Nhận đồ sạch từ tiệm giao trả khách" : "Chiều 1 - Đến nhà khách lấy đồ bẩn mang về tiệm"} | Trạng thái: ${TASK_STATUS_VI_MAP[t.status] || t.status} | Điểm lấy: ${t.pickupAddress || t.customerAddress} -> Điểm giao: ${t.deliveryAddress || t.storeAddress} | Quãng đường: ${t.distanceKm || 1.8}km | Cước phí Shipper nhận: ${Number(t.shippingFee || 25000).toLocaleString("vi-VN")}đ | SĐT khách: ${t.customerPhone || "0988776655"}`
+                `- Chuyến #${String(t.id).toUpperCase()} (Đơn #${String(t.orderId).toUpperCase()}): Loại: ${t.taskType === "deliver_to_customer" ? "Chiều 2 - Nhận đồ sạch từ tiệm giao trả khách" : "Chiều 1 - Đến nhà khách lấy đồ bẩn mang về tiệm"} | Trạng thái: ${TASK_STATUS_VI_MAP[t.status] || t.status} | Điểm lấy: ${t.pickupAddress || t.customerAddress} -> Điểm giao: ${t.deliveryAddress || t.storeAddress} | Quãng đường: ${t.distanceKm || 1.8}km | Cước phí Shipper nhận: ${Number(t.shippingFee || 25000).toLocaleString("vi-VN")}đ`
             )
             .join("\n")
-        : broadcastingTasks.length > 0
-          ? `Hiện chưa có chuyến đang chạy, nhưng đang có ${broadcastingTasks.length} chuyến mới đang phát sóng trên Bản đồ Radar chờ nhận (cước phí từ 25.000đ - 35.000đ/chuyến).`
+        : broadcastingTasksCount > 0
+          ? `Hiện chưa có chuyến đang chạy, nhưng đang có ${broadcastingTasksCount} chuyến mới đang phát sóng trên Bản đồ Radar chờ nhận (cước phí từ 25.000đ - 35.000đ/chuyến).`
           : "Hiện chưa có chuyến giao nhận nào đang chạy.";
+
+    const displayName = authUser?.fullName || userName || "";
 
     const systemInstruction =
       activeRole === "customer"
         ? `Bạn là Trợ lý Hỏi Đáp thông minh dành cho KHÁCH HÀNG của hệ thống "Giặt Là Sạch Sẽ" tại TP. Hà Nội.
-Tên người dùng hiện tại: ${userName || "Quý khách"}.
+Tên người dùng hiện tại: ${displayName || "Quý khách"}.
 Nhiệm vụ của bạn:
 1. Giải đáp chính xác, ngắn gọn, thân thiện bằng tiếng Việt về bảng giá giặt sấy, dịch vụ, danh sách chi nhánh tiệm giặt tại Hà Nội, quy trình cân đồ thực tế tại tiệm, chính sách hủy đơn và thanh toán VietQR/PayOS/VNPay.
 2. Dữ liệu thực tế từ hệ thống hiện tại:
@@ -208,7 +260,7 @@ ${servicesText}
 [DANH SÁCH CHI NHÁNH TIỆM GIẶT TẠI HÀ NỘI]:
 ${storesText}
 
-[ĐƠN HÀNG GẦN NHẤT TRÊN HỆ THỐNG]:
+[ĐƠN HÀNG GẦN NHẤT CỦA KHÁCH]:
 ${ordersText}
 
 [QUY ĐỊNH QUAN TRỌNG]:
@@ -217,7 +269,7 @@ ${ordersText}
 - Thanh toán hỗ trợ Tiền mặt (COD) hoặc Quét mã VietQR Napas247 / PayOS / VNPay tự động đối soát tức thì.
 Hãy trình bày câu trả lời rõ ràng theo gạch đầu dòng, súc tích (dưới 160 từ), sử dụng đúng số liệu thực tế ở trên.`
         : `Bạn là Trợ lý Điều Phối & Hỏi Đáp thông minh dành riêng cho TÀI XẾ GIAO NHẬN (SHIPPER) của hệ thống "Sạch Sẽ Tài Xế" tại TP. Hà Nội.
-Tên tài xế hiện tại: ${userName || "Đối tác Tài xế"}.
+Tên tài xế hiện tại: ${displayName || "Đối tác Tài xế"}.
 Nhiệm vụ của bạn:
 1. Hỗ trợ Shipper tra cứu quy trình giao nhận 2 chiều chuẩn, kiểm tra số dư Ví thu nhập, cước phí chuyến và lộ trình điểm lấy - điểm giao của chuyến đang chạy.
 2. Dữ liệu thực tế từ hệ thống hiện tại của Shipper:
@@ -225,16 +277,16 @@ Nhiệm vụ của bạn:
 - Tổng doanh thu tích lũy đã hoàn thành: ${totalDriverEarnings.toLocaleString("vi-VN")}đ
 - Số chuyến đã hoàn thành: ${completedTasks.length} chuyến
 - Số chuyến đang thực hiện: ${activeDriverTasks.length} chuyến
-- Số chuyến đang phát sóng trên Radar (bán kính 1km): ${broadcastingTasks.length} chuyến
-- Cước phí giao nhận: Shipper hưởng 100% phí vận chuyển trên mỗi chặng (mặc định 25.000đ - 35.000đ/chặng) + thưởng hoàn thành mốc 8 chuyến/ngày.
+- Số chuyến đang phát sóng trên Radar (bán kính 1km): ${broadcastingTasksCount} chuyến
+- Cước phí giao nhận: Shipper hưởng 100% phí vận chuyển trên mỗi chặng (mặc định 25.000đ - 35.000đ/chặng).
 
 [CHUYẾN GIAO NHẬN & TUYẾN ĐƯỜNG HIỆN TẠI]:
 ${driverTasksText}
 
 [QUY TRÌNH GIAO NHẬN 4 BƯỚC DÀNH CHO SHIPPER]:
 - Bước 1 (Bật Radar): Mở trạng thái "Đang nhận chuyến" trên màn hình Radar để nhận cuộc gọi điều phối tự động trong bán kính 1km.
-- Bước 2 (Di chuyển tới điểm lấy & Bật Live GPS): Chạy theo lộ trình Google Maps tới nhà khách (Chiều 1) hoặc tới tiệm giặt (Chiều 2). Có thể mở Kênh Chat Nội Bộ 3 bên để nhắn nhanh 1 chạm ("Tôi đang đứng dưới sảnh chờ nhận đồ").
-- Bước 3 (Xác nhận Đã Lấy Đồ): Kiểm tra túi đồ và bấm nút "Xác nhận Đã Lấy Đồ" trên App Tài xế. Lưu ý: Sau khi Shipper bấm Đã Lấy Đồ, khách hàng không thể tự ý hủy đơn nữa.
+- Bước 2 (Di chuyển tới điểm lấy & Bật Live GPS): Chạy theo lộ trình bản đồ tới nhà khách (Chiều 1) hoặc tới tiệm giặt (Chiều 2). Có thể mở Kênh Chat Nội Bộ 3 bên để nhắn nhanh 1 chạm.
+- Bước 3 (Xác nhận Đã Lấy Đồ): Kiểm tra túi đồ và bấm nút "Xác nhận Đã Lấy Đồ" trên App Tài xế. Sau khi Shipper bấm Đã Lấy Đồ, khách hàng không thể tự ý hủy đơn nữa.
 - Bước 4 (Bàn giao & Cộng tiền Ví): Giao đồ cho tiệm giặt (Chiều 1) hoặc giao đồ sạch tận tay khách (Chiều 2) và bấm "Hoàn thành chuyến" để hệ thống cộng ngay cước phí vào Ví thu nhập.
 Hãy trình bày câu trả lời rõ ràng theo gạch đầu dòng, súc tích (dưới 160 từ), sử dụng đúng số liệu thực tế ở trên.`;
 
@@ -247,7 +299,7 @@ Hãy trình bày câu trả lời rõ ràng theo gạch đầu dòng, súc tích
             stats: [
               {
                 label: "Giặt sấy tiêu chuẩn",
-                value: `${Number(services[0]?.price || 18000).toLocaleString("vi-VN")}đ/${services[0]?.unit || "kg"}`,
+                value: `${resolveServicePrice(services[0]).toLocaleString("vi-VN")}đ/${resolveServiceUnit(services[0])}`,
               },
               {
                 label: "Chi nhánh Hà Nội",
@@ -277,7 +329,7 @@ Hãy trình bày câu trả lời rõ ràng theo gạch đầu dòng, súc tích
                 label: "Chuyến đang chạy",
                 value: activeDriverTasks[0]
                   ? `#${String(activeDriverTasks[0].orderId).toUpperCase()}`
-                  : `${broadcastingTasks.length} chờ nhận`,
+                  : `${broadcastingTasksCount} chờ nhận`,
               },
             ],
           };
@@ -293,9 +345,9 @@ Hãy trình bày câu trả lời rõ ràng theo gạch đầu dòng, súc tích
           return `Hệ thống **Giặt Là Sạch Sẽ** hiện có **${stores.length} chi nhánh** hoạt động tại TP. Hà Nội:\n${storesText}\n• Bạn có thể đặt lịch trên App để hệ thống tự động kết nối chi nhánh và Shipper trong bán kính 1km gần bạn nhất.`;
         }
         if (q.includes("đơn") || q.includes("trạng thái") || q.includes("kiểm tra")) {
-          return `Thông tin **đơn giặt gần nhất** trên hệ thống:\n${ordersText}\n• Bạn có thể bấm vào mục **Đơn hàng** để xem vị trí Live GPS của tài xế hoặc nhắn tin trong Kênh Chat 3 bên.`;
+          return `Thông tin **đơn giặt gần nhất của bạn**:\n${ordersText}\n• Bạn có thể bấm vào mục **Đơn hàng** để xem vị trí Live GPS của tài xế hoặc nhắn tin trong Kênh Chat 3 bên.`;
         }
-        return `Xin chào ${userName || "bạn"}! Tôi là Trợ lý Giặt Là Sạch Sẽ. Dữ liệu hệ thống hiện tại:\n• **Bảng giá nổi bật**:\n${servicesText}\n• **Hệ thống chi nhánh**: ${stores.length} cơ sở tại Hà Nội.\n• **Chính sách**: Hỗ trợ hủy đơn miễn phí trước khi Shipper lấy đồ, xác nhận cân nặng thực tế trên App và thanh toán VietQR tự động đối soát.`;
+        return `Xin chào ${displayName || "bạn"}! Tôi là Trợ lý Giặt Là Sạch Sẽ. Dữ liệu hệ thống hiện tại:\n• **Bảng giá nổi bật**:\n${servicesText}\n• **Hệ thống chi nhánh**: ${stores.length} cơ sở tại Hà Nội.\n• **Chính sách**: Hỗ trợ hủy đơn miễn phí trước khi Shipper lấy đồ, xác nhận cân nặng thực tế trên App và thanh toán VietQR tự động đối soát.`;
       } else {
         if (q.includes("quy trình") || q.includes("bước") || q.includes("hướng dẫn") || q.includes("giao nhận")) {
           return `**Quy trình giao nhận 4 bước chuẩn dành cho Shipper Sạch Sẽ**:\n• **Bước 1 (Nhận lệnh Radar)**: Bật trạng thái *Đang nhận chuyến* để nhận đơn tự động trong bán kính 1km.\n• **Bước 2 (Di chuyển & Bật Live GPS)**: Đi tới điểm lấy theo bản đồ, dùng Chat nhanh 1 chạm để báo khách/tiệm.\n• **Bước 3 (Xác nhận Đã Lấy Đồ)**: Kiểm tra túi đồ và bấm *Đã lấy đồ* (từ lúc này khách không thể hủy đơn).\n• **Bước 4 (Hoàn thành & Cộng Ví)**: Bàn giao đồ tại đích đến để nhận ngay 100% cước phí vào Ví thu nhập.`;
@@ -306,7 +358,7 @@ Hãy trình bày câu trả lời rõ ràng theo gạch đầu dòng, súc tích
         if (q.includes("lộ trình") || q.includes("tuyến đường") || q.includes("đang chạy") || q.includes("điểm lấy") || q.includes("điểm giao")) {
           return `**Thông tin lộ trình & nhiệm vụ hiện tại của bạn**:\n${driverTasksText}\n• Bạn có thể mở tab **Chuyến Đang Chạy** để bật phát sóng Live GPS và nhắn tin trực tiếp với Khách hàng hoặc Chủ tiệm.`;
         }
-        return `Xin chào tài xế ${userName || ""}! Dữ liệu vận hành thời gian thực của bạn:\n• **Ví thu nhập**: ${totalDriverEarnings.toLocaleString("vi-VN")}đ (${completedTasks.length} chuyến hoàn thành).\n• **Nhiệm vụ hiện tại**:\n${driverTasksText}\n• Hãy chọn câu hỏi nhanh bên dưới nếu bạn cần xem chi tiết quy trình 4 bước hoặc lộ trình giao nhận.`;
+        return `Xin chào tài xế ${displayName || ""}! Dữ liệu vận hành thời gian thực của bạn:\n• **Ví thu nhập**: ${totalDriverEarnings.toLocaleString("vi-VN")}đ (${completedTasks.length} chuyến hoàn thành).\n• **Nhiệm vụ hiện tại**:\n${driverTasksText}\n• Hãy chọn câu hỏi nhanh bên dưới nếu bạn cần xem chi tiết quy trình 4 bước hoặc lộ trình giao nhận.`;
       }
     };
 
@@ -330,7 +382,7 @@ Hãy trình bày câu trả lời rõ ràng theo gạch đầu dòng, súc tích
             .slice(-6)
             .map(
               (item: any) =>
-                `${item.sender === "user" ? "Người dùng" : "Trợ lý"}: ${String(item.text || "")}`
+                `${item.sender === "user" ? "Người dùng" : "Trợ lý"}: ${String(item.text || "").slice(0, 500)}`
             )
             .join("\n")
         : "";
@@ -340,13 +392,10 @@ Hãy trình bày câu trả lời rõ ràng theo gạch đầu dòng, súc tích
         : cleanMessage;
 
       const response = await ai.models.generateContent({
-        model: "gemini-4-hydrogen",
+        model: config.geminiModel,
         contents: fullPrompt,
         config: {
           systemInstruction,
-          thinkingConfig: {
-            thinkingLevel: ThinkingLevel.LOW,
-          },
         },
       });
 
@@ -358,12 +407,12 @@ Hãy trình bày câu trả lời rõ ràng theo gạch đầu dòng, súc tích
         {
           reply: replyText,
           role: activeRole,
-          source: "gemini-4-hydrogen",
+          source: config.geminiModel,
           contextSummary,
         },
         "Trợ lý AI Gemini phản hồi thành công"
       );
-    } catch (error: any) {
+    } catch {
       return successResponse(
         res,
         {

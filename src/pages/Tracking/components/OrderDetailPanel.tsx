@@ -752,8 +752,8 @@ export const OrderDetailPanel = ({
         onClose={() => setIsPaymentOpen(false)}
         onConfirmPaid={async (orderId) => {
           try {
-            await laundryOrdersAPI.updateStatus(orderId, {
-              paymentStatus: "paid",
+            await laundryOrdersAPI.reconcilePaymentWebhook(orderId, {
+              gateway: "vietqr",
             });
             setIsPaymentOpen(false);
           } catch {}

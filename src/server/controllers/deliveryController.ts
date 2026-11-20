@@ -355,60 +355,69 @@ export const acceptTask = async (req: Request, res: Response) => {
       });
     }
 
-    let task = await DeliveryTask.findOne({ id: taskId });
-    if (!task && mongoose.Types.ObjectId.isValid(taskId)) {
-      task = await DeliveryTask.findById(taskId);
+    let existingTask = await DeliveryTask.findOne({ id: taskId });
+    if (!existingTask && mongoose.Types.ObjectId.isValid(taskId)) {
+      existingTask = await DeliveryTask.findById(taskId);
     }
 
-    const assignedDriverName = driverName || "Tài xế Sạch Sẽ";
-    const assignedDriverPhone = driverPhone || "0911222333";
-    const assignedDriverId = driverId || "drv-1";
-
-    if (task) {
-      if (task.status !== "broadcasting") {
-        return res.status(409).json({
-          success: false,
-          message: "Đơn này đã được tài xế khác tiếp nhận hoặc đã bị hủy",
-        });
-      }
-
-      task = await DeliveryTask.findOneAndUpdate(
-        { id: task.id || taskId },
-        {
-          status: "accepted",
-          driverId: assignedDriverId,
-          driverName: assignedDriverName,
-          driverPhone: assignedDriverPhone,
-          ...(vehicleType ? { vehicleType } : {}),
-          ...(vehiclePlate ? { vehiclePlate } : {}),
-          acceptedAt: new Date().toISOString(),
-        },
-        { new: true }
-      );
-
-      // Cancel any duplicate broadcasting tasks for the same orderId + taskType
-      if (task?.orderId) {
-        try {
-          const otherBroadcasts = await DeliveryTask.find({
-            orderId: task.orderId,
-            taskType: task.taskType,
-            status: "broadcasting",
-          });
-          for (const ob of otherBroadcasts || []) {
-            if (ob.id !== task.id) {
-              await DeliveryTask.findOneAndUpdate(
-                { id: ob.id },
-                { status: "cancelled", cancelledAt: new Date().toISOString() }
-              );
-            }
-          }
-        } catch (e) {}
-      }
-    } else {
+    if (!existingTask) {
       return res.status(404).json({
         success: false,
         message: "Không tìm thấy nhiệm vụ giao nhận này",
       });
+    }
+
+    const authUser = req.user;
+    const isDriverCaller = authUser && authUser.role === "driver";
+    const assignedDriverId = isDriverCaller
+      ? String(authUser._id || authUser.id)
+      : driverId || String(authUser?._id || "drv-1");
+    const assignedDriverName = isDriverCaller
+      ? authUser.fullName || driverName || "Tài xế Sạch Sẽ"
+      : driverName || "Tài xế Sạch Sẽ";
+    const assignedDriverPhone = isDriverCaller
+      ? authUser.phone || driverPhone || "0911222333"
+      : driverPhone || "0911222333";
+
+    // Atomic conditional update prevents two drivers from accepting the same broadcasting task simultaneously
+    const task = await DeliveryTask.findOneAndUpdate(
+      { id: existingTask.id || taskId, status: "broadcasting" },
+      {
+        status: "accepted",
+        driverId: assignedDriverId,
+        driverName: assignedDriverName,
+        driverPhone: assignedDriverPhone,
+        ...(vehicleType ? { vehicleType } : {}),
+        ...(vehiclePlate ? { vehiclePlate } : {}),
+        acceptedAt: new Date().toISOString(),
+      },
+      { new: true }
+    );
+
+    if (!task) {
+      return res.status(409).json({
+        success: false,
+        message: "Đơn này đã được tài xế khác tiếp nhận hoặc đã bị hủy",
+      });
+    }
+
+    // Cancel any duplicate broadcasting tasks for the same orderId + taskType
+    if (task.orderId) {
+      try {
+        const otherBroadcasts = await DeliveryTask.find({
+          orderId: task.orderId,
+          taskType: task.taskType,
+          status: "broadcasting",
+        });
+        for (const ob of otherBroadcasts || []) {
+          if (ob.id !== task.id) {
+            await DeliveryTask.findOneAndUpdate(
+              { id: ob.id },
+              { status: "cancelled", cancelledAt: new Date().toISOString() }
+            );
+          }
+        }
+      } catch (e) {}
     }
 
     if (task && task.orderId) {
@@ -438,12 +447,19 @@ export const acceptTask = async (req: Request, res: Response) => {
           { new: true }
         );
         if (updatedOrd) {
-          realtimeHub.broadcast("ORDER_UPDATED", updatedOrd, task.orderId);
+          const audience = {
+            userId: updatedOrd.userId,
+            phoneNumber: updatedOrd.phoneNumber,
+            storeId: updatedOrd.storeId,
+            shipperId: updatedOrd.shipperId,
+          };
+          realtimeHub.broadcast("ORDER_UPDATED", updatedOrd, task.orderId, audience);
           if (initialDriverLoc) {
             realtimeHub.broadcast(
               "DRIVER_GPS_UPDATED",
               { orderId: task.orderId, driverLocation: initialDriverLoc },
-              task.orderId
+              task.orderId,
+              audience
             );
           }
         }
@@ -484,6 +500,24 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       });
     }
 
+    // Drivers may only update tasks assigned to themselves
+    const authUser = req.user;
+    if (authUser && authUser.role === "driver") {
+      const uid = String(authUser._id || authUser.id || "").trim().toLowerCase();
+      const phone = String(authUser.phone || "").trim().toLowerCase();
+      const tDriverId = String(task.driverId || "").trim().toLowerCase();
+      const tDriverPhone = String(task.driverPhone || "").trim().toLowerCase();
+      const matchesDriver =
+        (uid !== "" && tDriverId === uid) ||
+        (phone !== "" && (tDriverId === phone || tDriverPhone === phone));
+      if (!matchesDriver) {
+        return res.status(403).json({
+          success: false,
+          message: "Bạn không có quyền cập nhật chuyến giao nhận của tài xế khác",
+        });
+      }
+    }
+
     const nowIso = new Date().toISOString();
     const isPickupTask = task.taskType !== "deliver_to_customer";
     const updatePayload: any = { status };
@@ -504,31 +538,46 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       updatePayload.cancelledAt = task.cancelledAt || nowIso;
     }
     if (status === "completed") {
-      updatePayload.completedAt = nowIso;
+      updatePayload.completedAt = task.completedAt || nowIso;
       if (isPickupTask && !task.pickedUpAt) {
         updatePayload.pickedUpAt = nowIso;
       }
-      // Increment driver's completedOrders & totalEarnings on User
-      if (task.driverId) {
-        try {
-          const driverUser: any = await User.findById(task.driverId);
-          if (driverUser) {
-            const fee =
-              Number(task.shippingFee || 25000) + Number(task.tipAmount || 0);
-            await User.findByIdAndUpdate(task.driverId, {
-              completedOrders: Number(driverUser.completedOrders || 0) + 1,
-              totalEarnings: Number(driverUser.totalEarnings || 0) + fee,
-            });
-          }
-        } catch {}
-      }
     }
 
-    const updatedTask = await DeliveryTask.findOneAndUpdate(
-      { id: task.id || taskId },
-      updatePayload,
-      { new: true }
-    );
+    let updatedTask: any;
+    if (status === "completed") {
+      // Atomic idempotent transition: only credit driver wallet ONCE when transitioning from non-completed -> completed
+      updatedTask = await DeliveryTask.findOneAndUpdate(
+        { id: task.id || taskId, status: { $ne: "completed" } },
+        updatePayload,
+        { new: true }
+      );
+      if (!updatedTask) {
+        return res.json({
+          success: true,
+          message: "Nhiệm vụ giao nhận đã hoàn thành trước đó",
+          data: task,
+        });
+      }
+      if (task.driverId) {
+        try {
+          const fee =
+            Number(task.shippingFee || 25000) + Number(task.tipAmount || 0);
+          await User.findByIdAndUpdate(task.driverId, {
+            $inc: {
+              completedOrders: 1,
+              totalEarnings: fee,
+            },
+          });
+        } catch {}
+      }
+    } else {
+      updatedTask = await DeliveryTask.findOneAndUpdate(
+        { id: task.id || taskId },
+        updatePayload,
+        { new: true }
+      );
+    }
 
     // If completed, also ensure no lingering broadcasting tasks remain for the same orderId + taskType
     if (status === "completed" && task.orderId) {
@@ -596,7 +645,12 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
             { new: true }
           );
           if (updatedOrd) {
-            realtimeHub.broadcast("ORDER_UPDATED", updatedOrd, task.orderId);
+            realtimeHub.broadcast("ORDER_UPDATED", updatedOrd, task.orderId, {
+              userId: updatedOrd.userId,
+              phoneNumber: updatedOrd.phoneNumber,
+              storeId: updatedOrd.storeId,
+              shipperId: updatedOrd.shipperId,
+            });
           }
         } catch (e) {}
       }
@@ -622,6 +676,8 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
 export const getMyTasks = async (req: Request, res: Response) => {
   try {
     const { driverId, status } = req.query;
+    const authUser = req.user;
+    const isDriverCaller = authUser && authUser.role === "driver";
 
     const query: any = {};
     if (status) query.status = status;
@@ -649,8 +705,14 @@ export const getMyTasks = async (req: Request, res: Response) => {
         };
       });
 
-    if (!driverId) {
-      const enrichedAll = attachOrderSchedule(allTasks);
+    if (!isDriverCaller && !driverId) {
+      let visibleTasks = allTasks;
+      if (authUser?.role === "store_owner" && authUser.assignedStoreId) {
+        visibleTasks = allTasks.filter(
+          (t: any) => String(t.storeId || "") === String(authUser.assignedStoreId)
+        );
+      }
+      const enrichedAll = attachOrderSchedule(visibleTasks);
       return res.json({
         success: true,
         total: enrichedAll.length,
@@ -658,10 +720,21 @@ export const getMyTasks = async (req: Request, res: Response) => {
       });
     }
 
-    const driverIdentifiers = String(driverId)
-      .split(",")
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean);
+    // Drivers are strictly scoped to their own JWT identity (never leak other drivers' tasks)
+    const driverIdentifiers = isDriverCaller
+      ? [
+          authUser._id,
+          authUser.id,
+          authUser.username,
+          authUser.phone,
+          authUser.fullName,
+        ]
+          .map((s) => String(s || "").trim().toLowerCase())
+          .filter(Boolean)
+      : String(driverId || "")
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
 
     const matchedTasks = allTasks.filter((t: any) => {
       if (t.status === "broadcasting") return false;
@@ -675,13 +748,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
       );
     });
 
-    // Fallback: if all non-broadcasting tasks were accepted under default driver ID ("drv-1" / "driver"), return them so the driver sees their full revenue
-    const nonBroadcastingAll = allTasks.filter(
-      (t: any) => t.status !== "broadcasting" && t.status !== "cancelled"
-    );
-    const finalTasks = attachOrderSchedule(
-      matchedTasks.length > 0 ? matchedTasks : nonBroadcastingAll
-    );
+    const finalTasks = attachOrderSchedule(matchedTasks);
 
     res.json({
       success: true,

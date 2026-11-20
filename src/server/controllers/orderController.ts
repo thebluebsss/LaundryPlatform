@@ -30,7 +30,15 @@ export const getAllOrders = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const getOrderById = asyncHandler(async (req: Request, res: Response) => {
-  const order = await orderService.getOrderById(req.params.id);
+  const order: any = await orderService.getOrderById(req.params.id);
+  const isAdmin = req.user?.role === "admin";
+  const ownerId = order?.userId?._id || order?.userId;
+  if (!isAdmin && ownerId && String(ownerId) !== String(req.user?._id || req.user?.id)) {
+    return res.status(403).json({
+      success: false,
+      message: "Bạn không có quyền xem đơn hàng này",
+    });
+  }
   successResponse(res, order, "Lấy chi tiết order thành công");
 });
 
